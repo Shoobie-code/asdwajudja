@@ -52,6 +52,8 @@ final class Solvers {
             this.chronomatron(mc);
         } else if (this.config.solveHarp && title.startsWith("Harp")) {
             this.harp(mc, player);
+        } else if (this.config.forgeAutoClaim && Inv.contains(title, this.config.forgeMenu)) {
+            this.forge(mc);
         }
     }
 
@@ -137,6 +139,19 @@ final class Solvers {
         }
         Inv.click(mc, this.sequence.get(this.clickIndex++));
         this.nextClickAt = now + Math.max(50, this.config.solverClickDelay);
+    }
+
+    /** Claims every finished Forge slot (lore mentions the claim text) while the Forge menu is open. */
+    private void forge(Minecraft mc) {
+        long now = System.currentTimeMillis();
+        if (now < this.nextClickAt) {
+            return;
+        }
+        int slot = Inv.menuSlotWithLore(mc, this.config.forgeClaimText);
+        if (slot >= 0) {
+            Inv.click(mc, slot);
+            this.nextClickAt = now + Math.max(300, this.config.solverClickDelay * 2);
+        }
     }
 
     /** Presses a column's key (quartz) when a note (wool) reaches the slot right above it. */

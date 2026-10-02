@@ -102,6 +102,44 @@ public final class MinerConfig {
     public List<String> sellItems = new ArrayList<>();
     public String activeHours = "";
 
+    // Glacite commissions and excavator
+    public List<String> glaciteRules = new ArrayList<>(List.of(
+        "Walker Slayer=mob:Glacite Walker,Ice Walker",
+        "Glacite=packed_ice",
+        "Umber=terracotta,brown_terracotta,smooth_red_sandstone",
+        "Tungsten=clay,infested_cobblestone",
+        "Onyx=black_stained_glass,black_stained_glass_pane",
+        "Aquamarine=blue_stained_glass,blue_stained_glass_pane",
+        "Citrine=brown_stained_glass,brown_stained_glass_pane",
+        "Peridot=green_stained_glass,green_stained_glass_pane"
+    ));
+    public String glaciteWarpCommand = "warp camp";
+    public String glaciteClaimItem = "Royal Pigeon";
+    public String excavatorScrap = "Suspicious Scrap";
+    public String excavatorMenu = "Fossil Excavator";
+    public String excavatorDigMenu = "Fossil Excavator";
+    public String excavatorStart = "Start Excavator";
+    public String excavatorTile = "Dirt";
+
+    // Garden visitors
+    public boolean visitorsEnabled = false;
+    public double[] visitorSpot = null;
+    public int visitorMin = 1;
+    public String visitorAccept = "Accept Offer";
+
+    // Slayer auto-start
+    public boolean slayerAutoStart = false;
+    public String slayerOpenCommand = "";
+    public String slayerPhoneItem = "Maddox Batphone";
+    public String slayerBoss = "Revenant Horror";
+    public String slayerTier = "IV";
+    public String slayerConfirmItem = "Confirm";
+
+    // Forge
+    public boolean forgeAutoClaim = false;
+    public String forgeMenu = "The Forge";
+    public String forgeClaimText = "Claim";
+
     // Menu solvers
     public boolean solveExperiments = false;
     public boolean solveHarp = false;
@@ -182,6 +220,9 @@ public final class MinerConfig {
             this.fishSpot = null;
         }
         this.forageRoute.removeIf(point -> point == null || point.length != 3);
+        if (this.visitorSpot != null && this.visitorSpot.length != 3) {
+            this.visitorSpot = null;
+        }
         if (this.combatSpot != null && this.combatSpot.length != 3) {
             this.combatSpot = null;
         }

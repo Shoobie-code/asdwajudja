@@ -93,6 +93,7 @@ final class FarmingMacro implements Routine {
     private Vec3 huntCenter;
     private int pests;
     private int frame;
+    private final Visitors visitors = new Visitors();
 
     @Override
     public void reset() {
@@ -109,6 +110,7 @@ final class FarmingMacro implements Routine {
         this.crops = 0;
         this.rewarps = 0;
         this.frame = 0;
+        this.visitors.reset();
         this.huntUntil = 0L;
         this.pests = 0;
         this.pestCombat.clear();
@@ -150,6 +152,20 @@ final class FarmingMacro implements Routine {
         }
         if (this.huntUntil > 0L) {
             return this.huntPests(macro, mc, player, level, now);
+        }
+        if (this.visitors.active()) {
+            this.keys.release();
+            this.stopBreaking(mc);
+            String status = this.visitors.tick(macro, mc, player, level);
+            if (!this.visitors.active()) {
+                macro.rotator.stop();
+                if (macro.config.farmWarpCommand.isBlank()) {
+                    this.resume();
+                } else {
+                    this.rewarp(macro, mc, "Back from the visitors");
+                }
+            }
+            return status;
         }
 
         int tool = Inv.toolSlot(player, config.farmToolSlot, TOOLS);
@@ -344,6 +360,10 @@ final class FarmingMacro implements Routine {
 
     private void rewarp(Macro macro, Minecraft mc, String why) {
         this.releaseKeys(mc);
+        if (!why.startsWith("Back from") && this.visitors.maybeStart(mc, macro.config)) {
+            MinerMod.LOGGER.info("Farming: serving visitors before rewarping ({})", why);
+            return;
+        }
         this.rewarps++;
         macro.expectTeleport(REWARP_SETTLE_MS + 5000L);
         macro.command(macro.config.farmWarpCommand);
@@ -390,9 +410,15 @@ final class FarmingMacro implements Routine {
     }
 
     @Override
+    public boolean ownsMenu() {
+        return this.visitors.active();
+    }
+
+    @Override
     public String hudLine(Macro macro) {
         String line = String.format("%,d crops (%,.0f/h)  %d rewarps", this.crops, this.crops / macro.hours(), this.rewarps);
-        return this.pests > 0 ? line + "  " + this.pests + " pests" : line;
+        line = this.pests > 0 ? line + "  " + this.pests + " pests" : line;
+        return this.visitors.accepted() > 0 ? line + "  " + this.visitors.accepted() + " visitors" : line;
     }
 
     @Override

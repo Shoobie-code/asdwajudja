@@ -101,6 +101,8 @@ final class MinerCommands {
                     macro.recording.clear();
                     MinerMod.message("Recording cleared.", ChatFormatting.YELLOW);
                 }))))
+            .then(ClientCommands.literal("visitors")
+                .then(ClientCommands.literal("spot").executes(c -> set(settings, "visitors.setspot", ""))))
             .then(ClientCommands.literal("combat")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "combat.setspot", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "combat.clearspot", ""))))
@@ -369,9 +371,9 @@ final class MinerCommands {
         String[] lines = {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
             "/sm start [type] | stop | status | type <type>",
-            "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing combat",
+            "  types: mithril gemstone ore tunnel custom route powder commissions glacite excavator farming foraging fishing combat",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
-            "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear - save spots where you stand",
+            "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear | visitors spot - save spots where you stand",
             "/sm echo record|stop|clear - record a farm walk for the \"Recorded movement\" farm type",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",

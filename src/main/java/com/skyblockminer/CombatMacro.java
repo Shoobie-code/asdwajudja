@@ -14,6 +14,7 @@ import net.minecraft.world.phys.Vec3;
  */
 final class CombatMacro implements Routine {
     private final Combat combat = new Combat();
+    private final SlayerStarter slayer = new SlayerStarter();
     private Vec3 center;
     private LivingEntity lastTarget;
     private int kills;
@@ -22,6 +23,7 @@ final class CombatMacro implements Routine {
     @Override
     public void reset() {
         this.combat.clear();
+        this.slayer.reset();
         this.center = null;
         this.lastTarget = null;
         this.kills = 0;
@@ -40,6 +42,10 @@ final class CombatMacro implements Routine {
         if (config.combatMobs.isEmpty()) {
             macro.stop("Add mob names on the Combat page first");
             return "Off";
+        }
+        if (this.slayer.active()) {
+            macro.walker.stop(mc);
+            return this.slayer.tick(macro, mc, player);
         }
         if (this.center == null) {
             Vec3 home = this.home(config);
@@ -98,8 +104,19 @@ final class CombatMacro implements Routine {
     }
 
     @Override
+    public void onChat(Macro macro, String text) {
+        this.slayer.onChat(macro.config, text);
+    }
+
+    @Override
+    public boolean ownsMenu() {
+        return this.slayer.active();
+    }
+
+    @Override
     public String hudLine(Macro macro) {
-        return String.format("%d kills (%.0f/h)", this.kills, this.kills / macro.hours());
+        String line = String.format("%d kills (%.0f/h)", this.kills, this.kills / macro.hours());
+        return this.slayer.started() > 0 ? line + ", " + this.slayer.started() + " quests started" : line;
     }
 
     @Override

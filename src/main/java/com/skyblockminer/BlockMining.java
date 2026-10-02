@@ -27,15 +27,25 @@ final class BlockMining implements Routine {
     private BlockPos vein;
     private int idleTicks;
     private int walks;
+    private Map<String, Integer> fixedCosts;
 
     BlockMining(MacroType type) {
         this.type = type;
     }
 
+    /** Mines this block set instead of the macro type's own (used by Glacite commissions). */
+    void useCosts(Map<String, Integer> costs) {
+        if (costs != this.fixedCosts) {
+            this.fixedCosts = costs;
+            this.costs = null;
+            this.vein = null;
+        }
+    }
+
     @Override
     public String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         if (this.costs == null || this.costsRevision != macro.config.revision()) {
-            this.costs = Targets.costs(this.type.blocks, macro.config);
+            this.costs = this.fixedCosts != null ? this.fixedCosts : Targets.costs(this.type.blocks, macro.config);
             this.costsRevision = macro.config.revision();
         }
         if (this.vein != null) {
