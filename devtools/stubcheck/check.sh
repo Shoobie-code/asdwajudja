@@ -18,18 +18,21 @@ fetch org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar
 fetch org/lwjgl/lwjgl/3.3.3/lwjgl-3.3.3.jar
 fetch org/lwjgl/lwjgl-glfw/3.3.3/lwjgl-glfw-3.3.3.jar
 fetch org/junit/platform/junit-platform-console-standalone/1.13.4/junit-platform-console-standalone-1.13.4.jar
+# Prefer the JDK in JAVA_HOME (CI images also ship an older default javac on PATH).
+BIN="${JAVA_HOME:+$JAVA_HOME/bin/}"
+"${BIN}javac" -version
 CP="$LIB/gson-2.13.1.jar:$LIB/slf4j-api-2.0.17.jar:$LIB/lwjgl-3.3.3.jar:$LIB/lwjgl-glfw-3.3.3.jar"
 JUNIT="$LIB/junit-platform-console-standalone-1.13.4.jar"
 
 rm -rf "$WORK/gen" "$WORK/stubs" "$WORK/main" "$WORK/test"
-javac -nowarn -d "$WORK/gen" -cp "$LIB/asm-9.8.jar" "$HERE/StubGen.java"
-java -cp "$LIB/asm-9.8.jar:$WORK/gen" StubGen "$ROOT/skyblock-miner-1.0.0.jar" "$WORK/stubs"
+"${BIN}javac" -nowarn -d "$WORK/gen" -cp "$LIB/asm-9.8.jar" "$HERE/StubGen.java"
+"${BIN}java" -cp "$LIB/asm-9.8.jar:$WORK/gen" StubGen "$ROOT/skyblock-miner-1.0.0.jar" "$WORK/stubs"
 rm -rf "$WORK/stubs/com/mojang/brigadier" "$WORK/stubs/org/spongepowered"
 cp -r "$HERE/handwritten/." "$WORK/stubs/"
 python3 "$HERE/patch.py" "$WORK/stubs" "$HERE/hints.txt"
 python3 "$HERE/patch.py" "$WORK/stubs" "$HERE/extra.txt"
 
-javac -nowarn -d "$WORK/main" -cp "$CP" $(find "$WORK/stubs" "$ROOT/src/main/java" -name '*.java')
+"${BIN}javac" -nowarn -d "$WORK/main" -cp "$CP" $(find "$WORK/stubs" "$ROOT/src/main/java" -name '*.java')
 echo "main: compiled"
-javac -nowarn -d "$WORK/test" -cp "$WORK/main:$CP:$JUNIT" $(find "$ROOT/src/test/java" -name '*.java')
-java -jar "$JUNIT" execute -cp "$WORK/test:$WORK/main:$CP" --select-package com.skyblockminer --disable-banner --details=summary
+"${BIN}javac" -nowarn -d "$WORK/test" -cp "$WORK/main:$CP:$JUNIT" $(find "$ROOT/src/test/java" -name '*.java')
+"${BIN}java" -jar "$JUNIT" execute -cp "$WORK/test:$WORK/main:$CP" --select-package com.skyblockminer --disable-banner --details=summary
