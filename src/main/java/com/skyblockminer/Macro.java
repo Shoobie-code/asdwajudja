@@ -42,6 +42,8 @@ public final class Macro {
     final FishingMacro fishing = new FishingMacro();
     final CombatMacro combatMacro = new CombatMacro();
     final AutoSell autoSell = new AutoSell();
+    final Recording recording = new Recording();
+    final Prices prices = new Prices();
     final ChestSolver chests = new ChestSolver();
     final Routes routes = new Routes();
     final Failsafes failsafes = new Failsafes();
@@ -87,6 +89,7 @@ public final class Macro {
     Macro(MinerConfig config) {
         this.config = config;
         this.routes.load(config.route);
+        this.recording.load();
         for (MacroType type : MacroType.values()) {
             if (type.minesInPlace()) {
                 this.routines.put(type, new BlockMining(type));
@@ -922,6 +925,15 @@ public final class Macro {
         }
         if (this.tracker.sacks() > 0L) {
             lines.add(String.format("Sacks: %,d (%,.0f/h)", this.tracker.sacks(), this.tracker.sacks() / hours));
+        }
+        if (this.config.bazaarPrices) {
+            this.prices.refreshIfStale();
+            if (this.prices.ready()) {
+                double coins = this.tracker.value(this.prices::price);
+                if (coins > 0.0) {
+                    lines.add(String.format("Profit: %,.0f coins (%,.0f/h)", coins, coins / hours));
+                }
+            }
         }
         return Collections.unmodifiableList(lines);
     }

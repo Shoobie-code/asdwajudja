@@ -30,7 +30,8 @@ final class FarmingMacro implements Routine {
         CACTUS("cactus", "Cactus", "A", "D", 0.0),
         COCOA("cocoa", "Cocoa beans", "W", "S", -10.0),
         MUSHROOM("mushroom", "Mushroom", "A+W", "D+W", 4.0),
-        CUSTOM("custom", "Custom keys", null, null, 3.0);
+        CUSTOM("custom", "Custom keys", null, null, 3.0),
+        ECHO("echo", "Recorded movement (/sm echo record)", null, null, 3.0);
 
         static final List<Pattern> ALL = List.of(values());
         final String id;
@@ -91,6 +92,7 @@ final class FarmingMacro implements Routine {
     private long noPestSince;
     private Vec3 huntCenter;
     private int pests;
+    private int frame;
 
     @Override
     public void reset() {
@@ -106,6 +108,7 @@ final class FarmingMacro implements Routine {
         this.lastBroken = null;
         this.crops = 0;
         this.rewarps = 0;
+        this.frame = 0;
         this.huntUntil = 0L;
         this.pests = 0;
         this.pestCombat.clear();
@@ -128,6 +131,7 @@ final class FarmingMacro implements Routine {
 
     @Override
     public void resume() {
+        this.frame = 0;
         this.aligning = true;
         this.left = true;
         this.lastPos = null;
@@ -157,6 +161,9 @@ final class FarmingMacro implements Routine {
             macro.selectSlot(tool);
         }
 
+        if (Pattern.parse(config.farmPattern) == Pattern.ECHO) {
+            return this.echo(macro, mc, player, level);
+        }
         if (Float.isNaN(this.baseYaw)) {
             this.baseYaw = startYaw(player.getYRot(), config);
         }
@@ -178,6 +185,39 @@ final class FarmingMacro implements Routine {
         this.breakCrop(mc, player, level);
         this.move(macro, mc, player, config);
         return "Farming (" + (this.left ? "left" : "right") + " lane)";
+    }
+
+    /** Replays the recorded keys and view angles tick by tick, breaking crops on the way, then rewarps and repeats. */
+    private String echo(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+        List<float[]> frames = macro.recording.frames();
+        if (frames.isEmpty()) {
+            macro.stop("No recorded movement yet (run /sm echo record)");
+            return "Off";
+        }
+        if (this.frame >= frames.size()) {
+            this.frame = 0;
+            if (macro.config.farmWarpCommand.isBlank()) {
+                this.aligning = true;
+            } else {
+                this.rewarp(macro, mc, "End of the recording");
+                this.frame = 0;
+                return "Rewarping";
+            }
+        }
+        float[] f = frames.get(this.frame);
+        if (this.aligning) {
+            this.releaseKeys(mc);
+            macro.rotator.look(player, f[1], f[2], macro.config.rotationSpeed / 100.0);
+            if (!macro.rotator.settled(player, 1.5)) {
+                return "Aligning to the recording";
+            }
+            this.aligning = false;
+        }
+        macro.rotator.look(player, f[1], f[2], 1.0);
+        this.keys.hold(Recording.keys(mc, (int) f[0]));
+        this.breakCrop(mc, player, level);
+        this.frame++;
+        return String.format("Replaying (%d%%)", this.frame * 100 / frames.size());
     }
 
     /** Pest action "kill": vacuums pests near where the farm was left, then rewarps to the farm start. */

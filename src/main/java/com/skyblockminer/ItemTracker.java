@@ -74,6 +74,15 @@ final class ItemTracker {
         return this.sacks;
     }
 
+    /** Total value of everything gained, priced per display name (sack items are not counted). */
+    double value(java.util.function.ToDoubleFunction<String> price) {
+        double total = 0.0;
+        for (Map.Entry<String, Integer> entry : this.gained.entrySet()) {
+            total += entry.getValue() * price.applyAsDouble(entry.getKey());
+        }
+        return total;
+    }
+
     /** The {@code limit} items gained most, largest first. */
     List<Map.Entry<String, Integer>> top(int limit) {
         List<Map.Entry<String, Integer>> entries = new ArrayList<>(this.gained.entrySet());

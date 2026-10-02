@@ -29,7 +29,7 @@ class LogicTest {
         assertSame(FarmingMacro.Pattern.COCOA, FarmingMacro.Pattern.parse("Cocoa"));
         assertNull(FarmingMacro.Pattern.parse("wheat"));
         for (FarmingMacro.Pattern pattern : FarmingMacro.Pattern.ALL) {
-            if (pattern != FarmingMacro.Pattern.CUSTOM) {
+            if (pattern != FarmingMacro.Pattern.CUSTOM && pattern != FarmingMacro.Pattern.ECHO) {
                 assertTrue(Keys.valid(pattern.left) && Keys.valid(pattern.right), pattern.id);
             }
         }

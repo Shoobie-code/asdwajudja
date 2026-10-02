@@ -89,6 +89,7 @@ public final class MinerMod implements ClientModInitializer {
             macro.onTick(mc);
             macro.render(mc);
             solvers.tick(mc);
+            macro.recording.tick(mc);
         });
         LevelRenderEvents.END_MAIN.register(context -> macro.onFrame());
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {

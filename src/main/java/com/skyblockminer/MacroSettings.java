@@ -358,6 +358,8 @@ public final class MacroSettings {
                 this.toggle("hud.status", "Status HUD", "Shows what the macro is doing.", () -> this.c.hud, v -> this.c.hud = v),
                 this.toggle("hud.tracker", "Loot tracker", "Shows items gained this session with rates per hour.",
                     () -> this.c.itemTracker, v -> this.c.itemTracker = v),
+                this.toggle("hud.prices", "Profit estimate", "Prices tracked loot at Bazaar instant-sell (fetched from api.hypixel.net).",
+                    () -> this.c.bazaarPrices, v -> this.c.bazaarPrices = v).visibleWhen(() -> this.c.itemTracker),
                 this.toggle("hud.targets", "Highlight targets", "Outlines the block or spot the macro is working on.",
                     () -> this.c.showTarget, v -> this.c.showTarget = v),
                 this.button("hud.edit", "HUD layout", "Drag the HUD panels where you want them.", "Edit",

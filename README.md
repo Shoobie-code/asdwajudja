@@ -13,7 +13,7 @@ Discord alerts.
 | Category | Macros |
 | --- | --- |
 | Mining | Mithril (titanium first), Gemstone (pick gem types), Ore, Glacite Tunnels, Custom blocks, Route miner (etherwarp between saved points), Powder (tunnels while mining), Commissions (picks, travels, mines, slays, claims, sells trash) |
-| Farming | Lane / S-shape farming with presets for vertical crops, melon/pumpkin, sugar cane, cactus, cocoa, mushroom and custom key patterns. It locks yaw and pitch, switches lanes when you stop moving, rewarps at a saved point, rewarps when stuck, and can react to pest spawns (notify, stop, or hunt nearby pests with the vacuum and rewarp) |
+| Farming | Lane / S-shape farming with presets for vertical crops, melon/pumpkin, sugar cane, cactus, cocoa, mushroom and custom key patterns, or replay of a walk you recorded (`/sm echo record`) for any other design. It locks yaw and pitch, switches lanes when you stop moving, rewarps at a saved point, rewarps when stuck, and can react to pest spawns (notify, stop, or hunt nearby pests with the vacuum and rewarp) |
 | Foraging | Plants saplings on free dirt, uses bone meal and chops with a Treecapitator, then repeats. With a tree route (Galatea, the Park, the Hub) it walks from tree to tree and chops instead |
 | Fishing | Casts, reels in on the `!!!` bite marker and recasts on a timeout. It can fight sea creatures with a melee or right-click weapon |
 | Combat | Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
@@ -35,7 +35,7 @@ Discord alerts.
 **Interface**
 - ClickGUI (default key **Right Shift**). It has category pages, toggles, sliders, choice pickers, chips, text fields and search (`/` or Ctrl+F), plus a start/stop panel and seven accent colours.
 - HUD editor: drag the status panel, loot tracker and notification area, with edge and centre snapping.
-- Loot tracker: items gained this session with hourly rates, plus `[Sacks]` totals.
+- Loot tracker: items gained this session with hourly rates, plus `[Sacks]` totals and a profit estimate at Bazaar instant-sell prices (from Hypixel's public API).
 - Pop-up notifications for starts, stops, failsafes, breaks, pests and rejoins.
 - Highlights the current target block and the farming rewarp point.
 
@@ -59,6 +59,7 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 | `/sm settings` | List every setting id and its value |
 | `/sm farm rewarp` · `/sm forage spot` · `/sm fish spot` · `/sm combat spot` | Save the spot you are standing on |
 | `/sm forage add` · `/sm forage clearroute` | Add the spot you stand on to the tree route, or clear it |
+| `/sm echo record` · `/sm echo stop` · `/sm echo clear` | Record a walk through your farm for the "Recorded movement" farm type |
 | `/sm route add\|insert\|remove\|clear\|list\|save\|load\|routes\|import\|export\|show` | Edit mining routes |
 | `/sm goto <x> <y> <z>` | Walk somewhere with the pathfinder |
 
@@ -82,7 +83,7 @@ This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle
 `devtools/stubcheck/check.sh` compiles the mod and runs the unit tests without the Minecraft jar. It does
 this against stubs generated from the API members the released 1.0.0 jar uses. Members the new code uses
 that were **not** in the 1.0.0 jar are listed in `devtools/stubcheck/extra.txt`:
-`Options.keyLeft/keyRight/keyDown/keyAttack/keyUse`, `ItemStack.getCount/getItem/hasFoil` and `BuiltInRegistries.ITEM`. These are long-standing
+`Options.keyLeft/keyRight/keyDown/keyAttack/keyUse`, `ItemStack.getCount/getItem/hasFoil`, `BuiltInRegistries.ITEM` and `KeyMapping.isDown`. These are long-standing
 vanilla names, and the CI Gradle build compiles against the real 26.2 game, which confirms they exist.
 
 ## Project layout
@@ -96,6 +97,7 @@ src/main/java/com/skyblockminer/
   FarmingMacro, ForagingMacro, FishingMacro, CombatMacro other skills
   AutoSell, Schedule  selling on a full inventory, active hours
   Solvers             experiment and harp menu solvers
+  Recording, Prices   recorded-movement farming, Bazaar profit estimate
   MacroSettings       every option (feeds the GUI and /sm set)
   Rotator, PathWalker, Pathfinder, WorldMap, TargetFinder, MiningEngine   movement and aiming
   gui/                ClickGuiScreen, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input

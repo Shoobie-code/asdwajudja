@@ -111,6 +111,7 @@ public final class MinerConfig {
     public String accent = "violet";
     public boolean toasts = true;
     public boolean itemTracker = true;
+    public boolean bazaarPrices = true;
     public boolean showTarget = true;
     public int hudX = 4;
     public int hudY = 4;
