@@ -60,7 +60,7 @@ final class CombatMacro implements Routine {
         CommissionData.Mob mob = new CommissionData.Mob(config.combatMobs,
             (x, y, z) -> (x - c.x) * (x - c.x) + (z - c.z) * (z - c.z) <= radiusSq && Math.abs(y - c.y) <= 12.0);
 
-        String status = this.combat.tick(mc, player, level, mob, macro.rotator, macro.walker, config, macro.random, config.combatAttackMode.equals("use"));
+        String status = this.combat.tick(mc, player, level, mob, macro.rotator, macro.walker, config, macro.random, config.combatAttackMode.equals("use") ? 5.0 : 0.0);
         LivingEntity target = this.combat.target();
         if (this.lastTarget != null && target != this.lastTarget && !this.lastTarget.isAlive()) {
             this.kills++;

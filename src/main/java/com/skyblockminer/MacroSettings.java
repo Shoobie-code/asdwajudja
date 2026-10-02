@@ -196,7 +196,7 @@ public final class MacroSettings {
                     () -> this.c.farmRewarpWhenStuck, v -> this.c.farmRewarpWhenStuck = v))),
             new Section("Pests", List.of(
                 this.choice("farming.pests", "When a pest spawns", "What to do on a pest spawn message.",
-                    () -> List.of("ignore", "notify", "stop"), MacroSettings::capitalize,
+                    () -> List.of("ignore", "notify", "stop", "kill"), v -> v.equals("kill") ? "Kill with vacuum" : capitalize(v),
                     () -> this.c.farmPestAction, v -> this.c.farmPestAction = v)))
         ));
     }
@@ -223,6 +223,18 @@ public final class MacroSettings {
                     () -> this.c.forageGrass, v -> this.c.forageGrass = v),
                 this.slider("foraging.delay", "Action delay", "Pause after each planting or bone meal use.", 50, 1000, 10, " ms",
                     () -> this.c.forageActionDelay, v -> this.c.forageActionDelay = (int) v),
+                this.button("foraging.addpoint", "Add tree route point", "Adds where you stand to the tree route. With a route, the macro walks between trees instead of planting.", "Add",
+                    () -> {
+                        BlockPos pos = this.playerPos();
+                        if (pos != null) {
+                            this.c.forageRoute.add(new int[]{pos.getX(), pos.getY(), pos.getZ()});
+                            this.saved("Tree route point " + this.c.forageRoute.size() + " added at " + pos.toShortString());
+                        }
+                    }),
+                this.button("foraging.clearroute", "Clear tree route", "Removes every tree route point (back to planting mode).", "Clear", () -> {
+                    this.c.forageRoute.clear();
+                    this.saved("Tree route cleared");
+                }),
                 this.text("foraging.warp", "Warp command", "Command used after a rejoin to get back to the trees.", "is", false,
                     () -> this.c.forageWarpCommand, v -> this.c.forageWarpCommand = v)))
         ));
@@ -368,6 +380,13 @@ public final class MacroSettings {
                     () -> this.c.autoSell, v -> this.c.autoSell = v),
                 this.text("sell.items", "Items to sell", "Parts of item names to sell, comma separated. The hotbar is never sold.", "e.g. Ectoplasm, Raw Fish", false,
                     () -> String.join(", ", this.c.sellItems), v -> this.c.sellItems = splitList(v)).visibleWhen(() -> this.c.autoSell))),
+            new Section("Menu solvers", List.of(
+                this.toggle("solver.experiments", "Experiment solver", "Solves Ultrasequencer and Chronomatron when you open them.",
+                    () -> this.c.solveExperiments, v -> this.c.solveExperiments = v),
+                this.toggle("solver.harp", "Harp solver", "Plays Melody's Harp songs when you open the harp.",
+                    () -> this.c.solveHarp, v -> this.c.solveHarp = v),
+                this.slider("solver.delay", "Experiment click delay", "Pause between experiment clicks.", 50, 1000, 10, " ms",
+                    () -> this.c.solverClickDelay, v -> this.c.solverClickDelay = (int) v))),
             new Section("Movement", List.of(
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
                     () -> this.c.sprint, v -> this.c.sprint = v)))

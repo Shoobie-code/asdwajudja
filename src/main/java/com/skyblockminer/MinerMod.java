@@ -35,6 +35,7 @@ public final class MinerMod implements ClientModInitializer {
     private static Macro macro;
     private static MinerConfig config;
     private static MacroSettings settings;
+    private static Solvers solvers;
     private static boolean openMenu;
     private static boolean openHud;
 
@@ -44,6 +45,7 @@ public final class MinerMod implements ClientModInitializer {
         macro = new Macro(config);
         macro.applyConfig();
         settings = new MacroSettings(macro);
+        solvers = new Solvers(config);
         Toasts.setEnabled(config.toasts);
 
         Category category = Category.register(Identifier.fromNamespaceAndPath(ID, "main"));
@@ -86,6 +88,7 @@ public final class MinerMod implements ClientModInitializer {
             }
             macro.onTick(mc);
             macro.render(mc);
+            solvers.tick(mc);
         });
         LevelRenderEvents.END_MAIN.register(context -> macro.onFrame());
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {

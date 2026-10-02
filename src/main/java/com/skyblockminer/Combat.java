@@ -22,7 +22,6 @@ import net.minecraft.world.phys.HitResult.Type;
 
 final class Combat {
     private static final double MELEE = 3.2;
-    private static final double RIGHT_CLICK = 5.0;
     private static final double SEARCH = 40.0;
     private LivingEntity target;
     private int retargetIn;
@@ -47,14 +46,18 @@ final class Combat {
     String tick(
         Minecraft mc, LocalPlayer player, ClientLevel level, CommissionData.Mob mob, Rotator rotator, PathWalker walker, MinerConfig config, Random random
     ) {
-        return this.tick(mc, player, level, mob, rotator, walker, config, random, false);
+        return this.tick(mc, player, level, mob, rotator, walker, config, random, 0.0);
     }
 
-    /** One fight tick; {@code rightClick} uses the held item (mage weapons like Hyperion) instead of melee hits. */
+    /**
+     * One fight tick. A positive {@code useRange} right clicks the held item (mage weapons, the pest vacuum) from up to
+     * that distance instead of hitting in melee range.
+     */
     String tick(
         Minecraft mc, LocalPlayer player, ClientLevel level, CommissionData.Mob mob, Rotator rotator, PathWalker walker, MinerConfig config, Random random,
-        boolean rightClick
+        double useRange
     ) {
+        boolean rightClick = useRange > 0.0;
         if (this.target == null || !this.target.isAlive() || this.target.isRemoved() || --this.retargetIn <= 0) {
             LivingEntity next = find(player, level, mob);
             if (next != this.target) {
@@ -73,7 +76,7 @@ final class Combat {
             return "Looking for " + name;
         } else {
             double distance = Math.sqrt(player.distanceToSqr(this.target));
-            if (!(distance > (rightClick ? RIGHT_CLICK : MELEE))) {
+            if (!(distance > (rightClick ? useRange : MELEE))) {
                 walker.stop(mc);
                 Vec3 aim = this.target.getBoundingBox().getCenter().add(0.0, this.target.getBbHeight() * 0.2, 0.0);
                 rotator.follow(player, aim, Math.min(1.0, config.rotationSpeed / 100.0 * 1.3));

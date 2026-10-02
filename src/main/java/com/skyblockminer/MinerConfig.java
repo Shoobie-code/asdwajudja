@@ -76,6 +76,7 @@ public final class MinerConfig {
     public boolean forageGrass = false;
     public int forageActionDelay = 180;
     public String forageWarpCommand = "is";
+    public List<int[]> forageRoute = new ArrayList<>();
 
     // Fishing
     public double[] fishSpot = null;
@@ -100,6 +101,11 @@ public final class MinerConfig {
     public boolean autoSell = false;
     public List<String> sellItems = new ArrayList<>();
     public String activeHours = "";
+
+    // Menu solvers
+    public boolean solveExperiments = false;
+    public boolean solveHarp = false;
+    public int solverClickDelay = 250;
 
     // Interface
     public String accent = "violet";
@@ -174,6 +180,7 @@ public final class MinerConfig {
         if (this.fishSpot != null && this.fishSpot.length != 5) {
             this.fishSpot = null;
         }
+        this.forageRoute.removeIf(point -> point == null || point.length != 3);
         if (this.combatSpot != null && this.combatSpot.length != 3) {
             this.combatSpot = null;
         }

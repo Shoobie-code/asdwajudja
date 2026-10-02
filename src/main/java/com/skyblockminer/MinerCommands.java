@@ -87,7 +87,9 @@ final class MinerCommands {
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "farming.clearrewarp", ""))))
             .then(ClientCommands.literal("forage")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "foraging.setspot", "")))
-                .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", ""))))
+                .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", "")))
+                .then(ClientCommands.literal("add").executes(c -> set(settings, "foraging.addpoint", "")))
+                .then(ClientCommands.literal("clearroute").executes(c -> set(settings, "foraging.clearroute", ""))))
             .then(ClientCommands.literal("fish")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "fishing.setspot", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "fishing.clearspot", ""))))
@@ -331,7 +333,7 @@ final class MinerCommands {
             "/sm start [type] | stop | status | type <type>",
             "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing combat",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
-            "/sm farm rewarp|clear | forage spot|clear | fish spot|clear | combat spot|clear - save spots where you stand",
+            "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear - save spots where you stand",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm custom add|remove|list <block> | map [clear]"
