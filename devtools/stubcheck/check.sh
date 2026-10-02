@@ -11,7 +11,23 @@ ROOT="$(cd "$HERE/../.." && pwd)"
 WORK="${STUBCHECK_DIR:-$ROOT/build/stubcheck}"
 LIB="$WORK/lib"
 mkdir -p "$LIB"
-fetch() { [ -f "$LIB/$(basename "$1")" ] || curl -sSfL -o "$LIB/$(basename "$1")" "https://repo1.maven.org/maven2/$1"; }
+# Maven Central occasionally returns a transient error for one file, so retry across both of its hosts.
+fetch() {
+  local out="$LIB/$(basename "$1")"
+  [ -f "$out" ] && return 0
+  for attempt in 1 2 3; do
+    for host in https://repo1.maven.org/maven2 https://repo.maven.apache.org/maven2; do
+      if curl -sSfL --retry 2 -o "$out.part" "$host/$1"; then
+        mv "$out.part" "$out"
+        return 0
+      fi
+    done
+    sleep $((attempt * 3))
+  done
+  rm -f "$out.part"
+  echo "could not download $1" >&2
+  return 1
+}
 fetch org/ow2/asm/asm/9.8/asm-9.8.jar
 fetch com/google/code/gson/gson/2.13.1/gson-2.13.1.jar
 fetch org/slf4j/slf4j-api/2.0.17/slf4j-api-2.0.17.jar
