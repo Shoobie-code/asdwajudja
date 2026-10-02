@@ -33,6 +33,12 @@ Discord alerts.
 - Pop-up notifications for starts, stops, failsafes, breaks, pests and rejoins.
 - Highlights the current target block and the farming rewarp point.
 
+## Download
+
+Every push is built by GitHub Actions. Take the jar from the repo's **Releases** page: **build-preview** for
+branches, **build-latest** once merged into `main`. Put it in `.minecraft/mods` together with Fabric Loader
+and Fabric API for Minecraft 26.2.
+
 ## Usage
 
 Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
@@ -63,15 +69,14 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 ./gradlew build
 ```
 
-This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle.properties`; if
-`fabric_api_version` does not resolve, take the current value for 26.2 from https://fabricmc.net/develop.
+This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle.properties`.
 
 ### Offline check
 `devtools/stubcheck/check.sh` compiles the mod and runs the unit tests without the Minecraft jar. It does
 this against stubs generated from the API members the released 1.0.0 jar uses. Members the new code uses
 that were **not** in the 1.0.0 jar are listed in `devtools/stubcheck/extra.txt`:
 `Options.keyLeft/keyRight/keyDown/keyAttack/keyUse` and `ItemStack.getCount`. These are long-standing
-vanilla names, but the first real Gradle build is what confirms them.
+vanilla names, and the CI Gradle build compiles against the real 26.2 game, which confirms they exist.
 
 ## Project layout
 
