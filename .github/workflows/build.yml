@@ -50,15 +50,26 @@ jobs:
           name: skyblock-macro
           path: build/libs/*.jar
 
+      - name: Publish a versioned release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Skyblock Macro ${{ github.ref_name }}
+          prerelease: false
+          make_latest: true
+          files: build/libs/*.jar
+          body_path: release-notes/${{ github.ref_name }}.md
+
       - name: Publish jar as a GitHub release
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && !startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.ref_name == 'main' && 'latest' || 'preview' }}
           name: Skyblock Macro (${{ github.ref_name }} build)
           target_commitish: ${{ github.sha }}
           prerelease: ${{ github.ref_name != 'main' }}
-          make_latest: ${{ github.ref_name == 'main' }}
+          make_latest: false
           files: build/libs/*.jar
           body: |
             Automatic build of `${{ github.ref_name }}` at ${{ github.sha }}.
