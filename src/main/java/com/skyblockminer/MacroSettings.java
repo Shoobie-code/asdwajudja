@@ -46,7 +46,7 @@ public final class MacroSettings {
         this.macro = macro;
         this.c = macro.config;
         this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.safety(),
-            this.notifications(), this.visuals(), this.general());
+            this.notifications(), this.market(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
                 for (Setting setting : section.settings()) {
@@ -314,6 +314,52 @@ public final class MacroSettings {
             new Section("Theme", List.of(
                 this.choice("theme.accent", "Accent color", "Highlight color of the menu and HUD.",
                     () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v)))
+        ));
+    }
+
+    private Category market() {
+        BooleanSupplier scanning = () -> this.c.auctionScan;
+        return new Category("Market", "\u2696", List.of(
+            new Section("Market", List.of(
+                this.button("market.open", "Market screen", "Bazaar, auction, craft and NPC flips plus the minion calculator.", "Open",
+                    MinerMod::openMarket),
+                this.toggle("market.enabled", "Market data", "Downloads prices from the Hypixel API while the market is in use.",
+                    () -> this.c.marketEnabled, v -> this.c.marketEnabled = v))),
+            new Section("Bazaar flips", List.of(
+                this.slider("market.budget", "Budget", "Coins to spend per flip.", 0.1, 500, 0.1, "M",
+                    () -> this.c.bazaarBudget / 1e6, v -> this.c.bazaarBudget = v * 1e6),
+                this.slider("market.volume", "Min volume", "Items that must trade per day for a flip to count.", 0, 500_000, 1000, "/day",
+                    () -> this.c.bazaarMinVolume, v -> this.c.bazaarMinVolume = (int) v),
+                this.slider("market.margin", "Min margin", "Profit per item after tax, as a share of the price.", 0, 50, 0.5, "%",
+                    () -> this.c.bazaarMinMargin, v -> this.c.bazaarMinMargin = v),
+                this.toggle("market.perk", "Bazaar Flipper perk", "You have the community shop upgrade (lower bazaar tax).",
+                    () -> this.c.bazaarFlipperPerk, v -> this.c.bazaarFlipperPerk = v),
+                this.slider("market.craft", "Min craft profit", "Profit per crafted item for craft flips.", 0, 100_000, 100, " coins",
+                    () -> this.c.craftMinProfit, v -> this.c.craftMinProfit = (int) v),
+                this.slider("market.npc", "NPC flip budget", "Coins to spend on bazaar to NPC flips.", 0.1, 100, 0.1, "M",
+                    () -> this.c.npcBudget / 1e6, v -> this.c.npcBudget = v * 1e6))),
+            new Section("Auction flips", List.of(
+                this.toggle("ah.scan", "Scan auctions", "Downloads every BIN auction each minute to find flips (about 50 requests).",
+                    () -> this.c.auctionScan, v -> this.c.auctionScan = v),
+                this.slider("ah.profit", "Min profit", "Coins left after auction taxes.", 0, 50, 0.1, "M",
+                    () -> this.c.auctionMinProfit / 1e6, v -> this.c.auctionMinProfit = (int) (v * 1e6)),
+                this.slider("ah.margin", "Min margin", "Profit as a share of the price.", 0, 100, 1, "%",
+                    () -> this.c.auctionMinMargin, v -> this.c.auctionMinMargin = v),
+                this.slider("ah.listings", "Min listings", "Other BINs needed so the resell price is real.", 2, 30, 1, "",
+                    () -> this.c.auctionMinListings, v -> this.c.auctionMinListings = (int) v),
+                this.slider("ah.max", "Max price", "Never flip anything dearer than this.", 1, 2000, 1, "M",
+                    () -> this.c.auctionMaxPrice / 1e6, v -> this.c.auctionMaxPrice = (int) Math.min(Integer.MAX_VALUE, v * 1e6)),
+                this.toggle("ah.open", "Auto open new flips", "Opens new flips with /viewauction when no macro is running.",
+                    () -> this.c.auctionAutoOpen, v -> this.c.auctionAutoOpen = v).visibleWhen(scanning),
+                this.toggle("ah.buy", "Auto buy", "Buys opened flips after checking the shown price matches.",
+                    () -> this.c.auctionAutoBuy, v -> this.c.auctionAutoBuy = v).visibleWhen(() -> this.c.auctionScan && this.c.auctionAutoOpen))),
+            new Section("Skills", List.of(
+                this.toggle("skills.track", "Skill tracker", "XP per hour and time to next level from the action bar.",
+                    () -> this.c.skillTracker, v -> this.c.skillTracker = v),
+                this.button("skills.reset", "Best rates", "Forgets the best XP/hour recorded for each macro.", "Reset", () -> {
+                    this.c.skillBest.clear();
+                    this.saved("Skill records cleared");
+                })))
         ));
     }
 

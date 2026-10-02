@@ -101,6 +101,28 @@ public final class MinerConfig {
     public int toastY = 170;
     public String guiCategory = "Mining";
 
+    // Market
+    public boolean marketEnabled = true;
+    public double bazaarBudget = 10_000_000;
+    public int bazaarMinVolume = 5000;
+    public double bazaarMinMargin = 2.0;
+    public boolean bazaarFlipperPerk = false;
+    public boolean auctionScan = false;
+    public int auctionMinProfit = 500_000;
+    public double auctionMinMargin = 8.0;
+    public int auctionMinListings = 4;
+    public int auctionMaxPrice = 50_000_000;
+    public boolean auctionAutoOpen = false;
+    public boolean auctionAutoBuy = false;
+    public int craftMinProfit = 500;
+    public double npcBudget = 1_000_000;
+
+    // Skills
+    public boolean skillTracker = true;
+    public int skillsX = 4;
+    public int skillsY = 230;
+    public java.util.Map<String, Double> skillBest = new java.util.HashMap<>();
+
     private transient int revision;
     private transient boolean dirty;
     private transient long dirtySince;

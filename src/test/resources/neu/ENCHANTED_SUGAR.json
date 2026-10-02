@@ -1,0 +1,15 @@
+{
+ "internalname": "ENCHANTED_SUGAR",
+ "displayname": "\u00a7aEnchanted Sugar",
+ "recipe": {
+  "A1": "",
+  "A2": "SUGAR_CANE:32",
+  "A3": "",
+  "B1": "SUGAR_CANE:32",
+  "B2": "SUGAR_CANE:32",
+  "B3": "SUGAR_CANE:32",
+  "C1": "",
+  "C2": "SUGAR_CANE:32",
+  "C3": ""
+ }
+}

@@ -35,4 +35,5 @@ python3 "$HERE/patch.py" "$WORK/stubs" "$HERE/extra.txt"
 "${BIN}javac" -nowarn -d "$WORK/main" -cp "$CP" $(find "$WORK/stubs" "$ROOT/src/main/java" -name '*.java')
 echo "main: compiled"
 "${BIN}javac" -nowarn -d "$WORK/test" -cp "$WORK/main:$CP:$JUNIT" $(find "$ROOT/src/test/java" -name '*.java')
+cp -r "$ROOT/src/test/resources/." "$WORK/test/" 2>/dev/null || true
 "${BIN}java" -jar "$JUNIT" execute -cp "$WORK/test:$WORK/main:$CP" --select-package com.skyblockminer --disable-banner --details=summary

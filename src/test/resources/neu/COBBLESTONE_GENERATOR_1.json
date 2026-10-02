@@ -1,0 +1,15 @@
+{
+ "internalname": "COBBLESTONE_GENERATOR_1",
+ "displayname": "\u00a79Cobblestone Minion I",
+ "recipe": {
+  "A1": "COBBLESTONE:10",
+  "A2": "COBBLESTONE:10",
+  "A3": "COBBLESTONE:10",
+  "B1": "COBBLESTONE:10",
+  "B2": "WOOD_PICKAXE:1",
+  "B3": "COBBLESTONE:10",
+  "C1": "COBBLESTONE:10",
+  "C2": "COBBLESTONE:10",
+  "C3": "COBBLESTONE:10"
+ }
+}

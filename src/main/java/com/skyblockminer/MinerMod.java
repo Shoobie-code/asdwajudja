@@ -4,6 +4,10 @@ import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.InputConstants.Type;
 import com.skyblockminer.gui.ClickGuiScreen;
 import com.skyblockminer.gui.HudEditorScreen;
+import com.skyblockminer.gui.MarketScreen;
+import com.skyblockminer.market.Flips;
+import com.skyblockminer.market.Market;
+import net.fabricmc.loader.api.FabricLoader;
 import com.skyblockminer.gui.Toasts;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -37,6 +41,13 @@ public final class MinerMod implements ClientModInitializer {
     private static MacroSettings settings;
     private static boolean openMenu;
     private static boolean openHud;
+    private static boolean openMarket;
+    private static long marketOpenedAt;
+    private static Market market;
+    private static Flips flips;
+    private static AuctionSniper sniper;
+    private static SkillTracker skills;
+    private static int marketTicks;
 
     @Override
     public void onInitializeClient() {
@@ -45,6 +56,10 @@ public final class MinerMod implements ClientModInitializer {
         macro.applyConfig();
         settings = new MacroSettings(macro);
         Toasts.setEnabled(config.toasts);
+        market = new Market(FabricLoader.getInstance().getConfigDir().resolve(ID));
+        flips = new Flips();
+        sniper = new AuctionSniper(config, macro, market);
+        skills = new SkillTracker(config.skillBest);
 
         Category category = Category.register(Identifier.fromNamespaceAndPath(ID, "main"));
         KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(
@@ -53,6 +68,8 @@ public final class MinerMod implements ClientModInitializer {
             new KeyMapping("key.skyblockminer.menu", Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         KeyMapping hudKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.skyblockminer.hud", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
+        KeyMapping marketKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.skyblockminer.market", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
 
         ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> macro.map.onChunkLoad(level, chunk));
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
@@ -70,6 +87,9 @@ public final class MinerMod implements ClientModInitializer {
             while (hudKey.consumeClick()) {
                 openHud = true;
             }
+            while (marketKey.consumeClick()) {
+                openMarket = true;
+            }
             // Screens open on the tick after a command so the closing chat screen does not replace them.
             if (openHud) {
                 openHud = false;
@@ -77,7 +97,17 @@ public final class MinerMod implements ClientModInitializer {
             } else if (openMenu) {
                 openMenu = false;
                 ClickGuiScreen.open(macro, settings.categories());
+            } else if (openMarket) {
+                openMarket = false;
+                marketOpenedAt = System.currentTimeMillis();
+                market.refreshSoon();
+                MarketScreen.open(market, flips, com.skyblockminer.gui.Theme.accent(config.accent), command -> {
+                    if (mc.getConnection() != null) {
+                        mc.getConnection().sendCommand(command);
+                    }
+                });
             }
+            tickMarket(mc);
             macro.onTick(mc);
             macro.render(mc);
         });
@@ -85,10 +115,12 @@ public final class MinerMod implements ClientModInitializer {
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
             if (!overlay) {
                 macro.onChat(message.getString());
+            } else if (config.skillTracker) {
+                skills.onActionBar(message.getString(), System.currentTimeMillis(), macro.running() ? macro.mode().id : null);
             }
         });
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> MinerCommands.register(dispatcher, macro, config, settings));
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "status"), new MinerHud(macro, config));
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "status"), new MinerHud(macro, config, skills));
     }
 
     static void openMenu() {
@@ -97,6 +129,28 @@ public final class MinerMod implements ClientModInitializer {
 
     static void openHudEditor() {
         openHud = true;
+    }
+
+    static void openMarket() {
+        openMarket = true;
+    }
+
+    static SkillTracker skills() {
+        return skills;
+    }
+
+    /** Market data is fetched while the market screen was used in the last 15 minutes, or for auction scanning. */
+    private static void tickMarket(Minecraft mc) {
+        if (!config.marketEnabled) {
+            return;
+        }
+        boolean viewing = System.currentTimeMillis() - marketOpenedAt < 15 * 60_000L || mc.gui.screen() instanceof MarketScreen;
+        market.tick(viewing, config.auctionScan);
+        if (++marketTicks >= 20) {
+            marketTicks = 0;
+            flips.update(market, MarketSettings.flips(config));
+        }
+        sniper.tick(mc);
     }
 
     static Macro macro() {

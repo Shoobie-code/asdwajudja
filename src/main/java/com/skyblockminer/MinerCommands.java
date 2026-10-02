@@ -45,6 +45,9 @@ final class MinerCommands {
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("hud").executes(c -> run(MinerMod::openHudEditor)))
+            .then(ClientCommands.literal("market").executes(c -> run(MinerMod::openMarket)))
+            .then(ClientCommands.literal("flips").executes(c -> run(MinerMod::openMarket)))
+            .then(ClientCommands.literal("skills").executes(c -> skills()))
             .then(ClientCommands.literal("start")
                 .executes(c -> run(() -> macro.start(macro.selected())))
                 .then(ClientCommands.argument("type", StringArgumentType.word()).suggests(types)
@@ -322,9 +325,30 @@ final class MinerCommands {
         return 1;
     }
 
+    private static int skills() {
+        SkillTracker tracker = MinerMod.skills();
+        long now = System.currentTimeMillis();
+        List<String> live = tracker.lines(now);
+        MinerMod.message(live.isEmpty() ? "No skill XP gained in the last 5 minutes." : "Now: " + String.join(" | ", live), ChatFormatting.AQUA);
+        for (String skill : List.of("Farming", "Mining", "Foraging", "Fishing", "Combat")) {
+            List<java.util.Map.Entry<String, Double>> best = tracker.bestFor(skill);
+            if (!best.isEmpty()) {
+                StringBuilder line = new StringBuilder("Best for " + skill + ": ");
+                for (int i = 0; i < Math.min(3, best.size()); i++) {
+                    MacroType type = MacroType.parse(best.get(i).getKey());
+                    line.append(type == null ? best.get(i).getKey() : type.label).append(' ')
+                        .append(SkillTracker.compact(best.get(i).getValue())).append("/h  ");
+                }
+                MinerMod.message(line.toString().trim(), ChatFormatting.GRAY);
+            }
+        }
+        return 1;
+    }
+
     private static int help() {
         String[] lines = {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
+            "/sm market - bazaar, auction, craft and NPC flips, minion costs | /sm skills - XP rates and best methods",
             "/sm start [type] | stop | status | type <type>",
             "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
