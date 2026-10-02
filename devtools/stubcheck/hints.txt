@@ -1,0 +1,94 @@
+# ---- enums (all of these are enums in vanilla) ----
+enum net/minecraft/ChatFormatting
+enum net/minecraft/core/Direction
+enum net/minecraft/core/Direction$Axis
+enum net/minecraft/world/phys/HitResult$Type
+enum net/minecraft/world/InteractionHand
+enum net/minecraft/world/level/ClipContext$Block
+enum net/minecraft/world/level/ClipContext$Fluid
+enum net/minecraft/world/inventory/ContainerInput
+enum net/minecraft/world/scores/DisplaySlot
+enum com/mojang/blaze3d/platform/InputConstants$Type
+
+# ---- hierarchy ----
+extends net/minecraft/client/player/LocalPlayer net.minecraft.client.player.AbstractClientPlayer
+extends net/minecraft/client/player/AbstractClientPlayer net.minecraft.world.entity.player.Player
+extends net/minecraft/world/entity/player/Player net.minecraft.world.entity.LivingEntity
+extends net/minecraft/world/entity/LivingEntity net.minecraft.world.entity.Entity
+extends net/minecraft/world/entity/decoration/ArmorStand net.minecraft.world.entity.LivingEntity
+extends net/minecraft/world/phys/BlockHitResult net.minecraft.world.phys.HitResult
+extends net/minecraft/world/phys/EntityHitResult net.minecraft.world.phys.HitResult
+extends net/minecraft/core/BlockPos net.minecraft.core.Vec3i
+extends net/minecraft/core/BlockPos$MutableBlockPos net.minecraft.core.BlockPos
+interface net/minecraft/core/Position
+implements net/minecraft/world/phys/Vec3 net.minecraft.core.Position
+interface net/minecraft/world/level/BlockGetter
+implements net/minecraft/world/level/Level net.minecraft.world.level.BlockAndTintGetter
+interface net/minecraft/world/level/BlockAndTintGetter
+sub net/minecraft/world/level/BlockAndTintGetter interface BlockAndTintGetter \{ => interface BlockAndTintGetter extends net.minecraft.world.level.BlockGetter {
+extends net/minecraft/client/multiplayer/ClientLevel net.minecraft.world.level.Level
+implements net/minecraft/world/level/EmptyBlockGetter net.minecraft.world.level.BlockGetter
+extends net/minecraft/client/resources/sounds/SimpleSoundInstance net.minecraft.client.resources.sounds.SoundInstance
+extends net/minecraft/core/particles/SimpleParticleType net.minecraft.core.particles.ParticleType
+implements net/minecraft/core/particles/SimpleParticleType net.minecraft.core.particles.ParticleOptions
+implements net/minecraft/network/chat/MutableComponent net.minecraft.network.chat.Component
+extends net/minecraft/world/scores/PlayerTeam net.minecraft.world.scores.Team
+extends net/minecraft/client/gui/components/Button net.minecraft.client.gui.components.AbstractWidget
+interface net/minecraft/client/gui/components/events/GuiEventListener
+implements net/minecraft/client/gui/components/AbstractWidget net.minecraft.client.gui.components.events.GuiEventListener
+generic net/minecraft/client/OptionInstance <T>
+sub net/minecraft/client/OptionInstance public java.lang.Object get\(\) => public T get()
+sub net/minecraft/client/Options public net.minecraft.client.OptionInstance sensitivity => public net.minecraft.client.OptionInstance<java.lang.Double> sensitivity
+
+# ---- generics ----
+generic net/fabricmc/fabric/api/event/Event <T>
+sub net/fabricmc/fabric/api/event/Event register\(java.lang.Object a0\) => register(T a0)
+sub net/fabricmc/fabric/api/client/event/lifecycle/v1/ClientTickEvents public static net.fabricmc.fabric.api.event.Event END_CLIENT_TICK => public static net.fabricmc.fabric.api.event.Event<EndTick> END_CLIENT_TICK
+sub net/fabricmc/fabric/api/client/event/lifecycle/v1/ClientChunkEvents public static net.fabricmc.fabric.api.event.Event CHUNK_LOAD => public static net.fabricmc.fabric.api.event.Event<Load> CHUNK_LOAD
+sub net/fabricmc/fabric/api/client/event/lifecycle/v1/ClientLifecycleEvents public static net.fabricmc.fabric.api.event.Event CLIENT_STOPPING => public static net.fabricmc.fabric.api.event.Event<ClientStopping> CLIENT_STOPPING
+sub net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static net.fabricmc.fabric.api.event.Event GAME => public static net.fabricmc.fabric.api.event.Event<Game> GAME
+sub net/fabricmc/fabric/api/client/rendering/v1/level/LevelRenderEvents public static net.fabricmc.fabric.api.event.Event END_MAIN => public static net.fabricmc.fabric.api.event.Event<EndMain> END_MAIN
+sub net/fabricmc/fabric/api/client/command/v2/ClientCommandRegistrationCallback public static net.fabricmc.fabric.api.event.Event EVENT = null => public static net.fabricmc.fabric.api.event.Event<ClientCommandRegistrationCallback> EVENT = null
+sub net/fabricmc/fabric/api/client/command/v2/ClientCommandRegistrationCallback register\(com.mojang.brigadier.CommandDispatcher a0 => register(com.mojang.brigadier.CommandDispatcher<FabricClientCommandSource> a0
+add net/fabricmc/fabric/api/client/command/v2/FabricClientCommandSource public default net.minecraft.client.Minecraft getClient() { return null; }
+interface net/fabricmc/fabric/api/client/command/v2/FabricClientCommandSource
+sub net/fabricmc/fabric/api/client/command/v2/ClientCommands public static com.mojang.brigadier.builder.RequiredArgumentBuilder argument\(java.lang.String a0, com.mojang.brigadier.arguments.ArgumentType a1\) => public static <T> com.mojang.brigadier.builder.RequiredArgumentBuilder<FabricClientCommandSource, T> argument(java.lang.String a0, com.mojang.brigadier.arguments.ArgumentType<T> a1)
+sub net/fabricmc/fabric/api/client/command/v2/ClientCommands public static com.mojang.brigadier.builder.LiteralArgumentBuilder literal => public static com.mojang.brigadier.builder.LiteralArgumentBuilder<FabricClientCommandSource> literal
+generic it/unimi/dsi/fastutil/longs/Long2ObjectOpenHashMap <V>
+sub it/unimi/dsi/fastutil/longs/Long2ObjectOpenHashMap java.lang.Object get\(long a0\) \{ return null; \} => V get(long a0) { return null; }
+sub it/unimi/dsi/fastutil/longs/Long2ObjectOpenHashMap java.lang.Object put\(long a0, java.lang.Object a1\) => V put(long a0, V a1)
+sub net/minecraft/client/multiplayer/ClientLevel java.lang.Iterable entitiesForRendering => java.lang.Iterable<net.minecraft.world.entity.Entity> entitiesForRendering
+sub net/minecraft/client/multiplayer/ClientLevel java.util.List players => java.util.List<net.minecraft.client.player.AbstractClientPlayer> players
+sub net/minecraft/client/multiplayer/ClientPacketListener java.util.Collection getListedOnlinePlayers => java.util.Collection<net.minecraft.client.multiplayer.PlayerInfo> getListedOnlinePlayers
+sub net/minecraft/world/scores/Scoreboard java.util.Collection listPlayerScores => java.util.Collection<net.minecraft.world.scores.PlayerScoreEntry> listPlayerScores
+sub net/minecraft/world/item/component/ItemLore java.util.List lines => java.util.List<net.minecraft.network.chat.Component> lines
+generic net/minecraft/core/NonNullList <E>
+sub net/minecraft/core/NonNullList public class NonNullList<E> \{ => public class NonNullList<E> extends java.util.AbstractList<E> { public E get(int i) { return null; }
+sub net/minecraft/world/inventory/AbstractContainerMenu public net.minecraft.core.NonNullList slots => public net.minecraft.core.NonNullList<net.minecraft.world.inventory.Slot> slots
+sub net/minecraft/core/BlockPos public static java.lang.Iterable betweenClosed => public static java.lang.Iterable<net.minecraft.core.BlockPos> betweenClosed
+generic net/minecraft/core/component/DataComponentType <T>
+sub net/minecraft/core/component/DataComponents public static net.minecraft.core.component.DataComponentType LORE => public static net.minecraft.core.component.DataComponentType<net.minecraft.world.item.component.ItemLore> LORE
+sub net/minecraft/world/item/ItemStack public java.lang.Object get\(net.minecraft.core.component.DataComponentType a0\) => public <T> T get(net.minecraft.core.component.DataComponentType<? extends T> a0)
+generic net/minecraft/core/DefaultedRegistry <T>
+sub net/minecraft/core/DefaultedRegistry getKey\(java.lang.Object a0\) => getKey(T a0)
+sub net/minecraft/core/registries/BuiltInRegistries public static net.minecraft.core.DefaultedRegistry BLOCK => public static net.minecraft.core.DefaultedRegistry<net.minecraft.world.level.block.Block> BLOCK
+generic net/minecraft/tags/TagKey <T>
+sub net/minecraft/world/level/block/state/BlockState public boolean is\(java.lang.Object a0\) => public boolean is(net.minecraft.world.level.block.Block a0)
+
+# ---- Screen members used through subclasses (inherited, so the generator cannot see them) ----
+extends net/minecraft/client/gui/screens/Screen net.minecraft.client.gui.components.events.AbstractContainerEventHandler
+abstract net/minecraft/client/gui/components/events/AbstractContainerEventHandler
+add net/minecraft/client/gui/screens/Screen public int width;
+add net/minecraft/client/gui/screens/Screen public int height;
+add net/minecraft/client/gui/screens/Screen protected net.minecraft.client.gui.Font font;
+add net/minecraft/client/gui/screens/Screen protected net.minecraft.network.chat.Component title;
+add net/minecraft/client/gui/screens/Screen protected void init() {}
+add net/minecraft/client/gui/screens/Screen public void tick() {}
+add net/minecraft/client/gui/screens/Screen public boolean isPauseScreen() { return true; }
+add net/minecraft/client/gui/screens/Screen public void onClose() {}
+add net/minecraft/client/gui/screens/Screen protected <T extends net.minecraft.client.gui.components.events.GuiEventListener> T addRenderableWidget(T w) { return w; }
+add net/minecraft/core/Vec3i public Vec3i(int x, int y, int z) {}
+add net/minecraft/core/Vec3i public Vec3i() {}
+add net/minecraft/core/BlockPos protected BlockPos() {}
+add net/fabricmc/fabric/api/client/rendering/v1/hud/HudElement void extractRenderState(net.minecraft.client.gui.GuiGraphicsExtractor g, net.minecraft.client.DeltaTracker d);
+add net/fabricmc/api/ClientModInitializer void onInitializeClient();

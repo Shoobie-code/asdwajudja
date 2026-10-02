@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: current
+
+      - name: Offline stub check
+        run: bash devtools/stubcheck/check.sh
+
+      - name: Resolve Fabric API version
+        id: fabric
+        run: |
+          mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)
+          pinned=$(grep '^fabric_api_version=' gradle.properties | cut -d= -f2)
+          meta=$(curl -sSfL https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml)
+          if echo "$meta" | grep -q "<version>${pinned}</version>"; then
+            version="$pinned"
+          else
+            version=$(echo "$meta" | grep -o "<version>[^<]*</version>" | sed 's/<[^>]*>//g' | grep -E "\+${mc}$" | tail -1)
+            echo "::warning::fabric_api_version=${pinned} does not exist; using ${version}. Pin it in gradle.properties."
+          fi
+          echo "Fabric API for ${mc}: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Gradle build
+        run: gradle build --stacktrace -Pfabric_api_version=${{ steps.fabric.outputs.version }}
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: skyblock-macro
+          path: build/libs/*.jar
+
+      - name: Publish jar as a GitHub release
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.ref_name == 'main' && 'latest' || 'preview' }}
+          name: Skyblock Macro (${{ github.ref_name }} build)
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_name != 'main' }}
+          make_latest: ${{ github.ref_name == 'main' }}
+          files: build/libs/*.jar
+          body: |
+            Automatic build of `${{ github.ref_name }}` at ${{ github.sha }}.
+            Download the jar below and put it in `.minecraft/mods` with Fabric Loader and Fabric API for Minecraft 26.2.
