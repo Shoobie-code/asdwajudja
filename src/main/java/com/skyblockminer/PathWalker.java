@@ -15,6 +15,9 @@ final class PathWalker {
     private static final int MAX_LEGS = 25;
     private static final double OFF_PATH = 3.0;
     private static final double WAYPOINT_REACHED = 0.8;
+    /** How many waypoints ahead the walker may cut straight to. */
+    private static final int MAX_SKIP = 10;
+    private static final int SKIP_CHECK_TICKS = 3;
     private final WorldMap map;
     private final Pathfinder finder = new Pathfinder();
     private final Random random = new Random();
@@ -34,6 +37,7 @@ final class PathWalker {
     private int jumpTicks;
     private double lookDrop;
     private boolean keysHeld;
+    private int skipCheckIn;
     private String failure = "";
 
     PathWalker(WorldMap map) {
@@ -124,6 +128,7 @@ final class PathWalker {
             }
 
             this.index = 0;
+            this.skipCheckIn = 0;
             this.segmentStart = player.position();
             this.bestRemaining = Double.MAX_VALUE;
             this.lastProgressAt = System.currentTimeMillis();
@@ -147,13 +152,9 @@ final class PathWalker {
                     this.index++;
                 }
 
-                Pathfinder.Shapes live = Pathfinder.world(level);
-
-                for (int skips = 0;
-                    skips < 4 && this.index < this.path.size() - 1 && player.onGround() && Pathfinder.walkable(live, pos, this.path.get(this.index + 1));
-                    skips++
-                ) {
-                    this.index++;
+                if (player.onGround() && --this.skipCheckIn <= 0) {
+                    this.skipCheckIn = SKIP_CHECK_TICKS;
+                    this.index = this.farthestReachable(Pathfinder.world(level), pos);
                 }
 
                 if (this.index != before) {
@@ -219,6 +220,21 @@ final class PathWalker {
                 }
             }
         }
+    }
+
+    /**
+     * The farthest upcoming waypoint the player can walk to in a straight line from where they stand
+     * (solid floor the whole way, head room, no hazards, no drops), checked farthest first. Waypoints are
+     * only skipped when that line is actually walkable; otherwise the current one is kept.
+     */
+    private int farthestReachable(Pathfinder.Shapes live, Vec3 pos) {
+        int last = Math.min(this.path.size() - 1, this.index + MAX_SKIP);
+        for (int candidate = last; candidate > this.index; candidate--) {
+            if (Pathfinder.walkable(live, pos, this.path.get(candidate))) {
+                return candidate;
+            }
+        }
+        return this.index;
     }
 
     private void fail(Minecraft mc, String why) {

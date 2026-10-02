@@ -52,6 +52,8 @@ public final class MinerConfig {
     public boolean keepRunningUnfocused = true;
     public boolean autoRejoin = true;
     public boolean hud = true;
+    public boolean oreWalk = true;
+    public int oreWalkRange = 64;
 
     // Farming
     public String farmPattern = "vertical";

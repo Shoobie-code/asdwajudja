@@ -101,6 +101,10 @@ public final class MacroSettings {
                     () -> this.c.useAbility, v -> this.c.useAbility = v),
                 this.toggle("mining.titanium", "Titanium first", "Prefers titanium over mithril.",
                     () -> this.c.prioritizeTitanium, v -> this.c.prioritizeTitanium = v),
+                this.toggle("mining.orewalk", "Walk to known ores", "When nothing is in reach, walks to the nearest ore the map has seen.",
+                    () -> this.c.oreWalk, v -> this.c.oreWalk = v),
+                this.slider("mining.orerange", "Ore search range", "How far to look for known ores.", 16, 160, 8, " blocks",
+                    () -> this.c.oreWalkRange, v -> this.c.oreWalkRange = (int) v).visibleWhen(() -> this.c.oreWalk),
                 this.toggle("mining.chests", "Open treasure chests", "Solves and opens Crystal Hollows chests.",
                     () -> this.c.openChests, v -> this.c.openChests = v))),
             new Section("Gemstones", List.of(
