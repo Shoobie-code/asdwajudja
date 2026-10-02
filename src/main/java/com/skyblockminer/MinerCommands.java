@@ -9,6 +9,7 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import com.skyblockminer.gui.Setting;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
@@ -164,14 +165,38 @@ final class MinerCommands {
                 .then(ClientCommands.argument("number", IntegerArgumentType.integer(1))
                     .executes(c -> removePoint(routes, IntegerArgumentType.getInteger(c, "number")))))
             .then(ClientCommands.literal("clear").executes(c -> {
-                routes.points().clear();
+                routes.set(List.of(), Map.of());
                 return routeSaved(routes, "Route \"" + routes.name() + "\" cleared");
             }))
+            .then(ClientCommands.literal("walk").then(ClientCommands.argument("number", IntegerArgumentType.integer(1))
+                .then(ClientCommands.argument("on", BoolArgumentType.bool()).executes(c -> {
+                    int n = IntegerArgumentType.getInteger(c, "number");
+                    if (n > routes.points().size()) {
+                        return noPoint(routes);
+                    }
+                    BlockPos point = routes.points().get(n - 1);
+                    boolean on = BoolArgumentType.getBool(c, "on");
+                    routes.setFlags(point, new Routes.Flags(on, routes.flags(point).waitMs()));
+                    return routeSaved(routes, "Point " + n + (on ? " is always walked to" : " uses etherwarp again"));
+                }))))
+            .then(ClientCommands.literal("wait").then(ClientCommands.argument("number", IntegerArgumentType.integer(1))
+                .then(ClientCommands.argument("ms", IntegerArgumentType.integer(0, 60000)).executes(c -> {
+                    int n = IntegerArgumentType.getInteger(c, "number");
+                    if (n > routes.points().size()) {
+                        return noPoint(routes);
+                    }
+                    BlockPos point = routes.points().get(n - 1);
+                    int ms = IntegerArgumentType.getInteger(c, "ms");
+                    routes.setFlags(point, new Routes.Flags(routes.flags(point).walk(), ms));
+                    return routeSaved(routes, "Point " + n + " waits " + ms + " ms on arrival");
+                }))))
             .then(ClientCommands.literal("list").executes(c -> {
                 List<BlockPos> points = routes.points();
                 MinerMod.message("Route \"" + routes.name() + "\": " + points.size() + " points, mining " + config.routeBlocks, ChatFormatting.AQUA);
                 for (int i = 0; i < points.size(); i++) {
-                    MinerMod.message(i + 1 + ": " + points.get(i).toShortString(), ChatFormatting.GRAY);
+                    Routes.Flags f = routes.flags(points.get(i));
+                    MinerMod.message(i + 1 + ": " + points.get(i).toShortString() + (f.walk() ? " (walk)" : "")
+                        + (f.waitMs() > 0 ? " (wait " + f.waitMs() + " ms)" : ""), ChatFormatting.GRAY);
                 }
                 return 1;
             }))
@@ -209,8 +234,9 @@ final class MinerCommands {
                 })))
             .then(ClientCommands.literal("import").executes(c -> {
                 try {
-                    List<BlockPos> points = Routes.parse(Minecraft.getInstance().keyboardHandler.getClipboard());
-                    routes.set(points);
+                    String json = Minecraft.getInstance().keyboardHandler.getClipboard();
+                    List<BlockPos> points = Routes.parse(json);
+                    routes.set(points, Routes.parseFlags(json));
                     return routeSaved(routes, "Imported " + points.size() + " points from the clipboard into \"" + routes.name() + "\"");
                 } catch (RuntimeException e) {
                     MinerMod.message("The clipboard does not hold a route (" + e.getMessage() + ")", ChatFormatting.RED);
@@ -218,7 +244,7 @@ final class MinerCommands {
                 }
             }))
             .then(ClientCommands.literal("export").executes(c -> {
-                Minecraft.getInstance().keyboardHandler.setClipboard(Routes.toJson(routes.points()));
+                Minecraft.getInstance().keyboardHandler.setClipboard(Routes.toJson(routes.points(), routes.allFlags()));
                 MinerMod.message("Copied " + routes.points().size() + " points to the clipboard", ChatFormatting.GREEN);
                 return 1;
             }))
@@ -322,6 +348,11 @@ final class MinerCommands {
         return 0;
     }
 
+    private static int noPoint(Routes routes) {
+        MinerMod.message("The route only has " + routes.points().size() + " points", ChatFormatting.RED);
+        return 0;
+    }
+
     private static int run(Runnable action) {
         action.run();
         return 1;
@@ -344,6 +375,7 @@ final class MinerCommands {
             "/sm echo record|stop|clear - record a farm walk for the \"Recorded movement\" farm type",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
+            "/sm route walk <n> <true|false> | wait <n> <ms> - walk to a point instead of etherwarping, or wait there first",
             "/sm custom add|remove|list <block> | map [clear]"
         };
         for (String line : lines) {
