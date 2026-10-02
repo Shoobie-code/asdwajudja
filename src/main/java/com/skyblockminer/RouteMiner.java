@@ -106,7 +106,7 @@ final class RouteMiner implements Routine {
         } else {
             this.warpTries = 0;
             this.aim = null;
-            if (macro.config.etherwarp && warpSlot(player) >= 0) {
+            if (macro.config.etherwarp && !macro.routes.flags(point).walk() && warpSlot(player) >= 0) {
                 this.phase(RouteMiner.Phase.AIM);
             } else {
                 this.walk(macro, mc);
@@ -226,6 +226,11 @@ final class RouteMiner implements Routine {
     }
 
     private String mine(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+        long waited = System.currentTimeMillis() - this.phaseAt;
+        int wait = macro.routes.flags(this.point(macro)).waitMs();
+        if (waited < wait) {
+            return String.format("Waiting at point %d (%.1fs)", this.index + 1, (wait - waited) / 1000.0);
+        }
         int tool = Inv.hotbar(player, Inv::isMiningTool);
         if (tool < 0) {
             macro.stop("No pickaxe or drill in your hotbar");

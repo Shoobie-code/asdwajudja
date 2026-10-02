@@ -2,6 +2,7 @@
     "key.skyblockminer.toggle": "Start / stop macro",
     "key.skyblockminer.menu": "Open menu",
     "key.skyblockminer.hud": "Edit HUD layout",
-    "key.category.skyblockminer.main": "Skyblock Macro",
-    "key.skyblockminer.market": "Open market"
+    "key.skyblockminer.market": "Open market",
+    "key.skyblockminer.panic": "Panic stop",
+    "key.category.skyblockminer.main": "Skyblock Macro"
 }

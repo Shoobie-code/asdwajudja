@@ -3,7 +3,7 @@
     "id": "skyblockminer",
     "version": "${version}",
     "name": "Skyblock Macro",
-    "description": "Hypixel SkyBlock macro: mining, commissions, farming, foraging and fishing, with a ClickGUI, HUD editor, loot tracker and Discord alerts.",
+    "description": "Hypixel SkyBlock macro: mining, commissions, farming, foraging, fishing and combat, with a ClickGUI, HUD editor, loot tracker and Discord alerts.",
     "environment": "client",
     "entrypoints": {
         "client": ["com.skyblockminer.MinerMod"]

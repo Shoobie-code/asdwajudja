@@ -50,6 +50,9 @@ final class ForagingMacro implements Routine {
     private int planted;
     private int trees;
     private boolean sawLogs;
+    private int routeIndex;
+    private boolean walking;
+    private int idleScans;
 
     @Override
     public void reset() {
@@ -61,6 +64,9 @@ final class ForagingMacro implements Routine {
         this.planted = 0;
         this.trees = 0;
         this.sawLogs = false;
+        this.routeIndex = 0;
+        this.walking = false;
+        this.idleScans = 0;
     }
 
     @Override
@@ -80,6 +86,7 @@ final class ForagingMacro implements Routine {
     public void resume() {
         this.target = null;
         this.waitUntil = 0L;
+        this.walking = false;
     }
 
     @Override
@@ -97,9 +104,21 @@ final class ForagingMacro implements Routine {
             this.releaseKeys(mc);
             this.target = null;
         }
+        boolean roaming = !config.forageRoute.isEmpty();
+        if (this.walking) {
+            return this.walkRoute(macro, mc, player, config);
+        }
         if (this.target == null && --this.scanIn <= 0) {
             this.scanIn = SCAN_EVERY;
-            this.pick(player, level, config, macro.mining.reach(player, config));
+            this.pick(player, level, config, macro.mining.reach(player, config), roaming);
+            this.idleScans = this.target == null ? this.idleScans + 1 : 0;
+        }
+        if (this.target == null && roaming && this.idleScans >= 2) {
+            this.idleScans = 0;
+            this.walking = true;
+            this.routeIndex = Math.floorMod(this.routeIndex + 1, config.forageRoute.size());
+            macro.walker.go(mc, List.of(routePoint(config, this.routeIndex)), 1.0);
+            return "Walking to tree " + (this.routeIndex + 1);
         }
         if (this.target == null) {
             macro.rotator.stop();
@@ -161,8 +180,28 @@ final class ForagingMacro implements Routine {
         return this.job.label;
     }
 
-    /** Chooses the next job: logs first, then empty dirt, then saplings to grow. */
-    private void pick(LocalPlayer player, ClientLevel level, MinerConfig config, double reach) {
+    /** Tree route mode: walks to the next saved point, then goes back to chopping whatever is in reach there. */
+    private String walkRoute(Macro macro, Minecraft mc, LocalPlayer player, MinerConfig config) {
+        PathWalker.State state = macro.walker.tick(mc, player, macro.rotator, config);
+        if (state == PathWalker.State.DONE || state == PathWalker.State.FAILED) {
+            macro.walker.stop(mc);
+            macro.rotator.stop();
+            this.walking = false;
+            this.scanIn = 0;
+            if (state == PathWalker.State.FAILED) {
+                MinerMod.LOGGER.info("Foraging: could not reach route point {} ({})", this.routeIndex + 1, macro.walker.failure());
+            }
+        }
+        return "Walking to tree " + (this.routeIndex + 1);
+    }
+
+    private static Vec3 routePoint(MinerConfig config, int index) {
+        int[] point = config.forageRoute.get(index);
+        return new Vec3(point[0] + 0.5, point[1], point[2] + 0.5);
+    }
+
+    /** Chooses the next job: logs first, then (unless roaming a tree route) empty dirt, then saplings to grow. */
+    private void pick(LocalPlayer player, ClientLevel level, MinerConfig config, double reach, boolean roaming) {
         Vec3 eye = player.getEyePosition();
         BlockPos center = player.blockPosition();
         int r = (int) Math.ceil(reach);
@@ -203,6 +242,9 @@ final class ForagingMacro implements Routine {
             if (this.sawLogs) {
                 this.sawLogs = false;
                 this.trees++;
+            }
+            if (roaming) {
+                return;
             }
             if (bestDirt != null) {
                 this.begin(Job.PLANT, bestDirt, new Vec3(bestDirt.getX() + 0.5, bestDirt.getY() + 0.98, bestDirt.getZ() + 0.5));
@@ -267,6 +309,13 @@ final class ForagingMacro implements Routine {
 
     @Override
     public void render(Macro macro, LocalPlayer player) {
+        if (macro.config.showTarget) {
+            List<int[]> route = macro.config.forageRoute;
+            for (int i = 0; i < route.size(); i++) {
+                BlockPos pos = new BlockPos(route.get(i)[0], route.get(i)[1], route.get(i)[2]);
+                Gizmos.billboardTextOverBlock("Tree " + (i + 1), pos, 0, 0xFF55FF55, 0.32F);
+            }
+        }
         if (macro.config.showTarget && this.target != null) {
             int color = this.job == Job.CHOP ? 0xFFFFAA00 : 0xFF55FF55;
             Gizmos.cuboid(this.target, GizmoStyle.strokeAndFill(color, 2.0F, color & 0x30FFFFFF));

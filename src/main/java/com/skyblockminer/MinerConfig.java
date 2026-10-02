@@ -85,6 +85,7 @@ public final class MinerConfig {
     public boolean forageGrass = false;
     public int forageActionDelay = 180;
     public String forageWarpCommand = "is";
+    public List<int[]> forageRoute = new ArrayList<>();
 
     // Fishing
     public double[] fishSpot = null;
@@ -97,10 +98,67 @@ public final class MinerConfig {
     public int fishWeaponSlot = 0;
     public String fishWarpCommand = "";
 
+    // Combat
+    public List<String> combatMobs = new ArrayList<>();
+    public int combatRadius = 20;
+    public double[] combatSpot = null;
+    public int combatWeaponSlot = 0;
+    public String combatAttackMode = "melee";
+    public String combatWarpCommand = "";
+
+    // Auto sell and schedule
+    public boolean autoSell = false;
+    public List<String> sellItems = new ArrayList<>();
+    public String activeHours = "";
+
+    // Glacite commissions and excavator
+    public List<String> glaciteRules = new ArrayList<>(List.of(
+        "Walker Slayer=mob:Glacite Walker,Ice Walker",
+        "Glacite=packed_ice",
+        "Umber=terracotta,brown_terracotta,smooth_red_sandstone",
+        "Tungsten=clay,infested_cobblestone",
+        "Onyx=black_stained_glass,black_stained_glass_pane",
+        "Aquamarine=blue_stained_glass,blue_stained_glass_pane",
+        "Citrine=brown_stained_glass,brown_stained_glass_pane",
+        "Peridot=green_stained_glass,green_stained_glass_pane"
+    ));
+    public String glaciteWarpCommand = "warp camp";
+    public String glaciteClaimItem = "Royal Pigeon";
+    public String excavatorScrap = "Suspicious Scrap";
+    public String excavatorMenu = "Fossil Excavator";
+    public String excavatorDigMenu = "Fossil Excavator";
+    public String excavatorStart = "Start Excavator";
+    public String excavatorTile = "Dirt";
+
+    // Garden visitors
+    public boolean visitorsEnabled = false;
+    public double[] visitorSpot = null;
+    public int visitorMin = 1;
+    public String visitorAccept = "Accept Offer";
+
+    // Slayer auto-start
+    public boolean slayerAutoStart = false;
+    public String slayerOpenCommand = "";
+    public String slayerPhoneItem = "Maddox Batphone";
+    public String slayerBoss = "Revenant Horror";
+    public String slayerTier = "IV";
+    public String slayerConfirmItem = "Confirm";
+
+    // Forge
+    public boolean forgeAutoClaim = false;
+    public String forgeMenu = "The Forge";
+    public String forgeClaimText = "Claim";
+
+    // Menu solvers
+    public boolean solveExperiments = false;
+    public boolean solveHarp = false;
+    public int solverClickDelay = 250;
+
     // Interface
     public String accent = "violet";
     public boolean toasts = true;
     public boolean itemTracker = true;
+    public boolean bazaarPrices = true;
     public boolean showTarget = true;
     public int hudX = 4;
     public int hudY = 4;
@@ -264,6 +322,20 @@ public final class MinerConfig {
         if (this.fishSpot != null && this.fishSpot.length != 5) {
             this.fishSpot = null;
         }
+        this.forageRoute.removeIf(point -> point == null || point.length != 3);
+        if (this.visitorSpot != null && this.visitorSpot.length != 3) {
+            this.visitorSpot = null;
+        }
+        if (this.combatSpot != null && this.combatSpot.length != 3) {
+            this.combatSpot = null;
+        }
+        if (!this.combatAttackMode.equals("melee") && !this.combatAttackMode.equals("use")) {
+            this.combatAttackMode = defaults.combatAttackMode;
+        }
+        if (!Schedule.valid(this.activeHours)) {
+            this.activeHours = "";
+        }
+        this.combatRadius = clamp(this.combatRadius, 4, 64);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);

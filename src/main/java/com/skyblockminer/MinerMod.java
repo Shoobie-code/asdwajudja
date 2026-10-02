@@ -39,6 +39,7 @@ public final class MinerMod implements ClientModInitializer {
     private static Macro macro;
     private static MinerConfig config;
     private static MacroSettings settings;
+    private static Solvers solvers;
     private static boolean openMenu;
     private static boolean openHud;
     private static boolean openMarket;
@@ -55,6 +56,7 @@ public final class MinerMod implements ClientModInitializer {
         macro = new Macro(config);
         macro.applyConfig();
         settings = new MacroSettings(macro);
+        solvers = new Solvers(config);
         Toasts.setEnabled(config.toasts);
         market = new Market(FabricLoader.getInstance().getConfigDir().resolve(ID));
         flips = new Flips();
@@ -70,6 +72,8 @@ public final class MinerMod implements ClientModInitializer {
             new KeyMapping("key.skyblockminer.hud", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
         KeyMapping marketKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.skyblockminer.market", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
+        KeyMapping panicKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.skyblockminer.panic", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
 
         ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> macro.map.onChunkLoad(level, chunk));
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
@@ -80,6 +84,10 @@ public final class MinerMod implements ClientModInitializer {
             macro.map.tick(mc);
             while (toggleKey.consumeClick()) {
                 macro.toggle();
+            }
+            // Unlike the toggle key, the panic key only ever stops.
+            while (panicKey.consumeClick()) {
+                macro.stop("Panic key");
             }
             while (menuKey.consumeClick()) {
                 openMenu = true;
@@ -110,6 +118,8 @@ public final class MinerMod implements ClientModInitializer {
             tickMarket(mc);
             macro.onTick(mc);
             macro.render(mc);
+            solvers.tick(mc);
+            macro.recording.tick(mc);
         });
         LevelRenderEvents.END_MAIN.register(context -> macro.onFrame());
         ClientReceiveMessageEvents.GAME.register((message, overlay) -> {

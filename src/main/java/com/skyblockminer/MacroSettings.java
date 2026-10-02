@@ -45,7 +45,7 @@ public final class MacroSettings {
     public MacroSettings(Macro macro) {
         this.macro = macro;
         this.c = macro.config;
-        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.safety(),
+        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
             this.notifications(), this.market(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
@@ -138,6 +138,26 @@ public final class MacroSettings {
                     () -> this.c.avoidRadius, v -> this.c.avoidRadius = (int) v),
                 this.toggle("comm.sell", "Sell trash", "Sells junk to the NPC when the inventory fills.",
                     () -> this.c.sellTrash, v -> this.c.sellTrash = v))),
+            new Section("Glacite commissions", List.of(
+                this.longText("glacite.rules", "Commission rules", "Commission text=blocks (or mob:names), separated by ; - fix these if a commission is mined wrong.",
+                    "Glacite=packed_ice; Umber=terracotta",
+                    () -> String.join("; ", this.c.glaciteRules),
+                    v -> this.c.glaciteRules = new ArrayList<>(Arrays.stream(v.split(";")).map(String::trim).filter(s -> !s.isEmpty()).toList())),
+                this.text("glacite.warp", "Warp command", "Command that takes you to the Glacite Tunnels.", "warp camp", false,
+                    () -> this.c.glaciteWarpCommand, v -> this.c.glaciteWarpCommand = v),
+                this.text("glacite.claim", "Claim item", "Hotbar item that opens the Commissions menu.", "Royal Pigeon", false,
+                    () -> this.c.glaciteClaimItem, v -> this.c.glaciteClaimItem = v))),
+            new Section("Fossil Excavator", List.of(
+                this.text("excavator.scrap", "Scrap item", "Item put into the excavator.", "Suspicious Scrap", false,
+                    () -> this.c.excavatorScrap, v -> this.c.excavatorScrap = v),
+                this.text("excavator.menu", "Excavator menu title", "Title of the menu that opens on the excavator.", "Fossil Excavator", false,
+                    () -> this.c.excavatorMenu, v -> this.c.excavatorMenu = v),
+                this.text("excavator.digmenu", "Digging menu title", "Title of the menu with the tiles.", "Fossil Excavator", false,
+                    () -> this.c.excavatorDigMenu, v -> this.c.excavatorDigMenu = v),
+                this.text("excavator.start", "Start item", "Item clicked to start excavating.", "Start Excavator", false,
+                    () -> this.c.excavatorStart, v -> this.c.excavatorStart = v),
+                this.text("excavator.tile", "Tile item", "Name of a covered tile to click.", "Dirt", false,
+                    () -> this.c.excavatorTile, v -> this.c.excavatorTile = v))),
             new Section("Hazards", List.of(
                 this.slider("mining.heat", "Heat limit", "Warps to the Forge at this heat (0 = off).", 0, 100, 1, "",
                     () -> this.c.heatLimit, v -> this.c.heatLimit = (int) v),
@@ -215,9 +235,23 @@ public final class MacroSettings {
                     .visibleWhen(() -> this.c.buildPattern.equals("lanes")),
                 this.slider("builder.delay", "Place delay", "Pause between placements.", 50, 1000, 10, " ms",
                     () -> this.c.buildDelay, v -> this.c.buildDelay = (int) v))),
+            new Section("Visitors", List.of(
+                this.toggle("visitors.enabled", "Serve visitors", "At each rewarp, walks to the visitors and accepts offers you have the items for.",
+                    () -> this.c.visitorsEnabled, v -> this.c.visitorsEnabled = v),
+                this.button("visitors.setspot", "Visitor spot", "Stand where the visitors gather (by the barn) and press.", "Set here", () -> {
+                    LocalPlayer player = Minecraft.getInstance().player;
+                    if (player != null) {
+                        this.c.visitorSpot = new double[]{player.getX(), player.getY(), player.getZ()};
+                        this.saved("Visitor spot saved");
+                    }
+                }).visibleWhen(() -> this.c.visitorsEnabled),
+                this.slider("visitors.min", "Wait for", "Visitors waiting before going to them.", 1, 5, 1, "",
+                    () -> this.c.visitorMin, v -> this.c.visitorMin = (int) v).visibleWhen(() -> this.c.visitorsEnabled),
+                this.text("visitors.accept", "Accept item", "Name of the accept button in a visitor's menu.", "Accept Offer", false,
+                    () -> this.c.visitorAccept, v -> this.c.visitorAccept = v).visibleWhen(() -> this.c.visitorsEnabled))),
             new Section("Pests", List.of(
                 this.choice("farming.pests", "When a pest spawns", "What to do on a pest spawn message.",
-                    () -> List.of("ignore", "notify", "stop"), MacroSettings::capitalize,
+                    () -> List.of("ignore", "notify", "stop", "kill"), v -> v.equals("kill") ? "Kill with vacuum" : capitalize(v),
                     () -> this.c.farmPestAction, v -> this.c.farmPestAction = v)))
         ));
     }
@@ -244,6 +278,18 @@ public final class MacroSettings {
                     () -> this.c.forageGrass, v -> this.c.forageGrass = v),
                 this.slider("foraging.delay", "Action delay", "Pause after each planting or bone meal use.", 50, 1000, 10, " ms",
                     () -> this.c.forageActionDelay, v -> this.c.forageActionDelay = (int) v),
+                this.button("foraging.addpoint", "Add tree route point", "Adds where you stand to the tree route. With a route, the macro walks between trees instead of planting.", "Add",
+                    () -> {
+                        BlockPos pos = this.playerPos();
+                        if (pos != null) {
+                            this.c.forageRoute.add(new int[]{pos.getX(), pos.getY(), pos.getZ()});
+                            this.saved("Tree route point " + this.c.forageRoute.size() + " added at " + pos.toShortString());
+                        }
+                    }),
+                this.button("foraging.clearroute", "Clear tree route", "Removes every tree route point (back to planting mode).", "Clear", () -> {
+                    this.c.forageRoute.clear();
+                    this.saved("Tree route cleared");
+                }),
                 this.text("foraging.warp", "Warp command", "Command used after a rejoin to get back to the trees.", "is", false,
                     () -> this.c.forageWarpCommand, v -> this.c.forageWarpCommand = v)))
         ));
@@ -285,6 +331,50 @@ public final class MacroSettings {
         ));
     }
 
+    private Category combat() {
+        return new Category("Combat", "⚔", List.of(
+            new Section("Macro", List.of(this.start("combat.start", MacroType.Category.COMBAT))),
+            new Section("Targets", List.of(
+                this.text("combat.mobs", "Mob names", "Parts of mob name tags to attack, comma separated.", "e.g. Ghost, Zealot", false,
+                    () -> String.join(", ", this.c.combatMobs), v -> this.c.combatMobs = splitList(v)),
+                this.slider("combat.radius", "Radius", "How far from the spot to look for mobs.", 4, 64, 1, " blocks",
+                    () -> this.c.combatRadius, v -> this.c.combatRadius = (int) v),
+                this.button("combat.setspot", "Grinding spot", "Center of the area; the macro walks here on start and after a rejoin.", "Set here",
+                    () -> {
+                        LocalPlayer player = Minecraft.getInstance().player;
+                        if (player != null) {
+                            this.c.combatSpot = new double[]{player.getX(), player.getY(), player.getZ()};
+                            this.saved("Combat spot saved");
+                        }
+                    }),
+                this.button("combat.clearspot", "Clear grinding spot", "Uses wherever you start the macro instead.", "Clear", () -> {
+                    this.c.combatSpot = null;
+                    this.saved("Combat spot cleared");
+                }),
+                this.text("combat.warp", "Warp command", "Command used after a rejoin to get back (empty = none).", "warp crypt", false,
+                    () -> this.c.combatWarpCommand, v -> this.c.combatWarpCommand = v))),
+            new Section("Slayer quests", List.of(
+                this.toggle("slayer.auto", "Auto-start quests", "Starts the next slayer quest when one ends.",
+                    () -> this.c.slayerAutoStart, v -> this.c.slayerAutoStart = v),
+                this.text("slayer.command", "Menu command", "Command that opens the slayer menu (empty = use the phone item).", "", false,
+                    () -> this.c.slayerOpenCommand, v -> this.c.slayerOpenCommand = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.phone", "Phone item", "Hotbar item that opens the slayer menu.", "Maddox Batphone", false,
+                    () -> this.c.slayerPhoneItem, v -> this.c.slayerPhoneItem = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.boss", "Boss item", "Name of the boss in the slayer menu.", "Revenant Horror", false,
+                    () -> this.c.slayerBoss, v -> this.c.slayerBoss = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.tier", "Tier item", "Words in the tier item's name, like IV.", "IV", false,
+                    () -> this.c.slayerTier, v -> this.c.slayerTier = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.confirm", "Confirm item", "Name of the confirm button.", "Confirm", false,
+                    () -> this.c.slayerConfirmItem, v -> this.c.slayerConfirmItem = v).visibleWhen(() -> this.c.slayerAutoStart))),
+            new Section("Weapon", List.of(
+                this.choice("combat.attack", "Attack with", "Melee hits, or right click (mage weapons like Hyperion).",
+                    () -> List.of("melee", "use"), v -> v.equals("use") ? "Right click" : "Melee",
+                    () -> this.c.combatAttackMode, v -> this.c.combatAttackMode = v),
+                this.slider("combat.weapon", "Weapon slot", "Hotbar slot of the weapon (0 = find automatically).", 0, 9, 1, "",
+                    () -> this.c.combatWeaponSlot, v -> this.c.combatWeaponSlot = (int) v)))
+        ));
+    }
+
     private Category safety() {
         return new Category("Failsafes", "⚠", List.of(
             new Section("Failsafes", List.of(
@@ -302,7 +392,15 @@ public final class MacroSettings {
                 this.slider("breaks.every", "Break every", "Minutes of work between breaks (0 = no breaks).", 0, 240, 5, " min",
                     () -> this.c.breakEvery, v -> this.c.breakEvery = (int) v),
                 this.slider("breaks.length", "Break length", "Minutes per break.", 1, 60, 1, " min",
-                    () -> this.c.breakLength, v -> this.c.breakLength = (int) v)))
+                    () -> this.c.breakLength, v -> this.c.breakLength = (int) v),
+                this.text("schedule.hours", "Active hours", "Only run inside this daily window, like 08:00-23:00 (empty = always).", "08:00-23:00", false,
+                    () -> this.c.activeHours, v -> {
+                        if (Schedule.valid(v)) {
+                            this.c.activeHours = v.trim();
+                        } else {
+                            Toasts.push("Active hours", "Use HH:MM-HH:MM, like 08:00-23:00", Toasts.Kind.ERROR);
+                        }
+                    })))
         ));
     }
 
@@ -328,6 +426,8 @@ public final class MacroSettings {
                 this.toggle("hud.status", "Status HUD", "Shows what the macro is doing.", () -> this.c.hud, v -> this.c.hud = v),
                 this.toggle("hud.tracker", "Loot tracker", "Shows items gained this session with rates per hour.",
                     () -> this.c.itemTracker, v -> this.c.itemTracker = v),
+                this.toggle("hud.prices", "Profit estimate", "Prices tracked loot at Bazaar instant-sell (fetched from api.hypixel.net).",
+                    () -> this.c.bazaarPrices, v -> this.c.bazaarPrices = v).visibleWhen(() -> this.c.itemTracker),
                 this.toggle("hud.targets", "Highlight targets", "Outlines the block or spot the macro is working on.",
                     () -> this.c.showTarget, v -> this.c.showTarget = v),
                 this.button("hud.edit", "HUD layout", "Drag the HUD panels where you want them.", "Edit",
@@ -391,6 +491,24 @@ public final class MacroSettings {
                     () -> this.c.ungrab, v -> this.c.ungrab = v),
                 this.toggle("general.background", "Run unfocused", "Keeps running when the window loses focus.",
                     () -> this.c.keepRunningUnfocused, v -> this.c.keepRunningUnfocused = v))),
+            new Section("Auto sell", List.of(
+                this.toggle("sell.enabled", "Sell when full", "Sells listed items through /trades when the inventory fills (not commissions).",
+                    () -> this.c.autoSell, v -> this.c.autoSell = v),
+                this.text("sell.items", "Items to sell", "Parts of item names to sell, comma separated. The hotbar is never sold.", "e.g. Ectoplasm, Raw Fish", false,
+                    () -> String.join(", ", this.c.sellItems), v -> this.c.sellItems = splitList(v)).visibleWhen(() -> this.c.autoSell))),
+            new Section("Menu solvers", List.of(
+                this.toggle("solver.experiments", "Experiment solver", "Solves Ultrasequencer and Chronomatron when you open them.",
+                    () -> this.c.solveExperiments, v -> this.c.solveExperiments = v),
+                this.toggle("solver.harp", "Harp solver", "Plays Melody's Harp songs when you open the harp.",
+                    () -> this.c.solveHarp, v -> this.c.solveHarp = v),
+                this.toggle("solver.forge", "Forge auto-claim", "Claims finished items while the Forge menu is open.",
+                    () -> this.c.forgeAutoClaim, v -> this.c.forgeAutoClaim = v),
+                this.text("solver.forgemenu", "Forge menu title", "Title of the Forge menu.", "The Forge", false,
+                    () -> this.c.forgeMenu, v -> this.c.forgeMenu = v).visibleWhen(() -> this.c.forgeAutoClaim),
+                this.text("solver.forgeclaim", "Claim text", "Text in a finished slot's lore.", "Claim", false,
+                    () -> this.c.forgeClaimText, v -> this.c.forgeClaimText = v).visibleWhen(() -> this.c.forgeAutoClaim),
+                this.slider("solver.delay", "Experiment click delay", "Pause between experiment clicks.", 50, 1000, 10, " ms",
+                    () -> this.c.solverClickDelay, v -> this.c.solverClickDelay = (int) v))),
             new Section("Movement", List.of(
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
                     () -> this.c.sprint, v -> this.c.sprint = v),
@@ -461,6 +579,10 @@ public final class MacroSettings {
         return names;
     }
 
+    private static List<String> splitList(String text) {
+        return new ArrayList<>(Arrays.stream(text.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
+    }
+
     private static String capitalize(String text) {
         return text.isEmpty() ? text : Character.toUpperCase(text.charAt(0)) + text.substring(1);
     }
@@ -482,6 +604,10 @@ public final class MacroSettings {
     private Setting text(String id, String name, String description, String placeholder, boolean secret, Supplier<String> get,
         Consumer<String> set) {
         return new Text(id, name, description, placeholder, secret, 200, get, set).onChange(this::changed);
+    }
+
+    private Setting longText(String id, String name, String description, String placeholder, Supplier<String> get, Consumer<String> set) {
+        return new Text(id, name, description, placeholder, false, 2000, get, set).onChange(this::changed);
     }
 
     private Setting button(String id, String name, String description, String label, Runnable action) {

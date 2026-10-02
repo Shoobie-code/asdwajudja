@@ -68,6 +68,32 @@ final class TabList {
         return commissions;
     }
 
+    /** Every "Name: NN%" or "Name: DONE" line, known commission or not (for Glacite commissions). */
+    static Map<String, Double> parseProgress(List<String> lines) {
+        Map<String, Double> progress = new LinkedHashMap<>();
+        for (String line : lines) {
+            Matcher matcher = PROGRESS.matcher(line);
+            if (matcher.matches()) {
+                String value = matcher.group(2);
+                progress.put(matcher.group(1).trim(), value.equals("DONE") ? 1.0 : Double.parseDouble(value.replace("%", "")) / 100.0);
+            }
+        }
+        return progress;
+    }
+
+    private static final Pattern VISITORS = Pattern.compile("^Visitors:\\s*\\(?(\\d+)\\)?");
+
+    /** Garden visitors waiting, from the "Visitors: (N)" tab line; -1 when the line is missing. */
+    static int visitors(List<String> lines) {
+        for (String line : lines) {
+            Matcher matcher = VISITORS.matcher(line);
+            if (matcher.find()) {
+                return Integer.parseInt(matcher.group(1));
+            }
+        }
+        return -1;
+    }
+
     static long powder(Minecraft mc, String type) {
         return parsePowder(lines(mc), type);
     }
