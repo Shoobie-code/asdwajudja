@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.gizmos.Gizmos;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
@@ -29,7 +30,8 @@ final class FarmingMacro implements Routine {
         CACTUS("cactus", "Cactus", "A", "D", 0.0),
         COCOA("cocoa", "Cocoa beans", "W", "S", -10.0),
         MUSHROOM("mushroom", "Mushroom", "A+W", "D+W", 4.0),
-        CUSTOM("custom", "Custom keys", null, null, 3.0);
+        CUSTOM("custom", "Custom keys", null, null, 3.0),
+        ECHO("echo", "Recorded movement (/sm echo record)", null, null, 3.0);
 
         static final List<Pattern> ALL = List.of(values());
         final String id;
@@ -62,6 +64,13 @@ final class FarmingMacro implements Routine {
         "minecraft:cactus", "minecraft:melon", "minecraft:pumpkin", "minecraft:cocoa", "minecraft:red_mushroom",
         "minecraft:brown_mushroom", "minecraft:sunflower", "minecraft:rose_bush"
     );
+    static final List<String> PESTS = List.of(
+        "Beetle", "Cricket", "Earthworm", "Fly", "Locust", "Mite", "Mosquito", "Moth", "Rat", "Slug", "Mouse", "Mantis"
+    );
+    private static final double VACUUM_RANGE = 12.0;
+    private static final double PEST_SEARCH = 40.0;
+    private static final long PEST_HUNT_MS = 45000L;
+    private static final long PEST_CLEAR_MS = 3000L;
     private static final int REWARP_SETTLE_MS = 2500;
     private static final int MAX_FUTILE_SWITCHES = 4;
 
@@ -78,6 +87,12 @@ final class FarmingMacro implements Routine {
     private BlockPos lastBroken;
     private int crops;
     private int rewarps;
+    private final Combat pestCombat = new Combat();
+    private long huntUntil;
+    private long noPestSince;
+    private Vec3 huntCenter;
+    private int pests;
+    private int frame;
 
     @Override
     public void reset() {
@@ -93,6 +108,10 @@ final class FarmingMacro implements Routine {
         this.lastBroken = null;
         this.crops = 0;
         this.rewarps = 0;
+        this.frame = 0;
+        this.huntUntil = 0L;
+        this.pests = 0;
+        this.pestCombat.clear();
     }
 
     @Override
@@ -112,6 +131,7 @@ final class FarmingMacro implements Routine {
 
     @Override
     public void resume() {
+        this.frame = 0;
         this.aligning = true;
         this.left = true;
         this.lastPos = null;
@@ -128,6 +148,9 @@ final class FarmingMacro implements Routine {
             this.releaseKeys(mc);
             return "Rewarping";
         }
+        if (this.huntUntil > 0L) {
+            return this.huntPests(macro, mc, player, level, now);
+        }
 
         int tool = Inv.toolSlot(player, config.farmToolSlot, TOOLS);
         if (tool < 0) {
@@ -138,6 +161,9 @@ final class FarmingMacro implements Routine {
             macro.selectSlot(tool);
         }
 
+        if (Pattern.parse(config.farmPattern) == Pattern.ECHO) {
+            return this.echo(macro, mc, player, level);
+        }
         if (Float.isNaN(this.baseYaw)) {
             this.baseYaw = startYaw(player.getYRot(), config);
         }
@@ -159,6 +185,86 @@ final class FarmingMacro implements Routine {
         this.breakCrop(mc, player, level);
         this.move(macro, mc, player, config);
         return "Farming (" + (this.left ? "left" : "right") + " lane)";
+    }
+
+    /** Replays the recorded keys and view angles tick by tick, breaking crops on the way, then rewarps and repeats. */
+    private String echo(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+        List<float[]> frames = macro.recording.frames();
+        if (frames.isEmpty()) {
+            macro.stop("No recorded movement yet (run /sm echo record)");
+            return "Off";
+        }
+        if (this.frame >= frames.size()) {
+            this.frame = 0;
+            if (macro.config.farmWarpCommand.isBlank()) {
+                this.aligning = true;
+            } else {
+                this.rewarp(macro, mc, "End of the recording");
+                this.frame = 0;
+                return "Rewarping";
+            }
+        }
+        float[] f = frames.get(this.frame);
+        if (this.aligning) {
+            this.releaseKeys(mc);
+            macro.rotator.look(player, f[1], f[2], macro.config.rotationSpeed / 100.0);
+            if (!macro.rotator.settled(player, 1.5)) {
+                return "Aligning to the recording";
+            }
+            this.aligning = false;
+        }
+        macro.rotator.look(player, f[1], f[2], 1.0);
+        this.keys.hold(Recording.keys(mc, (int) f[0]));
+        this.breakCrop(mc, player, level);
+        this.frame++;
+        return String.format("Replaying (%d%%)", this.frame * 100 / frames.size());
+    }
+
+    /** Pest action "kill": vacuums pests near where the farm was left, then rewarps to the farm start. */
+    private String huntPests(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level, long now) {
+        this.keys.release();
+        this.stopBreaking(mc);
+        int vacuum = Inv.hotbarNamed(player, List.of("vacuum"));
+        if (vacuum < 0) {
+            this.endHunt(macro, mc, "No vacuum in the hotbar");
+            return "Rewarping";
+        }
+        if (player.getInventory().getSelectedSlot() != vacuum) {
+            macro.selectSlot(vacuum);
+        }
+        if (this.huntCenter == null) {
+            this.huntCenter = player.position();
+        }
+        Vec3 c = this.huntCenter;
+        CommissionData.Mob mob = new CommissionData.Mob(PESTS,
+            (x, y, z) -> (x - c.x) * (x - c.x) + (z - c.z) * (z - c.z) <= PEST_SEARCH * PEST_SEARCH);
+        LivingEntity before = this.pestCombat.target();
+        String status = this.pestCombat.tick(mc, player, level, mob, macro.rotator, macro.walker, macro.config, macro.random, VACUUM_RANGE);
+        if (before != null && before != this.pestCombat.target() && !before.isAlive()) {
+            this.pests++;
+        }
+        if (this.pestCombat.target() != null) {
+            this.noPestSince = 0L;
+        } else if (this.noPestSince == 0L) {
+            this.noPestSince = now;
+        }
+        if (now > this.huntUntil || this.noPestSince > 0L && now - this.noPestSince > PEST_CLEAR_MS) {
+            this.endHunt(macro, mc, now > this.huntUntil ? "Gave up on pests" : "Pests cleared");
+            return "Rewarping";
+        }
+        return "Pests: " + status;
+    }
+
+    private void endHunt(Macro macro, Minecraft mc, String why) {
+        this.huntUntil = 0L;
+        this.huntCenter = null;
+        this.pestCombat.reset(mc, macro.walker);
+        macro.rotator.stop();
+        if (!macro.config.farmWarpCommand.isBlank()) {
+            this.rewarp(macro, mc, why);
+        } else {
+            this.resume();
+        }
     }
 
     private void move(Macro macro, Minecraft mc, LocalPlayer player, MinerConfig config) {
@@ -265,6 +371,13 @@ final class FarmingMacro implements Routine {
                     macro.stop("A pest spawned");
                     Macro.alert();
                 }
+                case "kill" -> {
+                    if (this.huntUntil == 0L) {
+                        this.huntUntil = System.currentTimeMillis() + PEST_HUNT_MS;
+                        this.noPestSince = 0L;
+                        MinerMod.message("A pest spawned, hunting it with the vacuum.", ChatFormatting.YELLOW);
+                    }
+                }
                 case "notify" -> {
                     MinerMod.message("A pest spawned in the Garden.", ChatFormatting.YELLOW);
                     Toasts.push("Pest spawned", text, Toasts.Kind.WARNING);
@@ -278,7 +391,8 @@ final class FarmingMacro implements Routine {
 
     @Override
     public String hudLine(Macro macro) {
-        return String.format("%,d crops (%,.0f/h)  %d rewarps", this.crops, this.crops / macro.hours(), this.rewarps);
+        String line = String.format("%,d crops (%,.0f/h)  %d rewarps", this.crops, this.crops / macro.hours(), this.rewarps);
+        return this.pests > 0 ? line + "  " + this.pests + " pests" : line;
     }
 
     @Override

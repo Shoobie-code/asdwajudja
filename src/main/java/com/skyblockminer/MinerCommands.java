@@ -87,10 +87,22 @@ final class MinerCommands {
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "farming.clearrewarp", ""))))
             .then(ClientCommands.literal("forage")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "foraging.setspot", "")))
-                .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", ""))))
+                .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", "")))
+                .then(ClientCommands.literal("add").executes(c -> set(settings, "foraging.addpoint", "")))
+                .then(ClientCommands.literal("clearroute").executes(c -> set(settings, "foraging.clearroute", ""))))
             .then(ClientCommands.literal("fish")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "fishing.setspot", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "fishing.clearspot", ""))))
+            .then(ClientCommands.literal("echo")
+                .then(ClientCommands.literal("record").executes(c -> run(macro.recording::start)))
+                .then(ClientCommands.literal("stop").executes(c -> run(macro.recording::stop)))
+                .then(ClientCommands.literal("clear").executes(c -> run(() -> {
+                    macro.recording.clear();
+                    MinerMod.message("Recording cleared.", ChatFormatting.YELLOW);
+                }))))
+            .then(ClientCommands.literal("combat")
+                .then(ClientCommands.literal("spot").executes(c -> set(settings, "combat.setspot", "")))
+                .then(ClientCommands.literal("clear").executes(c -> set(settings, "combat.clearspot", ""))))
             .then(ClientCommands.literal("custom")
                 .then(ClientCommands.literal("add").then(ClientCommands.argument("block", StringArgumentType.greedyString()).executes(c -> {
                     String block = Targets.normalize(StringArgumentType.getString(c, "block"));
@@ -326,9 +338,10 @@ final class MinerCommands {
         String[] lines = {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
             "/sm start [type] | stop | status | type <type>",
-            "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing",
+            "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing combat",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
-            "/sm farm rewarp|clear | forage spot|clear | fish spot|clear - save spots where you stand",
+            "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear - save spots where you stand",
+            "/sm echo record|stop|clear - record a farm walk for the \"Recorded movement\" farm type",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm custom add|remove|list <block> | map [clear]"

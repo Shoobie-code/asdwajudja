@@ -76,6 +76,7 @@ public final class MinerConfig {
     public boolean forageGrass = false;
     public int forageActionDelay = 180;
     public String forageWarpCommand = "is";
+    public List<int[]> forageRoute = new ArrayList<>();
 
     // Fishing
     public double[] fishSpot = null;
@@ -88,10 +89,29 @@ public final class MinerConfig {
     public int fishWeaponSlot = 0;
     public String fishWarpCommand = "";
 
+    // Combat
+    public List<String> combatMobs = new ArrayList<>();
+    public int combatRadius = 20;
+    public double[] combatSpot = null;
+    public int combatWeaponSlot = 0;
+    public String combatAttackMode = "melee";
+    public String combatWarpCommand = "";
+
+    // Auto sell and schedule
+    public boolean autoSell = false;
+    public List<String> sellItems = new ArrayList<>();
+    public String activeHours = "";
+
+    // Menu solvers
+    public boolean solveExperiments = false;
+    public boolean solveHarp = false;
+    public int solverClickDelay = 250;
+
     // Interface
     public String accent = "violet";
     public boolean toasts = true;
     public boolean itemTracker = true;
+    public boolean bazaarPrices = true;
     public boolean showTarget = true;
     public int hudX = 4;
     public int hudY = 4;
@@ -161,6 +181,17 @@ public final class MinerConfig {
         if (this.fishSpot != null && this.fishSpot.length != 5) {
             this.fishSpot = null;
         }
+        this.forageRoute.removeIf(point -> point == null || point.length != 3);
+        if (this.combatSpot != null && this.combatSpot.length != 3) {
+            this.combatSpot = null;
+        }
+        if (!this.combatAttackMode.equals("melee") && !this.combatAttackMode.equals("use")) {
+            this.combatAttackMode = defaults.combatAttackMode;
+        }
+        if (!Schedule.valid(this.activeHours)) {
+            this.activeHours = "";
+        }
+        this.combatRadius = clamp(this.combatRadius, 4, 64);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
