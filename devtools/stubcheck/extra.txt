@@ -1,0 +1,7 @@
+# Members NOT referenced by the original 1.0.0 jar. Long-standing vanilla names, but not verified against 26.2.
+add net/minecraft/client/Options public net.minecraft.client.KeyMapping keyDown;
+add net/minecraft/client/Options public net.minecraft.client.KeyMapping keyLeft;
+add net/minecraft/client/Options public net.minecraft.client.KeyMapping keyRight;
+add net/minecraft/client/Options public net.minecraft.client.KeyMapping keyAttack;
+add net/minecraft/client/Options public net.minecraft.client.KeyMapping keyUse;
+add net/minecraft/world/item/ItemStack public int getCount() { return 0; }
