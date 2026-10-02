@@ -45,8 +45,9 @@ guess can be fixed in the GUI. When something isn't found they stop (or skip) an
 
 ## Download
 
-Every push is built by GitHub Actions. Take the jar from the repo's **Releases** page: **build-preview** for
-branches, **build-latest** once merged into `main`. Put it in `.minecraft/mods` together with Fabric Loader
+Take the jar from the repo's **Releases** page. Versioned releases (such as **v2.1.0**) are the stable downloads;
+they are published when a `v*` tag is pushed, with notes from `release-notes/<tag>.md`. Every other push is also built:
+**build-preview** for branches, **build-latest** once merged into `main`. Put it in `.minecraft/mods` together with Fabric Loader
 and Fabric API for Minecraft 26.2.
 
 ## Usage
