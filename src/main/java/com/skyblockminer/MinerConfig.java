@@ -53,6 +53,7 @@ public final class MinerConfig {
     public boolean autoRejoin = true;
     public boolean hud = true;
     public boolean oreWalk = true;
+    public boolean pathSafety = true;
     public int oreWalkRange = 64;
 
     // Farming
@@ -69,6 +70,14 @@ public final class MinerConfig {
     public String farmWarpCommand = "warp garden";
     public boolean farmRewarpWhenStuck = true;
     public String farmPestAction = "notify";
+
+    // Builder
+    public int[] buildPos1 = null;
+    public int[] buildPos2 = null;
+    public String buildPattern = "lanes";
+    public String buildBlock = "dirt";
+    public int buildWaterEvery = 9;
+    public int buildDelay = 120;
 
     // Foraging
     public int[] forageSpot = null;
@@ -127,6 +136,72 @@ public final class MinerConfig {
     private transient boolean dirty;
     private transient long dirtySince;
 
+    public String profile = "default";
+
+    private static Path profiles() {
+        return FabricLoader.getInstance().getConfigDir().resolve("skyblockminer").resolve("profiles");
+    }
+
+    /** Names of saved profiles, sorted. */
+    public static List<String> savedProfiles() {
+        if (!Files.isDirectory(profiles())) {
+            return List.of();
+        }
+        try (java.util.stream.Stream<Path> files = Files.list(profiles())) {
+            return files.map(f -> f.getFileName().toString()).filter(n -> n.endsWith(".json"))
+                .map(n -> n.substring(0, n.length() - 5)).sorted().toList();
+        } catch (IOException e) {
+            return List.of();
+        }
+    }
+
+    public static boolean validProfile(String name) {
+        return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
+    }
+
+    /** Writes every setting to profiles/<name>.json. */
+    public boolean saveProfile(String name) {
+        if (!validProfile(name)) {
+            return false;
+        }
+        try {
+            Files.createDirectories(profiles());
+            this.profile = name;
+            Files.writeString(profiles().resolve(name + ".json"), GSON.toJson(this));
+            this.save();
+            return true;
+        } catch (IOException e) {
+            MinerMod.LOGGER.warn("Could not save profile {}", name, e);
+            return false;
+        }
+    }
+
+    /** Replaces every setting with the saved profile's values (in place, so live references stay valid). */
+    public boolean loadProfile(String name) {
+        Path file = profiles().resolve(name + ".json");
+        if (!validProfile(name) || !Files.exists(file)) {
+            return false;
+        }
+        try {
+            MinerConfig loaded = GSON.fromJson(Files.readString(file), MinerConfig.class);
+            if (loaded == null) {
+                return false;
+            }
+            loaded.sanitize();
+            for (Field field : MinerConfig.class.getFields()) {
+                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                    field.set(this, field.get(loaded));
+                }
+            }
+            this.profile = name;
+            this.save();
+            return true;
+        } catch (IOException | RuntimeException | IllegalAccessException e) {
+            MinerMod.LOGGER.warn("Could not load profile {}", name, e);
+            return false;
+        }
+    }
+
     private static Path path() {
         return FabricLoader.getInstance().getConfigDir().resolve("skyblockminer.json");
     }
@@ -176,6 +251,12 @@ public final class MinerConfig {
         }
         if (this.farmRewarp != null && this.farmRewarp.length != 3) {
             this.farmRewarp = null;
+        }
+        if (this.buildPos1 != null && this.buildPos1.length != 3) {
+            this.buildPos1 = null;
+        }
+        if (this.buildPos2 != null && this.buildPos2.length != 3) {
+            this.buildPos2 = null;
         }
         if (this.forageSpot != null && this.forageSpot.length != 3) {
             this.forageSpot = null;

@@ -194,6 +194,27 @@ public final class MacroSettings {
                     () -> this.c.farmWarpCommand, v -> this.c.farmWarpCommand = v),
                 this.toggle("farming.stuckwarp", "Rewarp when stuck", "Warps back instead of stopping when no lane can move.",
                     () -> this.c.farmRewarpWhenStuck, v -> this.c.farmRewarpWhenStuck = v))),
+            new Section("Farm builder", List.of(
+                this.button("builder.start", "Start / stop builder", "Builds the layout between the two corners.", "Toggle", () -> {
+                    if (this.macro.running() && this.macro.mode() == MacroType.BUILDER) {
+                        this.macro.stop("Stopped");
+                    } else {
+                        Minecraft.getInstance().gui.setScreen(null);
+                        this.macro.start(MacroType.BUILDER);
+                    }
+                }),
+                this.button("builder.pos1", "Corner 1", "Saves the block under you as the first corner.", "Set here", () -> this.corner(true)),
+                this.button("builder.pos2", "Corner 2", "Saves the block under you as the opposite corner.", "Set here", () -> this.corner(false)),
+                this.choice("builder.pattern", "Layout", "What to build in the area.",
+                    () -> BuildPlan.Pattern.ALL.stream().map(p -> p.id).toList(), id -> BuildPlan.Pattern.parse(id).label,
+                    () -> this.c.buildPattern, v -> this.c.buildPattern = v),
+                this.text("builder.block", "Block item", "Hotbar item name to place, like dirt or soul sand.", "dirt", false,
+                    () -> this.c.buildBlock, v -> this.c.buildBlock = v.isBlank() ? this.c.buildBlock : v.trim()),
+                this.slider("builder.water", "Water row every", "Rows between water rows (9 keeps every block hydrated).", 3, 9, 1, " rows",
+                    () -> this.c.buildWaterEvery, v -> this.c.buildWaterEvery = (int) v)
+                    .visibleWhen(() -> this.c.buildPattern.equals("lanes")),
+                this.slider("builder.delay", "Place delay", "Pause between placements.", 50, 1000, 10, " ms",
+                    () -> this.c.buildDelay, v -> this.c.buildDelay = (int) v))),
             new Section("Pests", List.of(
                 this.choice("farming.pests", "When a pest spawns", "What to do on a pest spawn message.",
                     () -> List.of("ignore", "notify", "stop"), MacroSettings::capitalize,
@@ -372,7 +393,9 @@ public final class MacroSettings {
                     () -> this.c.keepRunningUnfocused, v -> this.c.keepRunningUnfocused = v))),
             new Section("Movement", List.of(
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
-                    () -> this.c.sprint, v -> this.c.sprint = v)))
+                    () -> this.c.sprint, v -> this.c.sprint = v),
+                this.toggle("general.pathsafety", "Safe paths", "Prefers routes away from lava, fire and cliff edges.",
+                    () -> this.c.pathSafety, v -> this.c.pathSafety = v)))
         ));
     }
 
@@ -390,6 +413,25 @@ public final class MacroSettings {
                 this.macro.start(type);
             }
         });
+    }
+
+    private void corner(boolean first) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        BlockPos pos = player.blockPosition().below();
+        int[] corner = {pos.getX(), pos.getY(), pos.getZ()};
+        if (first) {
+            this.c.buildPos1 = corner;
+        } else {
+            this.c.buildPos2 = corner;
+        }
+        String size = "";
+        if (this.c.buildPos1 != null && this.c.buildPos2 != null) {
+            size = " (" + BuildPlan.plan(this.c.buildPos1, this.c.buildPos2, this.c.buildPattern, this.c.buildWaterEvery).size() + " blocks)";
+        }
+        this.saved("Build corner " + (first ? 1 : 2) + " set at " + pos.toShortString() + size);
     }
 
     private void setRewarpHere() {

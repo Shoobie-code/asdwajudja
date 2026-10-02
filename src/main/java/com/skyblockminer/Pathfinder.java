@@ -30,6 +30,11 @@ final class Pathfinder {
         "lava", "fire", "soul_fire", "magma_block", "cactus", "sweet_berry_bush", "powder_snow", "cobweb", "wither_rose", "campfire", "soul_campfire"
     );
     static final double[] EMPTY = new double[0];
+    private static final int[][] CARDINALS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+    /** Extra cost per neighbouring hazard (lava, fire, cactus...) and per neighbouring deep drop. */
+    private static final double HAZARD_COST = 1.5;
+    private static final double DROP_COST = 0.5;
+    private boolean safety = true;
     static final double[] HAZARD = new double[]{Double.NaN, Double.NaN};
     private Pathfinder.Shapes source;
     private PriorityQueue<Pathfinder.Node> open;
@@ -48,6 +53,11 @@ final class Pathfinder {
 
     boolean start(ClientLevel level, Vec3 from, List<Vec3> goals, double goalRadius) {
         return this.start(world(level), from, goals, goalRadius);
+    }
+
+    /** When on, routes keep away from hazards and cliff edges if that costs little extra distance. */
+    void setSafety(boolean safety) {
+        this.safety = safety;
     }
 
     boolean start(Pathfinder.Shapes source, Vec3 from, List<Vec3> goals, double goalRadius) {
@@ -230,6 +240,9 @@ final class Pathfinder {
             }
 
             double cost = (diagonal ? 1.4142 : 1.0) + (jump ? 0.8 : 0.0) + (drop ? 0.2 * -rise : 0.0);
+            if (this.safety) {
+                cost += this.danger(nx, ny, nz);
+            }
             this.relax(node, nx, ny, nz, height, cost);
         }
     }
@@ -302,6 +315,43 @@ final class Pathfinder {
                 return node;
             }
         }
+    }
+
+    /**
+     * Cost of standing at (x, y, z) because of what is beside it: hazards at foot, head or floor level, and
+     * open air with no floor within four blocks (a fall). Unknown (unloaded) cells cost nothing extra.
+     */
+    private double danger(int x, int y, int z) {
+        double penalty = 0.0;
+        for (int[] d : CARDINALS) {
+            int ax = x + d[0];
+            int az = z + d[1];
+            double[] feet = this.source.get(ax, y, az);
+            double[] head = this.source.get(ax, y + 1, az);
+            double[] below = this.source.get(ax, y - 1, az);
+            if (feet == HAZARD || head == HAZARD || below == HAZARD) {
+                penalty += HAZARD_COST;
+            } else if (feet != null && feet.length == 0 && below != null && below.length == 0 && this.deepDrop(ax, y, az)) {
+                penalty += DROP_COST;
+            }
+        }
+        return penalty;
+    }
+
+    private boolean deepDrop(int x, int y, int z) {
+        for (int dy = 2; dy <= 4; dy++) {
+            double[] cell = this.source.get(x, y - dy, z);
+            if (cell == null) {
+                return false;
+            }
+            if (cell == HAZARD) {
+                return true;
+            }
+            if (cell.length > 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private double floor(int x, int y, int z) {

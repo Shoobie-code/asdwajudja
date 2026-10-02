@@ -40,6 +40,7 @@ public final class Macro {
     final FarmingMacro farming = new FarmingMacro();
     final ForagingMacro foraging = new ForagingMacro();
     final FishingMacro fishing = new FishingMacro();
+    final FarmBuilder builder = new FarmBuilder();
     final ChestSolver chests = new ChestSolver();
     final Routes routes = new Routes();
     final Failsafes failsafes = new Failsafes();
@@ -95,6 +96,7 @@ public final class Macro {
         this.routines.put(MacroType.FARMING, this.farming);
         this.routines.put(MacroType.FORAGING, this.foraging);
         this.routines.put(MacroType.FISHING, this.fishing);
+        this.routines.put(MacroType.BUILDER, this.builder);
         this.allRoutines = List.copyOf(this.routines.values());
     }
 

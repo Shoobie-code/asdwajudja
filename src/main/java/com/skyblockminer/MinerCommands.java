@@ -88,6 +88,36 @@ final class MinerCommands {
             .then(ClientCommands.literal("farm")
                 .then(ClientCommands.literal("rewarp").executes(c -> set(settings, "farming.setrewarp", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "farming.clearrewarp", ""))))
+            .then(ClientCommands.literal("profile")
+                .then(ClientCommands.literal("save").then(ClientCommands.argument("name", StringArgumentType.word()).executes(c -> {
+                    String profile = StringArgumentType.getString(c, "name");
+                    boolean ok = config.saveProfile(profile);
+                    MinerMod.message(ok ? "Saved profile " + profile : "Profile names may use letters, digits, - and _.", ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                    return ok ? 1 : 0;
+                })))
+                .then(ClientCommands.literal("load").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .suggests((c, b) -> {
+                        MinerConfig.savedProfiles().forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String profile = StringArgumentType.getString(c, "name");
+                        boolean ok = config.loadProfile(profile);
+                        if (ok) {
+                            macro.applyConfig();
+                        }
+                        MinerMod.message(ok ? "Loaded profile " + profile : "No profile named " + profile, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    List<String> saved = MinerConfig.savedProfiles();
+                    MinerMod.message(saved.isEmpty() ? "No saved profiles" : "Profiles: " + String.join(", ", saved), ChatFormatting.AQUA);
+                    return 1;
+                })))
+            .then(ClientCommands.literal("build")
+                .executes(c -> run(() -> macro.start(MacroType.BUILDER)))
+                .then(ClientCommands.literal("pos1").executes(c -> set(settings, "builder.pos1", "")))
+                .then(ClientCommands.literal("pos2").executes(c -> set(settings, "builder.pos2", ""))))
             .then(ClientCommands.literal("forage")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "foraging.setspot", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", ""))))
@@ -350,12 +380,13 @@ final class MinerCommands {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
             "/sm market - bazaar, auction, craft and NPC flips, minion costs | /sm skills - XP rates and best methods",
             "/sm start [type] | stop | status | type <type>",
-            "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing",
+            "  types: mithril gemstone ore tunnel custom route powder commissions farming foraging fishing builder",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
             "/sm farm rewarp|clear | forage spot|clear | fish spot|clear - save spots where you stand",
+            "/sm build pos1|pos2 - set build corners (block under you) | /sm build - start the farm builder",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
-            "/sm custom add|remove|list <block> | map [clear]"
+            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list <name>"
         };
         for (String line : lines) {
             MinerMod.message(line, ChatFormatting.GRAY);
