@@ -23,8 +23,23 @@ jobs:
       - name: Offline stub check
         run: bash devtools/stubcheck/check.sh
 
+      - name: Resolve Fabric API version
+        id: fabric
+        run: |
+          mc=$(grep '^minecraft_version=' gradle.properties | cut -d= -f2)
+          pinned=$(grep '^fabric_api_version=' gradle.properties | cut -d= -f2)
+          meta=$(curl -sSfL https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/maven-metadata.xml)
+          if echo "$meta" | grep -q "<version>${pinned}</version>"; then
+            version="$pinned"
+          else
+            version=$(echo "$meta" | grep -o "<version>[^<]*</version>" | sed 's/<[^>]*>//g' | grep -E "\+${mc}$" | tail -1)
+            echo "::warning::fabric_api_version=${pinned} does not exist; using ${version}. Pin it in gradle.properties."
+          fi
+          echo "Fabric API for ${mc}: ${version}"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
       - name: Gradle build
-        run: gradle build --stacktrace
+        run: gradle build --stacktrace -Pfabric_api_version=${{ steps.fabric.outputs.version }}
 
       - uses: actions/upload-artifact@v4
         if: success()
