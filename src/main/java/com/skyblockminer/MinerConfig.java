@@ -88,6 +88,19 @@ public final class MinerConfig {
     public int fishWeaponSlot = 0;
     public String fishWarpCommand = "";
 
+    // Combat
+    public List<String> combatMobs = new ArrayList<>();
+    public int combatRadius = 20;
+    public double[] combatSpot = null;
+    public int combatWeaponSlot = 0;
+    public String combatAttackMode = "melee";
+    public String combatWarpCommand = "";
+
+    // Auto sell and schedule
+    public boolean autoSell = false;
+    public List<String> sellItems = new ArrayList<>();
+    public String activeHours = "";
+
     // Interface
     public String accent = "violet";
     public boolean toasts = true;
@@ -161,6 +174,16 @@ public final class MinerConfig {
         if (this.fishSpot != null && this.fishSpot.length != 5) {
             this.fishSpot = null;
         }
+        if (this.combatSpot != null && this.combatSpot.length != 3) {
+            this.combatSpot = null;
+        }
+        if (!this.combatAttackMode.equals("melee") && !this.combatAttackMode.equals("use")) {
+            this.combatAttackMode = defaults.combatAttackMode;
+        }
+        if (!Schedule.valid(this.activeHours)) {
+            this.activeHours = "";
+        }
+        this.combatRadius = clamp(this.combatRadius, 4, 64);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);

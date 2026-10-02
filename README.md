@@ -1,7 +1,7 @@
 # Skyblock Macro
 
 A Fabric client mod for Hypixel SkyBlock (Minecraft 26.2) that automates mining, commissions, farming,
-foraging and fishing. It has a ClickGUI, a HUD you can drag around, a loot tracker, notifications and
+foraging, fishing and mob grinding. It has a ClickGUI, a HUD you can drag around, a loot tracker, notifications and
 Discord alerts.
 
 > Hypixel's rules forbid macros, so accounts that use them can be banned. Use this at your own risk.
@@ -16,6 +16,7 @@ Discord alerts.
 | Farming | Lane / S-shape farming with presets for vertical crops, melon/pumpkin, sugar cane, cactus, cocoa, mushroom and custom key patterns. It locks yaw and pitch, switches lanes when you stop moving, rewarps at a saved point, rewarps when stuck, and can react to pest spawns |
 | Foraging | Plants saplings on free dirt, uses bone meal and chops with a Treecapitator, then repeats |
 | Fishing | Casts, reels in on the `!!!` bite marker and recasts on a timeout. It can fight sea creatures with a melee or right-click weapon |
+| Combat | Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
 
 **Shared engine**
 - Ore map: every mineable block in the chunks you have seen is indexed. When nothing is in reach, the block-mining macros walk to the nearest known vein, and spots that turn out unreachable are skipped for a minute.
@@ -23,7 +24,9 @@ Discord alerts.
 - Failsafes: stops on teleports, forced rotations, bedrock cages, unexplained pushes, held-slot changes and players inside you. Also alerts on mentions, private messages and words like "macro".
 - Player proximity alerts, with an option to stop.
 - Auto rejoin after kicks, Limbo and server swaps. It then warps back and walks to your saved spot using the pathfinder.
-- Scheduled breaks with varied lengths.
+- Scheduled breaks with varied lengths, and optional daily active hours (for example `08:00-23:00`; overnight windows work too).
+- Panic key: a separate keybind that only ever stops the macro.
+- Auto sell: when the inventory fills, sells items from your list through `/trades` and carries on. The hotbar is never sold.
 - Heat and cold limits in the Crystal Hollows and Glacite Tunnels.
 - Treasure chest solver.
 - Discord webhook with failsafe pings, periodic status reports and a test button.
@@ -50,10 +53,10 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 | `/sm` | Start or stop the selected macro |
 | `/sm gui` · `/sm hud` | Open the menu · edit the HUD layout |
 | `/sm start [type]` · `/sm stop` · `/sm status` | Control the macro |
-| `/sm type <type>` | Select a macro: `mithril gemstone ore tunnel custom route powder commissions farming foraging fishing` |
+| `/sm type <type>` | Select a macro: `mithril gemstone ore tunnel custom route powder commissions farming foraging fishing combat` |
 | `/sm set <setting> [value]` | View or change any GUI option, such as `/sm set farming.pitch 3` |
 | `/sm settings` | List every setting id and its value |
-| `/sm farm rewarp` · `/sm forage spot` · `/sm fish spot` | Save the spot you are standing on |
+| `/sm farm rewarp` · `/sm forage spot` · `/sm fish spot` · `/sm combat spot` | Save the spot you are standing on |
 | `/sm route add\|insert\|remove\|clear\|list\|save\|load\|routes\|import\|export\|show` | Edit mining routes |
 | `/sm goto <x> <y> <z>` | Walk somewhere with the pathfinder |
 
@@ -88,7 +91,8 @@ src/main/java/com/skyblockminer/
   Macro               runs the active Routine plus failsafes, breaks, rejoin, stats
   Routine             interface every macro implements
   BlockMining, RouteMiner, PowderMacro, Commissions      mining
-  FarmingMacro, ForagingMacro, FishingMacro             other skills
+  FarmingMacro, ForagingMacro, FishingMacro, CombatMacro other skills
+  AutoSell, Schedule  selling on a full inventory, active hours
   MacroSettings       every option (feeds the GUI and /sm set)
   Rotator, PathWalker, Pathfinder, WorldMap, TargetFinder, MiningEngine   movement and aiming
   gui/                ClickGuiScreen, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input

@@ -53,6 +53,8 @@ public final class MinerMod implements ClientModInitializer {
             new KeyMapping("key.skyblockminer.menu", Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, category));
         KeyMapping hudKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.skyblockminer.hud", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
+        KeyMapping panicKey = KeyMappingHelper.registerKeyMapping(
+            new KeyMapping("key.skyblockminer.panic", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
 
         ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> macro.map.onChunkLoad(level, chunk));
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
@@ -63,6 +65,10 @@ public final class MinerMod implements ClientModInitializer {
             macro.map.tick(mc);
             while (toggleKey.consumeClick()) {
                 macro.toggle();
+            }
+            // Unlike the toggle key, the panic key only ever stops.
+            while (panicKey.consumeClick()) {
+                macro.stop("Panic key");
             }
             while (menuKey.consumeClick()) {
                 openMenu = true;

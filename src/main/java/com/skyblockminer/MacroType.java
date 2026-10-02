@@ -15,13 +15,15 @@ public enum MacroType {
     FARMING("farming", "Farming", Category.FARMING, null),
     FORAGING("foraging", "Foraging", Category.FORAGING, null),
     FISHING("fishing", "Fishing", Category.FISHING, null),
+    COMBAT("combat", "Combat", Category.COMBAT, null),
     GOTO("goto", "Walking", Category.MINING, null);
 
     public enum Category {
         MINING("Mining"),
         FARMING("Farming"),
         FORAGING("Foraging"),
-        FISHING("Fishing");
+        FISHING("Fishing"),
+        COMBAT("Combat");
 
         public final String label;
 

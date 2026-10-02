@@ -45,7 +45,7 @@ public final class MacroSettings {
     public MacroSettings(Macro macro) {
         this.macro = macro;
         this.c = macro.config;
-        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.safety(),
+        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
             this.notifications(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
@@ -264,6 +264,37 @@ public final class MacroSettings {
         ));
     }
 
+    private Category combat() {
+        return new Category("Combat", "⚔", List.of(
+            new Section("Macro", List.of(this.start("combat.start", MacroType.Category.COMBAT))),
+            new Section("Targets", List.of(
+                this.text("combat.mobs", "Mob names", "Parts of mob name tags to attack, comma separated.", "e.g. Ghost, Zealot", false,
+                    () -> String.join(", ", this.c.combatMobs), v -> this.c.combatMobs = splitList(v)),
+                this.slider("combat.radius", "Radius", "How far from the spot to look for mobs.", 4, 64, 1, " blocks",
+                    () -> this.c.combatRadius, v -> this.c.combatRadius = (int) v),
+                this.button("combat.setspot", "Grinding spot", "Center of the area; the macro walks here on start and after a rejoin.", "Set here",
+                    () -> {
+                        LocalPlayer player = Minecraft.getInstance().player;
+                        if (player != null) {
+                            this.c.combatSpot = new double[]{player.getX(), player.getY(), player.getZ()};
+                            this.saved("Combat spot saved");
+                        }
+                    }),
+                this.button("combat.clearspot", "Clear grinding spot", "Uses wherever you start the macro instead.", "Clear", () -> {
+                    this.c.combatSpot = null;
+                    this.saved("Combat spot cleared");
+                }),
+                this.text("combat.warp", "Warp command", "Command used after a rejoin to get back (empty = none).", "warp crypt", false,
+                    () -> this.c.combatWarpCommand, v -> this.c.combatWarpCommand = v))),
+            new Section("Weapon", List.of(
+                this.choice("combat.attack", "Attack with", "Melee hits, or right click (mage weapons like Hyperion).",
+                    () -> List.of("melee", "use"), v -> v.equals("use") ? "Right click" : "Melee",
+                    () -> this.c.combatAttackMode, v -> this.c.combatAttackMode = v),
+                this.slider("combat.weapon", "Weapon slot", "Hotbar slot of the weapon (0 = find automatically).", 0, 9, 1, "",
+                    () -> this.c.combatWeaponSlot, v -> this.c.combatWeaponSlot = (int) v)))
+        ));
+    }
+
     private Category safety() {
         return new Category("Failsafes", "⚠", List.of(
             new Section("Failsafes", List.of(
@@ -281,7 +312,15 @@ public final class MacroSettings {
                 this.slider("breaks.every", "Break every", "Minutes of work between breaks (0 = no breaks).", 0, 240, 5, " min",
                     () -> this.c.breakEvery, v -> this.c.breakEvery = (int) v),
                 this.slider("breaks.length", "Break length", "Minutes per break.", 1, 60, 1, " min",
-                    () -> this.c.breakLength, v -> this.c.breakLength = (int) v)))
+                    () -> this.c.breakLength, v -> this.c.breakLength = (int) v),
+                this.text("schedule.hours", "Active hours", "Only run inside this daily window, like 08:00-23:00 (empty = always).", "08:00-23:00", false,
+                    () -> this.c.activeHours, v -> {
+                        if (Schedule.valid(v)) {
+                            this.c.activeHours = v.trim();
+                        } else {
+                            Toasts.push("Active hours", "Use HH:MM-HH:MM, like 08:00-23:00", Toasts.Kind.ERROR);
+                        }
+                    })))
         ));
     }
 
@@ -324,6 +363,11 @@ public final class MacroSettings {
                     () -> this.c.ungrab, v -> this.c.ungrab = v),
                 this.toggle("general.background", "Run unfocused", "Keeps running when the window loses focus.",
                     () -> this.c.keepRunningUnfocused, v -> this.c.keepRunningUnfocused = v))),
+            new Section("Auto sell", List.of(
+                this.toggle("sell.enabled", "Sell when full", "Sells listed items through /trades when the inventory fills (not commissions).",
+                    () -> this.c.autoSell, v -> this.c.autoSell = v),
+                this.text("sell.items", "Items to sell", "Parts of item names to sell, comma separated. The hotbar is never sold.", "e.g. Ectoplasm, Raw Fish", false,
+                    () -> String.join(", ", this.c.sellItems), v -> this.c.sellItems = splitList(v)).visibleWhen(() -> this.c.autoSell))),
             new Section("Movement", List.of(
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
                     () -> this.c.sprint, v -> this.c.sprint = v)))
@@ -371,6 +415,10 @@ public final class MacroSettings {
             names.add(0, this.c.route);
         }
         return names;
+    }
+
+    private static List<String> splitList(String text) {
+        return new ArrayList<>(Arrays.stream(text.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
     }
 
     private static String capitalize(String text) {

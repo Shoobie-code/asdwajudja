@@ -40,6 +40,8 @@ public final class Macro {
     final FarmingMacro farming = new FarmingMacro();
     final ForagingMacro foraging = new ForagingMacro();
     final FishingMacro fishing = new FishingMacro();
+    final CombatMacro combatMacro = new CombatMacro();
+    final AutoSell autoSell = new AutoSell();
     final ChestSolver chests = new ChestSolver();
     final Routes routes = new Routes();
     final Failsafes failsafes = new Failsafes();
@@ -80,6 +82,7 @@ public final class Macro {
     private Vec3 home;
     private long homeAt;
     private boolean walkingHome;
+    private boolean outsideHours;
 
     Macro(MinerConfig config) {
         this.config = config;
@@ -95,6 +98,7 @@ public final class Macro {
         this.routines.put(MacroType.FARMING, this.farming);
         this.routines.put(MacroType.FORAGING, this.foraging);
         this.routines.put(MacroType.FISHING, this.fishing);
+        this.routines.put(MacroType.COMBAT, this.combatMacro);
         this.allRoutines = List.copyOf(this.routines.values());
     }
 
@@ -183,6 +187,8 @@ public final class Macro {
         this.combat.reset(mc, this.walker);
         this.allRoutines.forEach(Routine::reset);
         this.chests.reset();
+        this.autoSell.reset();
+        this.outsideHours = false;
         this.tracker.reset();
         this.trackerIn = 0;
         this.failsafes.reset(mc.player);
@@ -458,6 +464,9 @@ public final class Macro {
         } else if (text.contains("inventory is full") || text.contains("Inventory full")) {
             if (this.mode == MacroType.COMMISSIONS && this.config.sellTrash) {
                 this.commissions.onInventoryFull(this);
+            } else if (this.mode != MacroType.GOTO && this.mode != MacroType.COMMISSIONS && this.config.autoSell && !this.config.sellItems.isEmpty()) {
+                this.pause(Minecraft.getInstance());
+                this.autoSell.begin();
             } else if (this.mode != MacroType.GOTO) {
                 this.stop("Your inventory is full");
                 alert();
@@ -628,6 +637,21 @@ public final class Macro {
             return;
         }
 
+        if (this.mode != MacroType.GOTO && this.checkActiveHours(mc, player)) {
+            return;
+        }
+
+        if (this.autoSell.active()) {
+            this.pause(mc);
+            this.rotator.stop();
+            this.status = this.autoSell.tick(this, mc, player);
+            Routine routine = this.routine();
+            if (!this.autoSell.active() && this.running && routine != null) {
+                routine.resume();
+            }
+            return;
+        }
+
         boolean ownMenu = this.mode == MacroType.COMMISSIONS && this.commissions.expectsMenu();
         if (screenOpen && !ownMenu) {
             this.pause(mc);
@@ -664,6 +688,34 @@ public final class Macro {
             String next = this.routine().tick(this, mc, player, level);
             this.status = this.running ? next : "Off";
         }
+    }
+
+    /** Returns true while outside the configured active hours, keeping the macro idle in place. */
+    private boolean checkActiveHours(Minecraft mc, LocalPlayer player) {
+        Schedule hours = Schedule.parse(this.config.activeHours);
+        int minute = Schedule.now();
+        if (hours == null || hours.active(minute)) {
+            if (this.outsideHours) {
+                this.outsideHours = false;
+                this.message("Active hours started, back to work.");
+                Routine routine = this.routine();
+                if (routine != null) {
+                    routine.resume();
+                }
+            }
+            return false;
+        }
+        if (!this.outsideHours) {
+            this.outsideHours = true;
+            this.message("Outside active hours, waiting until " + hours.start() + ".");
+            this.notify("Waiting", "Outside active hours, resuming at " + hours.start(), 3447003);
+            Toasts.push("Active hours", "Waiting until " + hours.start(), Toasts.Kind.INFO);
+        }
+        this.pause(mc);
+        this.rotator.stop();
+        this.rotator.sync(player);
+        this.status = "Waiting for active hours (" + clock(hours.minutesUntilActive(minute) * 60000L) + ")";
+        return true;
     }
 
     /** Returns true when a failsafe stopped the macro. */
@@ -846,6 +898,9 @@ public final class Macro {
         }
         if (this.mode.category == MacroType.Category.MINING) {
             lines.add(this.stats());
+        }
+        if (this.autoSell.sold() > 0) {
+            lines.add("Sold " + this.autoSell.sold() + " stacks");
         }
         String breakIn = this.breakIn();
         if (breakIn != null) {
