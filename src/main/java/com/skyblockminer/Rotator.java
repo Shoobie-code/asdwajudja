@@ -9,8 +9,12 @@ import net.minecraft.world.phys.Vec3;
 final class Rotator {
     private static final float RESET_SHIFT_DEGREES = 5.0F;
     private final Random random = new Random();
+    private static final Vec3 FIXED = new Vec3(0.0, 0.0, 0.0);
     private boolean randomize = true;
     private Vec3 target;
+    private boolean fixed;
+    private float fixedYaw;
+    private float fixedPitch;
     private double speed;
     private float targetYaw;
     private float targetPitch;
@@ -42,7 +46,7 @@ final class Rotator {
         if (this.target == null) {
             return true;
         } else {
-            float[] angles = anglesTo(player, this.target);
+            float[] angles = this.goal(player);
             return Math.abs(Mth.wrapDegrees(angles[0] - player.getYRot())) + Math.abs(angles[1] - player.getXRot()) <= degrees;
         }
     }
@@ -55,9 +59,29 @@ final class Rotator {
         this.aim(player, point, speed, false);
     }
 
+    /** Turns to fixed angles (used by macros that face one direction, like farming). */
+    void look(LocalPlayer player, float yaw, float pitch, double speed) {
+        this.fixedYaw = yaw;
+        this.fixedPitch = Mth.clamp(pitch, -90.0F, 90.0F);
+        boolean wasFixed = this.fixed;
+        this.fixed = true;
+        this.begin(player, wasFixed ? FIXED : null, FIXED, this.goal(player), speed, false);
+    }
+
     private void aim(LocalPlayer player, Vec3 point, double speed, boolean natural) {
-        float[] angles = anglesTo(player, point);
-        boolean jump = this.target == null || Math.abs(Mth.wrapDegrees(angles[0] - this.targetYaw)) + Math.abs(angles[1] - this.targetPitch) > 5.0F;
+        Vec3 previous = this.fixed ? null : this.target;
+        this.fixed = false;
+        this.begin(player, previous, point, anglesTo(player, point), speed, natural);
+    }
+
+    private float[] goal(LocalPlayer player) {
+        return this.fixed
+            ? new float[]{player.getYRot() + Mth.wrapDegrees(this.fixedYaw - player.getYRot()), this.fixedPitch}
+            : anglesTo(player, this.target);
+    }
+
+    private void begin(LocalPlayer player, Vec3 previous, Vec3 point, float[] angles, double speed, boolean natural) {
+        boolean jump = previous == null || Math.abs(Mth.wrapDegrees(angles[0] - this.targetYaw)) + Math.abs(angles[1] - this.targetPitch) > 5.0F;
         this.target = point;
         this.speed = speed;
         this.targetYaw = angles[0];
@@ -86,6 +110,7 @@ final class Rotator {
 
     void stop() {
         this.target = null;
+        this.fixed = false;
     }
 
     void sync(LocalPlayer player) {
@@ -104,7 +129,7 @@ final class Rotator {
             if (now < this.startAt) {
                 this.sync(player);
             } else {
-                float[] angles = anglesTo(player, this.target);
+                float[] angles = this.goal(player);
                 this.targetYaw = angles[0];
                 this.targetPitch = angles[1];
                 double elapsed = this.lastUpdate == 0L ? 16.666666666666668 : Mth.clamp(now - this.lastUpdate, 1L, 100L);

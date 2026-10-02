@@ -19,7 +19,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 
-final class RouteMiner {
+final class RouteMiner implements Routine {
     private static final double ETHERWARP_RANGE = 57.0;
     private static final int MAX_WARP_TRIES = 3;
     private static final long POINT_LIMIT_MS = 120000L;
@@ -35,7 +35,8 @@ final class RouteMiner {
     private int idleTicks;
     private boolean sneakHeld;
 
-    void reset() {
+    @Override
+    public void reset() {
         this.phase = RouteMiner.Phase.START;
         this.index = -1;
         this.laps = 0;
@@ -54,7 +55,8 @@ final class RouteMiner {
         return this.phase;
     }
 
-    void releaseKeys(Minecraft mc) {
+    @Override
+    public void releaseKeys(Minecraft mc) {
         if (this.sneakHeld) {
             mc.options.keyShift.setDown(false);
             this.sneakHeld = false;
@@ -68,7 +70,8 @@ final class RouteMiner {
         this.idleTicks = 0;
     }
 
-    String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+    @Override
+    public String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         List<BlockPos> route = macro.routes.points();
         if (route.size() < 2) {
             macro.stop("The route needs at least 2 points: stand on each one and run /miner route add");
@@ -320,5 +323,12 @@ final class RouteMiner {
         WARPING,
         WALKING,
         MINING;
+    }
+
+    @Override
+    public String hudLine(Macro macro) {
+        return this.index() < 0 ? null : String.format(
+            "Route %s: point %d/%d, lap %d", macro.routes.name(), this.index() + 1, macro.routes.points().size(), this.laps() + 1
+        );
     }
 }

@@ -15,7 +15,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-final class PowderMacro {
+final class PowderMacro implements Routine {
     private static final int AHEAD = 3;
     private static final long STEP_TIMEOUT_MS = 2000L;
     private static final int MAX_TURNS = 4;
@@ -30,7 +30,8 @@ final class PowderMacro {
     private int steps;
     private boolean keysHeld;
 
-    void reset() {
+    @Override
+    public void reset() {
         this.heading = null;
         this.origin = null;
         this.stepTo = null;
@@ -42,14 +43,16 @@ final class PowderMacro {
         return this.heading;
     }
 
-    void releaseKeys(Minecraft mc) {
+    @Override
+    public void releaseKeys(Minecraft mc) {
         if (this.keysHeld) {
             mc.options.keyUp.setDown(false);
             this.keysHeld = false;
         }
     }
 
-    String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+    @Override
+    public String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         this.radius = Math.max(4, macro.config.powderRadius);
         if (this.origin == null) {
             this.heading = player.getDirection();
@@ -197,5 +200,10 @@ final class PowderMacro {
 
     int steps() {
         return this.steps;
+    }
+
+    @Override
+    public String hudLine(Macro macro) {
+        return this.heading() == null ? null : "Heading " + this.heading().getName() + ", " + this.steps() + " blocks walked";
     }
 }

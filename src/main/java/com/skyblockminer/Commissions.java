@@ -19,7 +19,7 @@ import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 
-final class Commissions {
+final class Commissions implements Routine {
     private static final long SPOT_COOLDOWN = 120000L;
     private Commissions.Phase phase = Commissions.Phase.START;
     private long phaseAt;
@@ -41,7 +41,8 @@ final class Commissions {
     private long progressAt;
     private long noSpotsSince;
 
-    void reset() {
+    @Override
+    public void reset() {
         this.phase(Commissions.Phase.START);
         this.current = null;
         this.data = null;
@@ -100,7 +101,8 @@ final class Commissions {
         this.crowdedSince = 0L;
     }
 
-    String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
+    @Override
+    public String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         long now = System.currentTimeMillis();
         if (now - this.progressAt > 1000L) {
             this.progress = TabList.commissions(mc);
@@ -497,5 +499,14 @@ final class Commissions {
         CLOSING,
         SELLING,
         LOBBY_SWAP;
+    }
+
+    @Override
+    public String hudLine(Macro macro) {
+        if (this.current() == null) {
+            return String.format("%d commissions done", this.completed());
+        }
+        double progress = this.currentProgress();
+        return this.current() + (progress >= 0.0 ? String.format(" (%.0f%%)", progress * 100.0) : "");
     }
 }

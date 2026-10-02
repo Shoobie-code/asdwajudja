@@ -1,5 +1,6 @@
 {
-    "key.skyblockminer.toggle": "Toggle miner",
+    "key.skyblockminer.toggle": "Start / stop macro",
     "key.skyblockminer.menu": "Open menu",
-    "key.category.skyblockminer.main": "Skyblock Miner"
+    "key.skyblockminer.hud": "Edit HUD layout",
+    "key.category.skyblockminer.main": "Skyblock Macro"
 }

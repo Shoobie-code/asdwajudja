@@ -1,9 +1,9 @@
 {
     "schemaVersion": 1,
     "id": "skyblockminer",
-    "version": "1.0.0",
-    "name": "Skyblock Miner",
-    "description": "Standalone Hypixel SkyBlock mining macro.",
+    "version": "${version}",
+    "name": "Skyblock Macro",
+    "description": "Hypixel SkyBlock macro: mining, commissions, farming, foraging and fishing, with a ClickGUI, HUD editor, loot tracker and Discord alerts.",
     "environment": "client",
     "entrypoints": {
         "client": ["com.skyblockminer.MinerMod"]

@@ -91,4 +91,22 @@ final class Inv {
 
         return true;
     }
+
+    /** First hotbar slot whose item name contains one of the lower-case keywords, or -1. */
+    static int hotbarNamed(LocalPlayer player, List<String> keywords) {
+        return hotbar(player, stack -> {
+            String name = name(stack).toLowerCase();
+            for (String keyword : keywords) {
+                if (name.contains(keyword)) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    /** Picks {@code configured} (1-9) when set, otherwise the first hotbar item matching the keywords; -1 if none. */
+    static int toolSlot(LocalPlayer player, int configured, List<String> keywords) {
+        return configured >= 1 && configured <= 9 ? configured - 1 : hotbarNamed(player, keywords);
+    }
 }

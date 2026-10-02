@@ -23,12 +23,12 @@ final class Webhook {
             embed.addProperty("color", color);
             embed.addProperty("timestamp", Instant.now().toString());
             JsonObject footer = new JsonObject();
-            footer.addProperty("text", "Skyblock Miner");
+            footer.addProperty("text", "Skyblock Macro");
             embed.add("footer", footer);
             JsonArray embeds = new JsonArray();
             embeds.add(embed);
             JsonObject body = new JsonObject();
-            body.addProperty("username", "Skyblock Miner");
+            body.addProperty("username", "Skyblock Macro");
             body.add("embeds", embeds);
             if (ping && config.pingId != null && !config.pingId.isBlank()) {
                 body.addProperty("content", "<@" + config.pingId + ">");
