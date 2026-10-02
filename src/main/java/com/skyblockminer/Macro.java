@@ -41,6 +41,8 @@ public final class Macro {
     final ForagingMacro foraging = new ForagingMacro();
     final FishingMacro fishing = new FishingMacro();
     final CombatMacro combatMacro = new CombatMacro();
+    final GlaciteCommissions glacite = new GlaciteCommissions();
+    final ExcavatorMacro excavator = new ExcavatorMacro();
     final AutoSell autoSell = new AutoSell();
     final Recording recording = new Recording();
     final Prices prices = new Prices();
@@ -102,6 +104,8 @@ public final class Macro {
         this.routines.put(MacroType.FORAGING, this.foraging);
         this.routines.put(MacroType.FISHING, this.fishing);
         this.routines.put(MacroType.COMBAT, this.combatMacro);
+        this.routines.put(MacroType.GLACITE, this.glacite);
+        this.routines.put(MacroType.EXCAVATOR, this.excavator);
         this.allRoutines = List.copyOf(this.routines.values());
     }
 
@@ -655,7 +659,8 @@ public final class Macro {
             return;
         }
 
-        boolean ownMenu = this.mode == MacroType.COMMISSIONS && this.commissions.expectsMenu();
+        Routine active = this.routine();
+        boolean ownMenu = this.mode == MacroType.COMMISSIONS && this.commissions.expectsMenu() || active != null && active.ownsMenu();
         if (screenOpen && !ownMenu) {
             this.pause(mc);
             this.rotator.stop();

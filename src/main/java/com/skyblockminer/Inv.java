@@ -82,6 +82,57 @@ final class Inv {
         return player != null && slot >= 0 && slot < player.containerMenu.slots.size() ? player.containerMenu.getSlot(slot).getItem() : ItemStack.EMPTY;
     }
 
+    /** Number of slots that belong to the open menu itself (everything before the player's 36 inventory slots). */
+    static int menuSize(Minecraft mc) {
+        LocalPlayer player = mc.player;
+        return player == null ? 0 : Math.max(0, player.containerMenu.slots.size() - 36);
+    }
+
+    /** First menu slot (not the player's inventory) whose item name contains {@code text}, ignoring case; -1 if none. */
+    static int menuSlotNamed(Minecraft mc, String text) {
+        return findSlot(mc, 0, menuSize(mc), stack -> contains(name(stack), text));
+    }
+
+    /** First menu slot whose lore has a line containing {@code text}, ignoring case; -1 if none. */
+    static int menuSlotWithLore(Minecraft mc, String text) {
+        return findSlot(mc, 0, menuSize(mc), stack -> lore(stack).stream().anyMatch(line -> contains(line, text)));
+    }
+
+    /** Slot index (in the open menu) of a player-inventory item whose name contains {@code text}; -1 if none. */
+    static int playerSlotNamed(Minecraft mc, String text) {
+        LocalPlayer player = mc.player;
+        return player == null ? -1 : findSlot(mc, menuSize(mc), player.containerMenu.slots.size(), stack -> contains(name(stack), text));
+    }
+
+    static int findSlot(Minecraft mc, int from, int to, Predicate<ItemStack> match) {
+        for (int slot = from; slot < to; slot++) {
+            ItemStack stack = slot(mc, slot);
+            if (!stack.isEmpty() && match.test(stack)) {
+                return slot;
+            }
+        }
+        return -1;
+    }
+
+    /** Case-insensitive match of {@code part} as whole words, so "Tier I" does not match "Tier II". */
+    static boolean contains(String text, String part) {
+        if (part == null || part.isBlank()) {
+            return false;
+        }
+        String p = java.util.regex.Pattern.quote(part.trim().toLowerCase());
+        return java.util.regex.Pattern.compile("(^|\\W)" + p + "($|\\W)").matcher(text.toLowerCase()).find();
+    }
+
+    /** True when any of the 36 inventory slots holds an item whose name contains {@code text}. */
+    static boolean has(LocalPlayer player, String text) {
+        for (int slot = 0; slot < 36; slot++) {
+            if (contains(name(player.getInventory().getItem(slot)), text)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     static boolean inventoryFull(LocalPlayer player) {
         for (int slot = 0; slot < 36; slot++) {
             if (player.getInventory().getItem(slot).isEmpty()) {

@@ -12,11 +12,11 @@ Discord alerts.
 
 | Category | Macros |
 | --- | --- |
-| Mining | Mithril (titanium first), Gemstone (pick gem types), Ore, Glacite Tunnels, Custom blocks, Route miner (etherwarp between saved points), Powder (tunnels while mining), Commissions (picks, travels, mines, slays, claims, sells trash) |
+| Mining | Mithril (titanium first), Gemstone (pick gem types), Ore, Glacite Tunnels, Custom blocks, Route miner (etherwarp between saved points, with per-point walk and wait options), Powder (tunnels while mining), Commissions (picks, travels, mines, slays, claims, sells trash), Glacite Commissions\*, Fossil Excavator\* |
 | Farming | Lane / S-shape farming with presets for vertical crops, melon/pumpkin, sugar cane, cactus, cocoa, mushroom and custom key patterns, or replay of a walk you recorded (`/sm echo record`) for any other design. It locks yaw and pitch, switches lanes when you stop moving, rewarps at a saved point, rewarps when stuck, and can react to pest spawns (notify, stop, or hunt nearby pests with the vacuum and rewarp) |
 | Foraging | Plants saplings on free dirt, uses bone meal and chops with a Treecapitator, then repeats. With a tree route (Galatea, the Park, the Hub) it walks from tree to tree and chops instead |
 | Fishing | Casts, reels in on the `!!!` bite marker and recasts on a timeout. It can fight sea creatures with a melee or right-click weapon |
-| Combat | Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
+| Combat | Can start the next slayer quest when one ends\*. Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
 
 **Shared engine**
 - Ore map: every mineable block in the chunks you have seen is indexed. When nothing is in reach, the block-mining macros walk to the nearest known vein, and spots that turn out unreachable are skipped for a minute.
@@ -29,7 +29,11 @@ Discord alerts.
 - Auto sell: when the inventory fills, sells items from your list through `/trades` and carries on. The hotbar is never sold.
 - Heat and cold limits in the Crystal Hollows and Glacite Tunnels.
 - Treasure chest solver.
-- Menu solvers (work without the macro running): Ultrasequencer and Chronomatron in the Experimentation Table, and Melody's Harp.
+- Menu solvers (work without the macro running): Ultrasequencer and Chronomatron in the Experimentation Table, Melody's Harp, and Forge auto-claim\*.
+- Garden visitors\*: at each rewarp the farming macro can walk to the visitors and accept the offers you have items for.
+
+\* Not yet tested in game. These click through SkyBlock menus by item name, and every name they look for is a setting, so a wrong
+guess can be fixed in the GUI. When something isn't found they stop (or skip) and say what was missing.
 - Discord webhook with failsafe pings, periodic status reports and a test button.
 
 **Interface**
@@ -54,12 +58,14 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 | `/sm` | Start or stop the selected macro |
 | `/sm gui` · `/sm hud` | Open the menu · edit the HUD layout |
 | `/sm start [type]` · `/sm stop` · `/sm status` | Control the macro |
-| `/sm type <type>` | Select a macro: `mithril gemstone ore tunnel custom route powder commissions farming foraging fishing combat` |
+| `/sm type <type>` | Select a macro: `mithril gemstone ore tunnel custom route powder commissions glacite excavator farming foraging fishing combat` |
 | `/sm set <setting> [value]` | View or change any GUI option, such as `/sm set farming.pitch 3` |
 | `/sm settings` | List every setting id and its value |
 | `/sm farm rewarp` · `/sm forage spot` · `/sm fish spot` · `/sm combat spot` | Save the spot you are standing on |
 | `/sm forage add` · `/sm forage clearroute` | Add the spot you stand on to the tree route, or clear it |
 | `/sm echo record` · `/sm echo stop` · `/sm echo clear` | Record a walk through your farm for the "Recorded movement" farm type |
+| `/sm route walk <n> <true\|false>` · `/sm route wait <n> <ms>` | Always walk to route point n, or wait there before mining |
+| `/sm visitors spot` | Save where the Garden visitors gather |
 | `/sm route add\|insert\|remove\|clear\|list\|save\|load\|routes\|import\|export\|show` | Edit mining routes |
 | `/sm goto <x> <y> <z>` | Walk somewhere with the pathfinder |
 
@@ -98,6 +104,7 @@ src/main/java/com/skyblockminer/
   AutoSell, Schedule  selling on a full inventory, active hours
   Solvers             experiment and harp menu solvers
   Recording, Prices   recorded-movement farming, Bazaar profit estimate
+  GlaciteCommissions, ExcavatorMacro, Visitors, SlayerStarter   menu-driven automation (untested in game)
   MacroSettings       every option (feeds the GUI and /sm set)
   Rotator, PathWalker, Pathfinder, WorldMap, TargetFinder, MiningEngine   movement and aiming
   gui/                ClickGuiScreen, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input

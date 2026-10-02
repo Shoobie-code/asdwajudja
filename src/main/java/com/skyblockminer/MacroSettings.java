@@ -138,6 +138,26 @@ public final class MacroSettings {
                     () -> this.c.avoidRadius, v -> this.c.avoidRadius = (int) v),
                 this.toggle("comm.sell", "Sell trash", "Sells junk to the NPC when the inventory fills.",
                     () -> this.c.sellTrash, v -> this.c.sellTrash = v))),
+            new Section("Glacite commissions", List.of(
+                this.longText("glacite.rules", "Commission rules", "Commission text=blocks (or mob:names), separated by ; - fix these if a commission is mined wrong.",
+                    "Glacite=packed_ice; Umber=terracotta",
+                    () -> String.join("; ", this.c.glaciteRules),
+                    v -> this.c.glaciteRules = new ArrayList<>(Arrays.stream(v.split(";")).map(String::trim).filter(s -> !s.isEmpty()).toList())),
+                this.text("glacite.warp", "Warp command", "Command that takes you to the Glacite Tunnels.", "warp camp", false,
+                    () -> this.c.glaciteWarpCommand, v -> this.c.glaciteWarpCommand = v),
+                this.text("glacite.claim", "Claim item", "Hotbar item that opens the Commissions menu.", "Royal Pigeon", false,
+                    () -> this.c.glaciteClaimItem, v -> this.c.glaciteClaimItem = v))),
+            new Section("Fossil Excavator", List.of(
+                this.text("excavator.scrap", "Scrap item", "Item put into the excavator.", "Suspicious Scrap", false,
+                    () -> this.c.excavatorScrap, v -> this.c.excavatorScrap = v),
+                this.text("excavator.menu", "Excavator menu title", "Title of the menu that opens on the excavator.", "Fossil Excavator", false,
+                    () -> this.c.excavatorMenu, v -> this.c.excavatorMenu = v),
+                this.text("excavator.digmenu", "Digging menu title", "Title of the menu with the tiles.", "Fossil Excavator", false,
+                    () -> this.c.excavatorDigMenu, v -> this.c.excavatorDigMenu = v),
+                this.text("excavator.start", "Start item", "Item clicked to start excavating.", "Start Excavator", false,
+                    () -> this.c.excavatorStart, v -> this.c.excavatorStart = v),
+                this.text("excavator.tile", "Tile item", "Name of a covered tile to click.", "Dirt", false,
+                    () -> this.c.excavatorTile, v -> this.c.excavatorTile = v))),
             new Section("Hazards", List.of(
                 this.slider("mining.heat", "Heat limit", "Warps to the Forge at this heat (0 = off).", 0, 100, 1, "",
                     () -> this.c.heatLimit, v -> this.c.heatLimit = (int) v),
@@ -194,6 +214,20 @@ public final class MacroSettings {
                     () -> this.c.farmWarpCommand, v -> this.c.farmWarpCommand = v),
                 this.toggle("farming.stuckwarp", "Rewarp when stuck", "Warps back instead of stopping when no lane can move.",
                     () -> this.c.farmRewarpWhenStuck, v -> this.c.farmRewarpWhenStuck = v))),
+            new Section("Visitors", List.of(
+                this.toggle("visitors.enabled", "Serve visitors", "At each rewarp, walks to the visitors and accepts offers you have the items for.",
+                    () -> this.c.visitorsEnabled, v -> this.c.visitorsEnabled = v),
+                this.button("visitors.setspot", "Visitor spot", "Stand where the visitors gather (by the barn) and press.", "Set here", () -> {
+                    LocalPlayer player = Minecraft.getInstance().player;
+                    if (player != null) {
+                        this.c.visitorSpot = new double[]{player.getX(), player.getY(), player.getZ()};
+                        this.saved("Visitor spot saved");
+                    }
+                }).visibleWhen(() -> this.c.visitorsEnabled),
+                this.slider("visitors.min", "Wait for", "Visitors waiting before going to them.", 1, 5, 1, "",
+                    () -> this.c.visitorMin, v -> this.c.visitorMin = (int) v).visibleWhen(() -> this.c.visitorsEnabled),
+                this.text("visitors.accept", "Accept item", "Name of the accept button in a visitor's menu.", "Accept Offer", false,
+                    () -> this.c.visitorAccept, v -> this.c.visitorAccept = v).visibleWhen(() -> this.c.visitorsEnabled))),
             new Section("Pests", List.of(
                 this.choice("farming.pests", "When a pest spawns", "What to do on a pest spawn message.",
                     () -> List.of("ignore", "notify", "stop", "kill"), v -> v.equals("kill") ? "Kill with vacuum" : capitalize(v),
@@ -298,6 +332,19 @@ public final class MacroSettings {
                 }),
                 this.text("combat.warp", "Warp command", "Command used after a rejoin to get back (empty = none).", "warp crypt", false,
                     () -> this.c.combatWarpCommand, v -> this.c.combatWarpCommand = v))),
+            new Section("Slayer quests", List.of(
+                this.toggle("slayer.auto", "Auto-start quests", "Starts the next slayer quest when one ends.",
+                    () -> this.c.slayerAutoStart, v -> this.c.slayerAutoStart = v),
+                this.text("slayer.command", "Menu command", "Command that opens the slayer menu (empty = use the phone item).", "", false,
+                    () -> this.c.slayerOpenCommand, v -> this.c.slayerOpenCommand = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.phone", "Phone item", "Hotbar item that opens the slayer menu.", "Maddox Batphone", false,
+                    () -> this.c.slayerPhoneItem, v -> this.c.slayerPhoneItem = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.boss", "Boss item", "Name of the boss in the slayer menu.", "Revenant Horror", false,
+                    () -> this.c.slayerBoss, v -> this.c.slayerBoss = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.tier", "Tier item", "Words in the tier item's name, like IV.", "IV", false,
+                    () -> this.c.slayerTier, v -> this.c.slayerTier = v).visibleWhen(() -> this.c.slayerAutoStart),
+                this.text("slayer.confirm", "Confirm item", "Name of the confirm button.", "Confirm", false,
+                    () -> this.c.slayerConfirmItem, v -> this.c.slayerConfirmItem = v).visibleWhen(() -> this.c.slayerAutoStart))),
             new Section("Weapon", List.of(
                 this.choice("combat.attack", "Attack with", "Melee hits, or right click (mage weapons like Hyperion).",
                     () -> List.of("melee", "use"), v -> v.equals("use") ? "Right click" : "Melee",
@@ -387,6 +434,12 @@ public final class MacroSettings {
                     () -> this.c.solveExperiments, v -> this.c.solveExperiments = v),
                 this.toggle("solver.harp", "Harp solver", "Plays Melody's Harp songs when you open the harp.",
                     () -> this.c.solveHarp, v -> this.c.solveHarp = v),
+                this.toggle("solver.forge", "Forge auto-claim", "Claims finished items while the Forge menu is open.",
+                    () -> this.c.forgeAutoClaim, v -> this.c.forgeAutoClaim = v),
+                this.text("solver.forgemenu", "Forge menu title", "Title of the Forge menu.", "The Forge", false,
+                    () -> this.c.forgeMenu, v -> this.c.forgeMenu = v).visibleWhen(() -> this.c.forgeAutoClaim),
+                this.text("solver.forgeclaim", "Claim text", "Text in a finished slot's lore.", "Claim", false,
+                    () -> this.c.forgeClaimText, v -> this.c.forgeClaimText = v).visibleWhen(() -> this.c.forgeAutoClaim),
                 this.slider("solver.delay", "Experiment click delay", "Pause between experiment clicks.", 50, 1000, 10, " ms",
                     () -> this.c.solverClickDelay, v -> this.c.solverClickDelay = (int) v))),
             new Section("Movement", List.of(
@@ -463,6 +516,10 @@ public final class MacroSettings {
     private Setting text(String id, String name, String description, String placeholder, boolean secret, Supplier<String> get,
         Consumer<String> set) {
         return new Text(id, name, description, placeholder, secret, 200, get, set).onChange(this::changed);
+    }
+
+    private Setting longText(String id, String name, String description, String placeholder, Supplier<String> get, Consumer<String> set) {
+        return new Text(id, name, description, placeholder, false, 2000, get, set).onChange(this::changed);
     }
 
     private Setting button(String id, String name, String description, String label, Runnable action) {

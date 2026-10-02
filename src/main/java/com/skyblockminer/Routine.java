@@ -25,6 +25,11 @@ interface Routine {
         return false;
     }
 
+    /** True while the routine itself opened a menu and must keep ticking instead of pausing for it. */
+    default boolean ownsMenu() {
+        return false;
+    }
+
     /** Called when the macro gets back to work after a rejoin or after walking to {@link #home}. */
     default void resume() {
     }

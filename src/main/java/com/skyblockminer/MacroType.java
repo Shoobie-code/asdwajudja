@@ -12,6 +12,8 @@ public enum MacroType {
     ROUTE("route", "Route Miner", Category.MINING, null),
     POWDER("powder", "Powder", Category.MINING, null),
     COMMISSIONS("commissions", "Commissions", Category.MINING, null),
+    GLACITE("glacite", "Glacite Commissions", Category.MINING, null),
+    EXCAVATOR("excavator", "Fossil Excavator", Category.MINING, null),
     FARMING("farming", "Farming", Category.FARMING, null),
     FORAGING("foraging", "Foraging", Category.FORAGING, null),
     FISHING("fishing", "Fishing", Category.FISHING, null),

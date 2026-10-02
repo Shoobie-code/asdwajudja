@@ -8,7 +8,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.player.LocalPlayer;
@@ -25,7 +27,33 @@ final class Routes {
     private static final int LINE = -1061139201;
     private static final double DRAW_DISTANCE = 128.0;
     private final List<BlockPos> points = new ArrayList<>();
+    private final Map<BlockPos, Flags> flags = new HashMap<>();
     private String name = "default";
+
+    /** Per-point options: always walk there (no etherwarp), and how long to wait on arrival before mining. */
+    record Flags(boolean walk, int waitMs) {
+        static final Flags NONE = new Flags(false, 0);
+
+        boolean isDefault() {
+            return !this.walk && this.waitMs <= 0;
+        }
+    }
+
+    Flags flags(BlockPos point) {
+        return this.flags.getOrDefault(point, Flags.NONE);
+    }
+
+    void setFlags(BlockPos point, Flags flags) {
+        if (flags.isDefault()) {
+            this.flags.remove(point);
+        } else {
+            this.flags.put(point.immutable(), flags);
+        }
+    }
+
+    Map<BlockPos, Flags> allFlags() {
+        return this.flags;
+    }
 
     List<BlockPos> points() {
         return this.points;
@@ -50,12 +78,15 @@ final class Routes {
     boolean load(String name) {
         this.name = name;
         this.points.clear();
+        this.flags.clear();
         Path file = file(name);
         if (!Files.exists(file)) {
             return false;
         } else {
             try {
-                this.points.addAll(parse(Files.readString(file)));
+                String json = Files.readString(file);
+                this.points.addAll(parse(json));
+                this.flags.putAll(parseFlags(json));
                 return true;
             } catch (RuntimeException | IOException e) {
                 MinerMod.LOGGER.warn("Could not read route {}", file, e);
@@ -67,7 +98,7 @@ final class Routes {
     void save() {
         try {
             Files.createDirectories(dir());
-            Files.writeString(file(this.name), toJson(this.points));
+            Files.writeString(file(this.name), toJson(this.points, this.flags));
         } catch (IOException e) {
             MinerMod.LOGGER.warn("Could not save route {}", this.name, e);
         }
@@ -77,9 +108,11 @@ final class Routes {
         this.name = name;
     }
 
-    void set(List<BlockPos> route) {
+    void set(List<BlockPos> route, Map<BlockPos, Flags> flags) {
         this.points.clear();
         this.points.addAll(route);
+        this.flags.clear();
+        this.flags.putAll(flags);
     }
 
     static List<String> saved() {
@@ -110,6 +143,41 @@ final class Routes {
         }
 
         return best;
+    }
+
+    private static JsonArray pointArray(String json) {
+        JsonElement root = JsonParser.parseString(json.trim());
+        if (root.isJsonArray()) {
+            return root.getAsJsonArray();
+        }
+        if (root.isJsonObject()) {
+            JsonObject object = root.getAsJsonObject();
+            for (String key : new String[]{"points", "waypoints", "route"}) {
+                if (object.has(key) && object.get(key).isJsonArray()) {
+                    return object.getAsJsonArray(key);
+                }
+            }
+        }
+        throw new IllegalArgumentException("not a list of points");
+    }
+
+    /** Optional "walk" and "wait" (ms) keys on object-style points. */
+    static Map<BlockPos, Flags> parseFlags(String json) {
+        Map<BlockPos, Flags> flags = new HashMap<>();
+        for (JsonElement element : pointArray(json)) {
+            if (element.isJsonObject()) {
+                JsonObject point = element.getAsJsonObject();
+                if (point.has("x") && point.has("y") && point.has("z")) {
+                    boolean walk = point.has("walk") && point.get("walk").getAsBoolean();
+                    int wait = point.has("wait") ? Math.max(0, point.get("wait").getAsInt()) : 0;
+                    Flags f = new Flags(walk, wait);
+                    if (!f.isDefault()) {
+                        flags.put(BlockPos.containing(point.get("x").getAsDouble(), point.get("y").getAsDouble(), point.get("z").getAsDouble()), f);
+                    }
+                }
+            }
+        }
+        return flags;
     }
 
     static List<BlockPos> parse(String json) {
@@ -154,11 +222,23 @@ final class Routes {
     }
 
     static String toJson(List<BlockPos> route) {
+        return toJson(route, Map.of());
+    }
+
+    static String toJson(List<BlockPos> route, Map<BlockPos, Flags> flags) {
         StringBuilder json = new StringBuilder("[\n");
 
         for (int i = 0; i < route.size(); i++) {
             BlockPos point = route.get(i);
-            json.append(String.format("  {\"x\": %d, \"y\": %d, \"z\": %d}", point.getX(), point.getY(), point.getZ()));
+            Flags f = flags.getOrDefault(point, Flags.NONE);
+            json.append(String.format("  {\"x\": %d, \"y\": %d, \"z\": %d", point.getX(), point.getY(), point.getZ()));
+            if (f.walk()) {
+                json.append(", \"walk\": true");
+            }
+            if (f.waitMs() > 0) {
+                json.append(", \"wait\": ").append(f.waitMs());
+            }
+            json.append("}");
             json.append(i < route.size() - 1 ? ",\n" : "\n");
         }
 
