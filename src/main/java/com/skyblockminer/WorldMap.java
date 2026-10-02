@@ -48,6 +48,8 @@ final class WorldMap {
     private static final int V5_SLAB_TOP = 64;
     private static final int V5_FENCE = 128;
     private Map<Long, byte[][]> chunks = new HashMap<>();
+    private final OreIndex ores = new OreIndex();
+    private int[] oreScratch = new int[4096];
     private final LinkedHashSet<Long> pending = new LinkedHashSet<>();
     private final IdentityHashMap<BlockState, Byte> codes = new IdentityHashMap<>();
     private ClientLevel level;
@@ -60,6 +62,11 @@ final class WorldMap {
 
     String area() {
         return this.area;
+    }
+
+    /** Known mineable blocks in the chunks seen since arriving in this world. */
+    OreIndex ores() {
+        return this.ores;
     }
 
     int chunkCount() {
@@ -77,6 +84,9 @@ final class WorldMap {
     }
 
     void onBlockChanged(ClientLevel level, BlockPos pos, BlockState state) {
+        if (level == this.level) {
+            this.ores.onBlockChanged(pos, state);
+        }
         if (level == this.level && this.area != null) {
             byte[][] chunk = this.chunks.get(key(pos.getX() >> 4, pos.getZ() >> 4));
             if (chunk != null) {
@@ -104,6 +114,7 @@ final class WorldMap {
         if (mc.level != this.level) {
             this.saveAsync();
             this.chunks = new HashMap<>();
+            this.ores.clear();
             this.area = null;
             this.loading = null;
             this.level = mc.level;
@@ -184,6 +195,7 @@ final class WorldMap {
         LevelChunkSection[] levelSections = chunk.getSections();
         int minSection = chunk.getMinSectionY();
         int read = 0;
+        int oreCount = 0;
 
         for (int i = 0; i < levelSections.length; i++) {
             int index = minSection + i - -4;
@@ -195,9 +207,17 @@ final class WorldMap {
                 for (int y = 0; y < 16; y++) {
                     for (int z = 0; z < 16; z++) {
                         for (int x = 0; x < 16; x++) {
-                            byte code = this.code(section.getBlockState(x, y, z));
+                            BlockState state = section.getBlockState(x, y, z);
+                            byte code = this.code(state);
                             blocks[y << 8 | z << 4 | x] = code;
                             any |= code != 1;
+                            int type = this.ores.type(state);
+                            if (type >= 0) {
+                                if (oreCount == this.oreScratch.length) {
+                                    this.oreScratch = Arrays.copyOf(this.oreScratch, oreCount * 2);
+                                }
+                                this.oreScratch[oreCount++] = OreIndex.pack(type, x, (minSection + i << 4) + y, z);
+                            }
                         }
                     }
                 }
@@ -211,6 +231,7 @@ final class WorldMap {
         }
 
         this.chunks.put(key(chunk.getPos().x(), chunk.getPos().z()), sections);
+        this.ores.putChunk(key(chunk.getPos().x(), chunk.getPos().z()), this.oreScratch, oreCount);
         this.dirty = true;
         return Math.max(1, read);
     }

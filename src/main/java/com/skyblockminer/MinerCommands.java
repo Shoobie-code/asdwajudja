@@ -113,7 +113,8 @@ final class MinerCommands {
                     WorldMap map = macro.map;
                     MinerMod.message(map.area() == null
                         ? "No area yet (the map starts recording a few seconds after you arrive)"
-                        : "Map of " + map.area() + ": " + map.chunkCount() + " chunks known" + (map.loading() ? " (loading)" : ""),
+                        : "Map of " + map.area() + ": " + map.chunkCount() + " chunks known, " + map.ores().size() + " ores indexed"
+                            + (map.loading() ? " (loading)" : ""),
                         ChatFormatting.AQUA);
                     return 1;
                 })
