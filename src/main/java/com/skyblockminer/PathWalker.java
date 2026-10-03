@@ -102,6 +102,7 @@ final class PathWalker {
     }
 
     PathWalker.State tick(Minecraft mc, LocalPlayer player, Rotator rotator, MinerConfig config) {
+        this.finder.setSafety(config.pathSafety);
         if (this.state == PathWalker.State.SEARCHING) {
             if (this.pendingStart && !this.beginSearch(mc, player)) {
                 return this.state;

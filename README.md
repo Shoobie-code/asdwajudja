@@ -18,8 +18,17 @@ Discord alerts.
 | Fishing | Casts, reels in on the `!!!` bite marker and recasts on a timeout. It can fight sea creatures with a melee or right-click weapon |
 | Combat | Can start the next slayer quest when one ends\*. Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
 
+| Building | Farm builder: set two corners and it places a layout (crop lanes with water rows every N rows, walls, floor or full fill), walking between spots with the pathfinder |
+
+**Money and progress**
+- Market screen (`/sm market`): live bazaar order flips (profit after tax, limited by budget and trade volume), BIN auction flips (priced against the next listing after AH fees), craft flips and bazaar-to-NPC flips. Tables are sortable and searchable, and clicking a row opens `/bz` or `/viewauction`.
+- Minion crafter: the full cost of crafting any minion tier, including lower tiers, with a shopping list. Recipes come from the NotEnoughUpdates item repository and are cached on disk.
+- Auction sniper (opt-in): opens new flips as they are listed and can buy them, but only after checking that the price shown in game matches the flip.
+- Skill tracker: XP per hour and time to the next level from the action bar, plus the best rate each macro has reached for each skill (`/sm skills`).
+
 **Shared engine**
 - Ore map: every mineable block in the chunks you have seen is indexed. When nothing is in reach, the block-mining macros walk to the nearest known vein, and spots that turn out unreachable are skipped for a minute.
+- Safe paths: routes prefer to stay away from lava, fire, cactus and cliff edges when that costs little extra distance.
 - Path following cuts corners: the walker jumps ahead to the farthest of the next 10 waypoints it can walk to in a straight line (solid floor, head room, no hazards or drops).
 - Failsafes: stops on teleports, forced rotations, bedrock cages, unexplained pushes, held-slot changes and players inside you. Also alerts on mentions, private messages and words like "macro".
 - Player proximity alerts, with an option to stop.
@@ -42,6 +51,8 @@ guess can be fixed in the GUI. When something isn't found they stop (or skip) an
 - Loot tracker: items gained this session with hourly rates, plus `[Sacks]` totals and a profit estimate at Bazaar instant-sell prices (from Hypixel's public API).
 - Pop-up notifications for starts, stops, failsafes, breaks, pests and rejoins.
 - Highlights the current target block and the farming rewarp point.
+- Profiles: save and load named setting presets (General page or `/sm profile save|load <name>`).
+- Skills panel on the HUD (movable in the HUD editor).
 
 ## Download
 

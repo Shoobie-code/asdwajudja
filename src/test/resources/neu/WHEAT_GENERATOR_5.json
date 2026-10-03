@@ -1,0 +1,15 @@
+{
+ "internalname": "WHEAT_GENERATOR_5",
+ "displayname": "\u00a79Wheat Minion V",
+ "recipe": {
+  "A1": "ENCHANTED_WHEAT:1",
+  "A2": "ENCHANTED_WHEAT:1",
+  "A3": "ENCHANTED_WHEAT:1",
+  "B1": "ENCHANTED_WHEAT:1",
+  "B2": "WHEAT_GENERATOR_4:1",
+  "B3": "ENCHANTED_WHEAT:1",
+  "C1": "ENCHANTED_WHEAT:1",
+  "C2": "ENCHANTED_WHEAT:1",
+  "C3": "ENCHANTED_WHEAT:1"
+ }
+}

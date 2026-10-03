@@ -46,6 +46,9 @@ final class MinerCommands {
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("hud").executes(c -> run(MinerMod::openHudEditor)))
+            .then(ClientCommands.literal("market").executes(c -> run(MinerMod::openMarket)))
+            .then(ClientCommands.literal("flips").executes(c -> run(MinerMod::openMarket)))
+            .then(ClientCommands.literal("skills").executes(c -> skills()))
             .then(ClientCommands.literal("start")
                 .executes(c -> run(() -> macro.start(macro.selected())))
                 .then(ClientCommands.argument("type", StringArgumentType.word()).suggests(types)
@@ -86,6 +89,36 @@ final class MinerCommands {
             .then(ClientCommands.literal("farm")
                 .then(ClientCommands.literal("rewarp").executes(c -> set(settings, "farming.setrewarp", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "farming.clearrewarp", ""))))
+            .then(ClientCommands.literal("profile")
+                .then(ClientCommands.literal("save").then(ClientCommands.argument("name", StringArgumentType.word()).executes(c -> {
+                    String profile = StringArgumentType.getString(c, "name");
+                    boolean ok = config.saveProfile(profile);
+                    MinerMod.message(ok ? "Saved profile " + profile : "Profile names may use letters, digits, - and _.", ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                    return ok ? 1 : 0;
+                })))
+                .then(ClientCommands.literal("load").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .suggests((c, b) -> {
+                        MinerConfig.savedProfiles().forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String profile = StringArgumentType.getString(c, "name");
+                        boolean ok = config.loadProfile(profile);
+                        if (ok) {
+                            macro.applyConfig();
+                        }
+                        MinerMod.message(ok ? "Loaded profile " + profile : "No profile named " + profile, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    List<String> saved = MinerConfig.savedProfiles();
+                    MinerMod.message(saved.isEmpty() ? "No saved profiles" : "Profiles: " + String.join(", ", saved), ChatFormatting.AQUA);
+                    return 1;
+                })))
+            .then(ClientCommands.literal("build")
+                .executes(c -> run(() -> macro.start(MacroType.BUILDER)))
+                .then(ClientCommands.literal("pos1").executes(c -> set(settings, "builder.pos1", "")))
+                .then(ClientCommands.literal("pos2").executes(c -> set(settings, "builder.pos2", ""))))
             .then(ClientCommands.literal("forage")
                 .then(ClientCommands.literal("spot").executes(c -> set(settings, "foraging.setspot", "")))
                 .then(ClientCommands.literal("clear").executes(c -> set(settings, "foraging.clearspot", "")))
@@ -367,18 +400,40 @@ final class MinerCommands {
         return 1;
     }
 
+    private static int skills() {
+        SkillTracker tracker = MinerMod.skills();
+        long now = System.currentTimeMillis();
+        List<String> live = tracker.lines(now);
+        MinerMod.message(live.isEmpty() ? "No skill XP gained in the last 5 minutes." : "Now: " + String.join(" | ", live), ChatFormatting.AQUA);
+        for (String skill : List.of("Farming", "Mining", "Foraging", "Fishing", "Combat")) {
+            List<java.util.Map.Entry<String, Double>> best = tracker.bestFor(skill);
+            if (!best.isEmpty()) {
+                StringBuilder line = new StringBuilder("Best for " + skill + ": ");
+                for (int i = 0; i < Math.min(3, best.size()); i++) {
+                    MacroType type = MacroType.parse(best.get(i).getKey());
+                    line.append(type == null ? best.get(i).getKey() : type.label).append(' ')
+                        .append(SkillTracker.compact(best.get(i).getValue())).append("/h  ");
+                }
+                MinerMod.message(line.toString().trim(), ChatFormatting.GRAY);
+            }
+        }
+        return 1;
+    }
+
     private static int help() {
         String[] lines = {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
+            "/sm market - bazaar, auction, craft and NPC flips, minion costs | /sm skills - XP rates and best methods",
             "/sm start [type] | stop | status | type <type>",
-            "  types: mithril gemstone ore tunnel custom route powder commissions glacite excavator farming foraging fishing combat",
+            "  types: mithril gemstone ore tunnel custom route powder commissions glacite excavator farming foraging fishing combat builder",
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
             "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear | visitors spot - save spots where you stand",
             "/sm echo record|stop|clear - record a farm walk for the \"Recorded movement\" farm type",
+            "/sm build pos1|pos2 - set build corners (block under you) | /sm build - start the farm builder",
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm route walk <n> <true|false> | wait <n> <ms> - walk to a point instead of etherwarping, or wait there first",
-            "/sm custom add|remove|list <block> | map [clear]"
+            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list <name>"
         };
         for (String line : lines) {
             MinerMod.message(line, ChatFormatting.GRAY);

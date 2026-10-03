@@ -14,10 +14,14 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 final class MinerHud implements HudElement {
     private final Macro macro;
     private final MinerConfig config;
+    private final SkillTracker skills;
+    private List<String> skillLines = List.of();
+    private long skillLinesAt;
 
-    MinerHud(Macro macro, MinerConfig config) {
+    MinerHud(Macro macro, MinerConfig config, SkillTracker skills) {
         this.macro = macro;
         this.config = config;
+        this.skills = skills;
     }
 
     @Override
@@ -37,6 +41,16 @@ final class MinerHud implements HudElement {
             List<String> loot = this.macro.trackerLines();
             if (!loot.isEmpty()) {
                 HudRenderer.panel(graphics, mc.font, this.config.trackerX, this.config.trackerY, "Loot tracker", loot, accent);
+            }
+        }
+        if (this.config.skillTracker) {
+            long now = System.currentTimeMillis();
+            if (now - this.skillLinesAt > 500L) {
+                this.skillLinesAt = now;
+                this.skillLines = this.skills.lines(now);
+            }
+            if (!this.skillLines.isEmpty()) {
+                HudRenderer.panel(graphics, mc.font, this.config.skillsX, this.config.skillsY, "Skills", this.skillLines, accent);
             }
         }
         Toasts.render(graphics, mc.font, this.config.toastX, this.config.toastY);

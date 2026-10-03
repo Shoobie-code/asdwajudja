@@ -17,6 +17,7 @@ public enum MacroType {
     FARMING("farming", "Farming", Category.FARMING, null),
     FORAGING("foraging", "Foraging", Category.FORAGING, null),
     FISHING("fishing", "Fishing", Category.FISHING, null),
+    BUILDER("builder", "Farm Builder", Category.FARMING, null),
     COMBAT("combat", "Combat", Category.COMBAT, null),
     GOTO("goto", "Walking", Category.MINING, null);
 

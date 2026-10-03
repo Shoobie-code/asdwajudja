@@ -46,7 +46,7 @@ public final class MacroSettings {
         this.macro = macro;
         this.c = macro.config;
         this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
-            this.notifications(), this.visuals(), this.general());
+            this.notifications(), this.market(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
                 for (Setting setting : section.settings()) {
@@ -214,6 +214,27 @@ public final class MacroSettings {
                     () -> this.c.farmWarpCommand, v -> this.c.farmWarpCommand = v),
                 this.toggle("farming.stuckwarp", "Rewarp when stuck", "Warps back instead of stopping when no lane can move.",
                     () -> this.c.farmRewarpWhenStuck, v -> this.c.farmRewarpWhenStuck = v))),
+            new Section("Farm builder", List.of(
+                this.button("builder.start", "Start / stop builder", "Builds the layout between the two corners.", "Toggle", () -> {
+                    if (this.macro.running() && this.macro.mode() == MacroType.BUILDER) {
+                        this.macro.stop("Stopped");
+                    } else {
+                        Minecraft.getInstance().gui.setScreen(null);
+                        this.macro.start(MacroType.BUILDER);
+                    }
+                }),
+                this.button("builder.pos1", "Corner 1", "Saves the block under you as the first corner.", "Set here", () -> this.corner(true)),
+                this.button("builder.pos2", "Corner 2", "Saves the block under you as the opposite corner.", "Set here", () -> this.corner(false)),
+                this.choice("builder.pattern", "Layout", "What to build in the area.",
+                    () -> BuildPlan.Pattern.ALL.stream().map(p -> p.id).toList(), id -> BuildPlan.Pattern.parse(id).label,
+                    () -> this.c.buildPattern, v -> this.c.buildPattern = v),
+                this.text("builder.block", "Block item", "Hotbar item name to place, like dirt or soul sand.", "dirt", false,
+                    () -> this.c.buildBlock, v -> this.c.buildBlock = v.isBlank() ? this.c.buildBlock : v.trim()),
+                this.slider("builder.water", "Water row every", "Rows between water rows (9 keeps every block hydrated).", 3, 9, 1, " rows",
+                    () -> this.c.buildWaterEvery, v -> this.c.buildWaterEvery = (int) v)
+                    .visibleWhen(() -> this.c.buildPattern.equals("lanes")),
+                this.slider("builder.delay", "Place delay", "Pause between placements.", 50, 1000, 10, " ms",
+                    () -> this.c.buildDelay, v -> this.c.buildDelay = (int) v))),
             new Section("Visitors", List.of(
                 this.toggle("visitors.enabled", "Serve visitors", "At each rewarp, walks to the visitors and accepts offers you have the items for.",
                     () -> this.c.visitorsEnabled, v -> this.c.visitorsEnabled = v),
@@ -417,6 +438,52 @@ public final class MacroSettings {
         ));
     }
 
+    private Category market() {
+        BooleanSupplier scanning = () -> this.c.auctionScan;
+        return new Category("Market", "\u2696", List.of(
+            new Section("Market", List.of(
+                this.button("market.open", "Market screen", "Bazaar, auction, craft and NPC flips plus the minion calculator.", "Open",
+                    MinerMod::openMarket),
+                this.toggle("market.enabled", "Market data", "Downloads prices from the Hypixel API while the market is in use.",
+                    () -> this.c.marketEnabled, v -> this.c.marketEnabled = v))),
+            new Section("Bazaar flips", List.of(
+                this.slider("market.budget", "Budget", "Coins to spend per flip.", 0.1, 500, 0.1, "M",
+                    () -> this.c.bazaarBudget / 1e6, v -> this.c.bazaarBudget = v * 1e6),
+                this.slider("market.volume", "Min volume", "Items that must trade per day for a flip to count.", 0, 500_000, 1000, "/day",
+                    () -> this.c.bazaarMinVolume, v -> this.c.bazaarMinVolume = (int) v),
+                this.slider("market.margin", "Min margin", "Profit per item after tax, as a share of the price.", 0, 50, 0.5, "%",
+                    () -> this.c.bazaarMinMargin, v -> this.c.bazaarMinMargin = v),
+                this.toggle("market.perk", "Bazaar Flipper perk", "You have the community shop upgrade (lower bazaar tax).",
+                    () -> this.c.bazaarFlipperPerk, v -> this.c.bazaarFlipperPerk = v),
+                this.slider("market.craft", "Min craft profit", "Profit per crafted item for craft flips.", 0, 100_000, 100, " coins",
+                    () -> this.c.craftMinProfit, v -> this.c.craftMinProfit = (int) v),
+                this.slider("market.npc", "NPC flip budget", "Coins to spend on bazaar to NPC flips.", 0.1, 100, 0.1, "M",
+                    () -> this.c.npcBudget / 1e6, v -> this.c.npcBudget = v * 1e6))),
+            new Section("Auction flips", List.of(
+                this.toggle("ah.scan", "Scan auctions", "Downloads every BIN auction each minute to find flips (about 50 requests).",
+                    () -> this.c.auctionScan, v -> this.c.auctionScan = v),
+                this.slider("ah.profit", "Min profit", "Coins left after auction taxes.", 0, 50, 0.1, "M",
+                    () -> this.c.auctionMinProfit / 1e6, v -> this.c.auctionMinProfit = (int) (v * 1e6)),
+                this.slider("ah.margin", "Min margin", "Profit as a share of the price.", 0, 100, 1, "%",
+                    () -> this.c.auctionMinMargin, v -> this.c.auctionMinMargin = v),
+                this.slider("ah.listings", "Min listings", "Other BINs needed so the resell price is real.", 2, 30, 1, "",
+                    () -> this.c.auctionMinListings, v -> this.c.auctionMinListings = (int) v),
+                this.slider("ah.max", "Max price", "Never flip anything dearer than this.", 1, 2000, 1, "M",
+                    () -> this.c.auctionMaxPrice / 1e6, v -> this.c.auctionMaxPrice = (int) Math.min(Integer.MAX_VALUE, v * 1e6)),
+                this.toggle("ah.open", "Auto open new flips", "Opens new flips with /viewauction when no macro is running.",
+                    () -> this.c.auctionAutoOpen, v -> this.c.auctionAutoOpen = v).visibleWhen(scanning),
+                this.toggle("ah.buy", "Auto buy", "Buys opened flips after checking the shown price matches.",
+                    () -> this.c.auctionAutoBuy, v -> this.c.auctionAutoBuy = v).visibleWhen(() -> this.c.auctionScan && this.c.auctionAutoOpen))),
+            new Section("Skills", List.of(
+                this.toggle("skills.track", "Skill tracker", "XP per hour and time to next level from the action bar.",
+                    () -> this.c.skillTracker, v -> this.c.skillTracker = v),
+                this.button("skills.reset", "Best rates", "Forgets the best XP/hour recorded for each macro.", "Reset", () -> {
+                    this.c.skillBest.clear();
+                    this.saved("Skill records cleared");
+                })))
+        ));
+    }
+
     private Category general() {
         return new Category("General", "⚙", List.of(
             new Section("Window", List.of(
@@ -444,7 +511,9 @@ public final class MacroSettings {
                     () -> this.c.solverClickDelay, v -> this.c.solverClickDelay = (int) v))),
             new Section("Movement", List.of(
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
-                    () -> this.c.sprint, v -> this.c.sprint = v)))
+                    () -> this.c.sprint, v -> this.c.sprint = v),
+                this.toggle("general.pathsafety", "Safe paths", "Prefers routes away from lava, fire and cliff edges.",
+                    () -> this.c.pathSafety, v -> this.c.pathSafety = v)))
         ));
     }
 
@@ -462,6 +531,25 @@ public final class MacroSettings {
                 this.macro.start(type);
             }
         });
+    }
+
+    private void corner(boolean first) {
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (player == null) {
+            return;
+        }
+        BlockPos pos = player.blockPosition().below();
+        int[] corner = {pos.getX(), pos.getY(), pos.getZ()};
+        if (first) {
+            this.c.buildPos1 = corner;
+        } else {
+            this.c.buildPos2 = corner;
+        }
+        String size = "";
+        if (this.c.buildPos1 != null && this.c.buildPos2 != null) {
+            size = " (" + BuildPlan.plan(this.c.buildPos1, this.c.buildPos2, this.c.buildPattern, this.c.buildWaterEvery).size() + " blocks)";
+        }
+        this.saved("Build corner " + (first ? 1 : 2) + " set at " + pos.toShortString() + size);
     }
 
     private void setRewarpHere() {

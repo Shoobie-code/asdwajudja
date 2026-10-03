@@ -16,6 +16,7 @@ public final class HudEditorScreen extends Screen {
     private static final List<String> STATUS_SAMPLE = List.of("Farming (left lane)", "1,204 crops (5,812/h)  2 rewarps", "Break in 41:07");
     private static final List<String> TRACKER_SAMPLE = List.of("Enchanted Sugar: 312 (1,504/h)", "Sacks: 18,950 (91,442/h)");
     private static final List<String> TOAST_SAMPLE = List.of("Pop-up notifications", "appear here");
+    private static final List<String> SKILL_SAMPLE = List.of("Farming +152.4k  612.0k/h  next in 23:41", "Combat +2.1k");
 
     private record Panel(String title, IntSupplier x, IntConsumer setX, IntSupplier y, IntConsumer setY) {
     }
@@ -38,7 +39,8 @@ public final class HudEditorScreen extends Screen {
         this.panels = List.of(
             new Panel("Status", () -> c.hudX, v -> c.hudX = v, () -> c.hudY, v -> c.hudY = v),
             new Panel("Loot tracker", () -> c.trackerX, v -> c.trackerX = v, () -> c.trackerY, v -> c.trackerY = v),
-            new Panel("Notifications", () -> c.toastX, v -> c.toastX = v, () -> c.toastY, v -> c.toastY = v));
+            new Panel("Notifications", () -> c.toastX, v -> c.toastX = v, () -> c.toastY, v -> c.toastY = v),
+            new Panel("Skills", () -> c.skillsX, v -> c.skillsX = v, () -> c.skillsY, v -> c.skillsY = v));
     }
 
     public static void open(Macro macro, Runnable back) {
@@ -69,7 +71,7 @@ public final class HudEditorScreen extends Screen {
             List<String> live = this.macro.trackerLines();
             return live.isEmpty() ? TRACKER_SAMPLE : live;
         }
-        return TOAST_SAMPLE;
+        return panel == this.panels.get(3) ? SKILL_SAMPLE : TOAST_SAMPLE;
     }
 
     private int panelWidth(Panel panel) {
@@ -160,6 +162,8 @@ public final class HudEditorScreen extends Screen {
         this.config.trackerY = defaults.trackerY;
         this.config.toastX = defaults.toastX;
         this.config.toastY = defaults.toastY;
+        this.config.skillsX = defaults.skillsX;
+        this.config.skillsY = defaults.skillsY;
     }
 
     /** Buttons sit side by side under the hint; side is -1 (left) or 1 (right). */

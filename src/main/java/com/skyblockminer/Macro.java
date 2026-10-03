@@ -40,6 +40,7 @@ public final class Macro {
     final FarmingMacro farming = new FarmingMacro();
     final ForagingMacro foraging = new ForagingMacro();
     final FishingMacro fishing = new FishingMacro();
+    final FarmBuilder builder = new FarmBuilder();
     final CombatMacro combatMacro = new CombatMacro();
     final GlaciteCommissions glacite = new GlaciteCommissions();
     final ExcavatorMacro excavator = new ExcavatorMacro();
@@ -103,6 +104,7 @@ public final class Macro {
         this.routines.put(MacroType.FARMING, this.farming);
         this.routines.put(MacroType.FORAGING, this.foraging);
         this.routines.put(MacroType.FISHING, this.fishing);
+        this.routines.put(MacroType.BUILDER, this.builder);
         this.routines.put(MacroType.COMBAT, this.combatMacro);
         this.routines.put(MacroType.GLACITE, this.glacite);
         this.routines.put(MacroType.EXCAVATOR, this.excavator);
