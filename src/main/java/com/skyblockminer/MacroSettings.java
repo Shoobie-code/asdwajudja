@@ -2,6 +2,9 @@ package com.skyblockminer;
 
 import com.skyblockminer.gui.ClickGuiScreen;
 import com.skyblockminer.gui.HudEditorScreen;
+import com.skyblockminer.gui.Menu;
+import com.skyblockminer.gui.Menu.Card;
+import com.skyblockminer.gui.Menu.Tab;
 import com.skyblockminer.gui.Setting;
 import com.skyblockminer.gui.Setting.Button;
 import com.skyblockminer.gui.Setting.Category;
@@ -41,6 +44,8 @@ public final class MacroSettings {
     private final MinerConfig c;
     private final List<Category> categories;
     private final Map<String, Setting> byId = new LinkedHashMap<>();
+    private Menu.KeyBinds keys;
+    private Menu.Layout layout;
 
     public MacroSettings(Macro macro) {
         this.macro = macro;
@@ -60,6 +65,129 @@ public final class MacroSettings {
 
     public List<Category> categories() {
         return this.categories;
+    }
+
+    /** Gives the menu access to the mod's key mappings; call once after registering them. */
+    public void keys(Menu.KeyBinds keys) {
+        this.keys = keys;
+        this.layout = null;
+    }
+
+    /**
+     * The menu's tabs in the Skymacro overlay layout: each macro is a card with its own settings, modules with an
+     * on/off switch are cards in Misc, and everything else (movement, failsafes, alerts, HUD) sits on Settings.
+     */
+    public Menu.Layout layout() {
+        if (this.layout == null) {
+            this.layout = this.buildLayout();
+        }
+        return this.layout;
+    }
+
+    private Menu.Layout buildLayout() {
+        Menu.KeyBinds binds = this.keys != null ? this.keys : new Menu.KeyBinds() {
+            @Override
+            public String menuKey() {
+                return "Right Shift";
+            }
+
+            @Override
+            public String toggleKey() {
+                return null;
+            }
+
+            @Override
+            public void rebindMenu(int glfwKey) {
+            }
+        };
+        List<Tab> tabs = List.of(
+            new Tab("Combat", "⚔", "Mob killing and slayer weapons.", List.of(
+                this.macroCard(MacroType.COMBAT, binds, "Combat", "Targets", "Weapon"))),
+            new Tab("Farms", "☘", "Garden farming, farm building and visitors.", List.of(
+                this.macroCard(MacroType.FARMING, binds, "Farming", "Farm layout", "Rewarp", "Pests"),
+                this.macroCard(MacroType.BUILDER, binds, "Farming", "Farm builder"),
+                this.moduleCard("Garden Visitors", "visitors.enabled", "Farming", "Visitors"))),
+            new Tab("Mining", "⛏", "Every mining macro, from Mithril to the Fossil Excavator.", List.of(
+                this.macroCard(MacroType.MITHRIL, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.GEMSTONE, binds, "Mining", "Mining", "Gemstones", "Hazards"),
+                this.macroCard(MacroType.ORE, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.TUNNELS, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.CUSTOM, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.ROUTE, binds, "Mining", "Route miner", "Mining"),
+                this.macroCard(MacroType.POWDER, binds, "Mining", "Powder & commissions", "Mining"),
+                this.macroCard(MacroType.COMMISSIONS, binds, "Mining", "Powder & commissions", "Mining"),
+                this.macroCard(MacroType.GLACITE, binds, "Mining", "Glacite commissions", "Mining"),
+                this.macroCard(MacroType.EXCAVATOR, binds, "Mining", "Fossil Excavator"))),
+            new Tab("Foraging", "♣", "Tree farms on the Park and Galatea.", List.of(
+                this.macroCard(MacroType.FORAGING, binds, "Foraging", "Tree farm"))),
+            new Tab("Fishing", "⚓", "Fishing with sea creature handling.", List.of(
+                this.macroCard(MacroType.FISHING, binds, "Fishing", "Fishing", "Sea creatures"))),
+            new Tab("Hunting", "☠", "Slayer quests and Garden pests.", List.of(
+                this.moduleCard("Slayer Auto-start", "slayer.auto", "Combat", "Slayer quests"),
+                new Card("Pest Hunter", null, () -> this.c.farmPestAction.equals("kill"), () -> {
+                    this.c.farmPestAction = this.c.farmPestAction.equals("kill") ? "notify" : "kill";
+                    this.changed();
+                }, null, this.sections("Farming", "Pests")))),
+            new Tab("Misc", "✚", "Helpers that run alongside any macro.", List.of(
+                this.moduleCard("Auto Sell", "sell.enabled", "General", "Auto sell"),
+                this.infoCard("Menu Solvers", "General", "Menu solvers"),
+                this.moduleCard("Info Panel", "info.panel", "Helpers", "Info panel"),
+                this.moduleCard("Garden Alerts", "garden.alerts", "Helpers", "Garden"),
+                this.moduleCard("Chat Filter", "chat.filter", "Helpers", "Chat filter"),
+                this.moduleCard("Market", "market.enabled", "Market", "Market", "Bazaar flips", "Auction flips"),
+                this.moduleCard("Skill Tracker", "skills.track", "Market", "Skills"))));
+        List<Card> settingsCards = List.of(
+            this.infoCard("Movement", "General", "Movement"),
+            this.moduleCard("Failsafes", "safety.failsafes", "Failsafes", "Failsafes", "Scheduler"),
+            this.infoCard("Alerts", "Alerts", "Discord", "In game"),
+            this.infoCard("HUD", "Visuals", "HUD"),
+            this.infoCard("Window", "General", "Window"));
+        return new Menu.Layout(tabs, settingsCards, binds);
+    }
+
+    private Card macroCard(MacroType type, Menu.KeyBinds binds, String category, String... sections) {
+        return new Card(type.label,
+            () -> {
+                if (this.macro.selected() != type) {
+                    return "Select";
+                }
+                String key = binds.toggleKey();
+                return key == null ? "Selected" : key;
+            },
+            () -> this.macro.running() && this.macro.mode() == type,
+            () -> {
+                if (this.macro.running() && this.macro.mode() == type) {
+                    this.macro.stop("Stopped");
+                } else {
+                    Minecraft.getInstance().gui.setScreen(null);
+                    this.macro.start(type);
+                }
+            },
+            () -> this.macro.select(type),
+            this.sections(category, sections));
+    }
+
+    /** A module whose ON/OFF button flips the toggle setting {@code id}. */
+    private Card moduleCard(String name, String id, String category, String... sections) {
+        if (!(this.byId.get(id) instanceof Toggle toggle)) {
+            throw new IllegalStateException("No toggle " + id);
+        }
+        return new Card(name, null, toggle::get, toggle::toggle, null, this.sections(category, sections));
+    }
+
+    private Card infoCard(String name, String category, String... sections) {
+        return new Card(name, null, null, null, null, this.sections(category, sections));
+    }
+
+    private List<Section> sections(String category, String... names) {
+        Category found = this.categories.stream().filter(cat -> cat.name().equals(category)).findFirst()
+            .orElseThrow(() -> new IllegalStateException("No category " + category));
+        List<Section> result = new ArrayList<>();
+        for (String name : names) {
+            result.add(found.sections().stream().filter(section -> section.title().equals(name)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("No section " + category + " / " + name)));
+        }
+        return result;
     }
 
     public Setting find(String id) {
@@ -431,7 +559,7 @@ public final class MacroSettings {
                 this.toggle("hud.targets", "Highlight targets", "Outlines the block or spot the macro is working on.",
                     () -> this.c.showTarget, v -> this.c.showTarget = v),
                 this.button("hud.edit", "HUD layout", "Drag the HUD panels where you want them.", "Edit",
-                    () -> HudEditorScreen.open(this.macro, () -> ClickGuiScreen.open(this.macro, this.categories))))),
+                    () -> HudEditorScreen.open(this.macro, () -> ClickGuiScreen.open(this.macro, this.layout()))))),
             new Section("Theme", List.of(
                 this.choice("theme.accent", "Accent color", "Highlight color of the menu and HUD.",
                     () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v)))

@@ -53,7 +53,7 @@ guess can be fixed in the GUI. When something isn't found they stop (or skip) an
 - Chat filter (off by default): lobby joins, Watchdog reports, profile lines, ability spam, kill combos and your own words. Hidden lines still feed the alerts and trackers, and DMs or lines mentioning "macro" are never hidden.
 
 **Interface**
-- ClickGUI (default key **Right Shift**). It has category pages, toggles, sliders, choice pickers, chips, text fields and search (`/` or Ctrl+F), plus a start/stop panel and seven accent colours.
+- Menu (default key **Right Shift**) in the Skymacro overlay style: a gold title bar, an icon sidebar (Combat, Farms, Mining, Foraging, Fishing, Hunting, Misc, Settings) and a card per macro or module with an ON/OFF button, its keybind chip and a gear that opens its settings in place. Search with `/` or Ctrl+F. The Settings page has the master switch (off stops and blocks every macro), the menu key, panel opacity and the accent colour (amber, emerald or cyan).
 - HUD editor: drag the status panel, loot tracker and notification area, with edge and centre snapping.
 - Loot tracker: items gained this session with hourly rates, plus `[Sacks]` totals and a profit estimate at Bazaar instant-sell prices (from Hypixel's public API).
 - Pop-up notifications for starts, stops, failsafes, breaks, pests and rejoins.
@@ -132,5 +132,5 @@ src/main/java/com/skyblockminer/
   MacroSettings       every option (feeds the GUI and /sm set)
   Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming
   Helpers, SkyblockTime, ChatFilter   info panel, event timers, Garden alerts, chat filter
-  gui/                ClickGuiScreen, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
+  gui/                ClickGuiScreen, Menu, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
 ```

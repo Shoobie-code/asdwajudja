@@ -76,6 +76,24 @@ public final class MinerMod implements ClientModInitializer {
             new KeyMapping("key.skyblockminer.market", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
         KeyMapping panicKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.skyblockminer.panic", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
+        settings.keys(new com.skyblockminer.gui.Menu.KeyBinds() {
+            @Override
+            public String menuKey() {
+                return menuKey.getTranslatedKeyMessage().getString();
+            }
+
+            @Override
+            public String toggleKey() {
+                return toggleKey.isUnbound() ? null : toggleKey.getTranslatedKeyMessage().getString();
+            }
+
+            @Override
+            public void rebindMenu(int glfwKey) {
+                menuKey.setKey(Type.KEYSYM.getOrCreate(glfwKey));
+                KeyMapping.resetMapping();
+                Minecraft.getInstance().options.save();
+            }
+        });
 
         ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> macro.map.onChunkLoad(level, chunk));
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
@@ -106,7 +124,7 @@ public final class MinerMod implements ClientModInitializer {
                 HudEditorScreen.open(macro, null);
             } else if (openMenu) {
                 openMenu = false;
-                ClickGuiScreen.open(macro, settings.categories());
+                ClickGuiScreen.open(macro, settings.layout());
             } else if (openMarket) {
                 openMarket = false;
                 marketOpenedAt = System.currentTimeMillis();

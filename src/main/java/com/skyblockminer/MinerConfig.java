@@ -160,7 +160,10 @@ public final class MinerConfig {
     public int solverClickDelay = 250;
 
     // Interface
-    public String accent = "violet";
+    public String accent = "amber";
+    /** Off = no macro can start (the menu's master switch). */
+    public boolean masterSwitch = true;
+    public int guiOpacity = 92;
     public boolean toasts = true;
     public boolean itemTracker = true;
     public boolean bazaarPrices = true;
@@ -364,6 +367,10 @@ public final class MinerConfig {
         this.transmissionRange = Math.max(4.0, Math.min(this.transmissionRange, 12.0));
         this.warpMinGain = clamp(this.warpMinGain, 4, 60);
         this.infoEvents = clamp(this.infoEvents, 0, 6);
+        this.guiOpacity = clamp(this.guiOpacity, 40, 100);
+        if (!com.skyblockminer.gui.Theme.ACCENTS.containsKey(this.accent)) {
+            this.accent = defaults.accent;
+        }
         this.pestAlertAt = clamp(this.pestAlertAt, 1, 8);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);

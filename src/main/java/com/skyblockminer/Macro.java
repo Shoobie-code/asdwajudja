@@ -181,6 +181,11 @@ public final class Macro {
         if (mc.player == null || mc.level == null) {
             return;
         }
+        if (!this.config.masterSwitch) {
+            MinerMod.message("Macros are switched off (menu → Settings → Master switch)", ChatFormatting.RED);
+            Toasts.push("Master switch", "Macros are switched off", Toasts.Kind.WARNING);
+            return;
+        }
         if (this.running) {
             this.stop("Switching to " + type.label);
         }

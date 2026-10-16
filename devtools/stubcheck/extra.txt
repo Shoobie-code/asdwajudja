@@ -14,3 +14,9 @@ add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public 
 add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static net.fabricmc.fabric.api.event.Event<GameCanceled> GAME_CANCELED;
 add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static interface AllowGame { boolean allowReceiveGameMessage(net.minecraft.network.chat.Component a0, boolean a1); }
 add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static interface GameCanceled { void onReceiveGameMessageCanceled(net.minecraft.network.chat.Component a0, boolean a1); }
+add net/minecraft/client/KeyMapping public net.minecraft.network.chat.Component getTranslatedKeyMessage() { return null; }
+add net/minecraft/client/KeyMapping public boolean isUnbound() { return false; }
+add net/minecraft/client/KeyMapping public static void resetMapping() { }
+add com/mojang/blaze3d/platform/InputConstants$Type public com.mojang.blaze3d.platform.InputConstants.Key getOrCreate(int a0) { return null; }
+add net/minecraft/client/Options public void save() { }
+add net/minecraft/client/KeyMapping public void setKey(com.mojang.blaze3d.platform.InputConstants.Key a0) { }
