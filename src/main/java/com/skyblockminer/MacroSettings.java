@@ -46,7 +46,7 @@ public final class MacroSettings {
         this.macro = macro;
         this.c = macro.config;
         this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
-            this.notifications(), this.market(), this.visuals(), this.general());
+            this.notifications(), this.market(), this.helpers(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
                 for (Setting setting : section.settings()) {
@@ -481,6 +481,36 @@ public final class MacroSettings {
                     this.c.skillBest.clear();
                     this.saved("Skill records cleared");
                 })))
+        ));
+    }
+
+    private Category helpers() {
+        return new Category("Helpers", "★", List.of(
+            new Section("Info panel", List.of(
+                this.toggle("info.panel", "Info panel", "SkyBlock time, upcoming events (Jacob's Contest, Dark Auction, Cult...) and Garden pests and visitors.",
+                    () -> this.c.infoPanel, v -> this.c.infoPanel = v),
+                this.slider("info.events", "Events shown", "How many upcoming events to list, soonest first.", 0, 6, 1, "",
+                    () -> this.c.infoEvents, v -> this.c.infoEvents = (int) v).visibleWhen(() -> this.c.infoPanel))),
+            new Section("Garden", List.of(
+                this.toggle("garden.alerts", "Garden alerts", "Pops up when a visitor arrives or pests build up.",
+                    () -> this.c.gardenAlerts, v -> this.c.gardenAlerts = v),
+                this.slider("garden.pests", "Pest alert at", "Alert once this many pests are alive.", 1, 8, 1, " pests",
+                    () -> this.c.pestAlertAt, v -> this.c.pestAlertAt = (int) v).visibleWhen(() -> this.c.gardenAlerts))),
+            new Section("Chat filter", List.of(
+                this.toggle("chat.filter", "Chat filter", "Hides spam. Hidden lines still trigger alerts and trackers; DMs and lines saying \"macro\" are never hidden.",
+                    () -> this.c.chatFilter, v -> this.c.chatFilter = v),
+                this.toggle("chat.lobby", "Lobby joins", "\"... joined the lobby!\"", () -> this.c.filterLobby, v -> this.c.filterLobby = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.watchdog", "Watchdog reports", "Watchdog and staff ban announcements.", () -> this.c.filterWatchdog, v -> this.c.filterWatchdog = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.profile", "Profile and server", "\"You are playing on profile\", profile ID, \"Sending to server\".",
+                    () -> this.c.filterProfile, v -> this.c.filterProfile = v).visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.ability", "Ability spam", "Not enough mana, cooldowns, \"blocks in the way\" and ability damage lines.",
+                    () -> this.c.filterAbility, v -> this.c.filterAbility = v).visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.combo", "Kill combo", "Kill combo gains and expiry.", () -> this.c.filterCombo, v -> this.c.filterCombo = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.text("chat.custom", "Also hide", "Hide lines containing any of these, comma separated.", "e.g. [Auction], Sacks", false,
+                    () -> String.join(", ", this.c.filterCustom), v -> this.c.filterCustom = splitList(v)).visibleWhen(() -> this.c.chatFilter)))
         ));
     }
 

@@ -195,6 +195,21 @@ public final class MinerConfig {
     public int skillsY = 230;
     public java.util.Map<String, Double> skillBest = new java.util.HashMap<>();
 
+    // Helpers (ideas from SkyHanni)
+    public boolean infoPanel = true;
+    public int infoEvents = 4;
+    public int infoX = 4;
+    public int infoY = 330;
+    public boolean gardenAlerts = true;
+    public int pestAlertAt = 4;
+    public boolean chatFilter = false;
+    public boolean filterLobby = true;
+    public boolean filterWatchdog = true;
+    public boolean filterProfile = true;
+    public boolean filterAbility = true;
+    public boolean filterCombo = true;
+    public List<String> filterCustom = new ArrayList<>();
+
     private transient int revision;
     private transient boolean dirty;
     private transient long dirtySince;
@@ -348,6 +363,8 @@ public final class MinerConfig {
         this.etherwarpRange = Math.max(10.0, Math.min(this.etherwarpRange, 61.0));
         this.transmissionRange = Math.max(4.0, Math.min(this.transmissionRange, 12.0));
         this.warpMinGain = clamp(this.warpMinGain, 4, 60);
+        this.infoEvents = clamp(this.infoEvents, 0, 6);
+        this.pestAlertAt = clamp(this.pestAlertAt, 1, 8);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
     }

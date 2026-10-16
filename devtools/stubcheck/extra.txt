@@ -10,3 +10,7 @@ add net/minecraft/world/item/Item public Item() {}
 add net/minecraft/world/item/ItemStack public net.minecraft.world.item.Item getItem() { return null; }
 add net/minecraft/core/registries/BuiltInRegistries public static net.minecraft.core.DefaultedRegistry<net.minecraft.world.item.Item> ITEM;
 add net/minecraft/client/KeyMapping public boolean isDown() { return false; }
+add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static net.fabricmc.fabric.api.event.Event<AllowGame> ALLOW_GAME;
+add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static net.fabricmc.fabric.api.event.Event<GameCanceled> GAME_CANCELED;
+add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static interface AllowGame { boolean allowReceiveGameMessage(net.minecraft.network.chat.Component a0, boolean a1); }
+add net/fabricmc/fabric/api/client/message/v1/ClientReceiveMessageEvents public static interface GameCanceled { void onReceiveGameMessageCanceled(net.minecraft.network.chat.Component a0, boolean a1); }
