@@ -30,6 +30,8 @@ Discord alerts.
 - Ore map: every mineable block in the chunks you have seen is indexed. When nothing is in reach, the block-mining macros walk to the nearest known vein, and spots that turn out unreachable are skipped for a minute.
 - Safe paths: routes prefer to stay away from lava, fire, cactus and cliff edges when that costs little extra distance.
 - Path following cuts corners: the walker jumps ahead to the farthest of the next 10 waypoints it can walk to in a straight line (solid floor, head room, no hazards or drops).
+- Pathfinder: near-shortest routes (it only turns greedy on very long searches), jumps one-block gaps such as holes and lava streams, and routes around spots it got stuck at.
+- Travel method (General → Movement): walk, or teleport along the path with **etherwarp** (Aspect of the Void or Etherwarp Conduit, sneak + use) and/or **Instant Transmission** (Aspect of the End or Void, used on flat straight stretches). Each etherwarp is checked against the real world before use; if teleports stop working (for example no mana) it walks the rest of the way.
 - Failsafes: stops on teleports, forced rotations, bedrock cages, unexplained pushes, held-slot changes and players inside you. Also alerts on mentions, private messages and words like "macro".
 - Player proximity alerts, with an option to stop.
 - Auto rejoin after kicks, Limbo and server swaps. It then warps back and walks to your saved spot using the pathfinder.
@@ -44,6 +46,11 @@ Discord alerts.
 \* Not yet tested in game. These click through SkyBlock menus by item name, and every name they look for is a setting, so a wrong
 guess can be fixed in the GUI. When something isn't found they stop (or skip) and say what was missing.
 - Discord webhook with failsafe pings, periodic status reports and a test button.
+
+**Helpers** (ideas from [SkyHanni](https://github.com/hannibal002/SkyHanni), written from scratch here)
+- Info panel: SkyBlock date and time, and countdowns to Jacob's Contest, the Dark Auction, Cult of the Fallen Star, the Spooky Festival, Season of Jerry and the New Year. In the Garden it also shows pests (with infested plots) and visitors.
+- Garden alerts when a visitor arrives or pests pile up.
+- Chat filter (off by default): lobby joins, Watchdog reports, profile lines, ability spam, kill combos and your own words. Hidden lines still feed the alerts and trackers, and DMs or lines mentioning "macro" are never hidden.
 
 **Interface**
 - ClickGUI (default key **Right Shift**). It has category pages, toggles, sliders, choice pickers, chips, text fields and search (`/` or Ctrl+F), plus a start/stop panel and seven accent colours.
@@ -89,6 +96,11 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 3. In the Garden, use `/setspawn` at the start so `warp garden` brings you back there.
 4. Start the macro. It aligns, farms lane by lane and rewarps at the end.
 
+## Credits
+
+The helper features are inspired by [SkyHanni](https://github.com/hannibal002/SkyHanni) (LGPL-2.1). No SkyHanni code is
+included; the features were reimplemented from how the game behaves.
+
 ## Building
 
 ```
@@ -118,6 +130,7 @@ src/main/java/com/skyblockminer/
   Recording, Prices   recorded-movement farming, Bazaar profit estimate
   GlaciteCommissions, ExcavatorMacro, Visitors, SlayerStarter   menu-driven automation (untested in game)
   MacroSettings       every option (feeds the GUI and /sm set)
-  Rotator, PathWalker, Pathfinder, WorldMap, TargetFinder, MiningEngine   movement and aiming
+  Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming
+  Helpers, SkyblockTime, ChatFilter   info panel, event timers, Garden alerts, chat filter
   gui/                ClickGuiScreen, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
 ```
