@@ -513,7 +513,20 @@ public final class MacroSettings {
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
                     () -> this.c.sprint, v -> this.c.sprint = v),
                 this.toggle("general.pathsafety", "Safe paths", "Prefers routes away from lava, fire and cliff edges.",
-                    () -> this.c.pathSafety, v -> this.c.pathSafety = v)))
+                    () -> this.c.pathSafety, v -> this.c.pathSafety = v),
+                this.choice("general.movement", "Travel method",
+                    "Teleports along paths with an Aspect of the Void (etherwarp) or Aspect of the End/Void (Instant Transmission) in the hotbar.",
+                    () -> List.of("walk", "etherwarp", "transmission", "both"), MacroSettings::movementLabel,
+                    () -> this.c.movement, v -> this.c.movement = v),
+                this.slider("general.etherrange", "Etherwarp range", "57 plus your Tuned Transmission levels.", 10, 61, 1, " blocks",
+                    () -> this.c.etherwarpRange, v -> this.c.etherwarpRange = v)
+                    .visibleWhen(() -> this.c.movement.equals("etherwarp") || this.c.movement.equals("both")),
+                this.slider("general.itrange", "Transmission distance", "8 for the Aspect of the End; 8 plus Tuned Transmission for the Void.", 4, 12, 1, " blocks",
+                    () -> this.c.transmissionRange, v -> this.c.transmissionRange = v)
+                    .visibleWhen(() -> this.c.movement.equals("transmission") || this.c.movement.equals("both")),
+                this.slider("general.warpgain", "Teleport when it saves", "Only etherwarps when it skips at least this much walking.", 4, 60, 1, " blocks",
+                    () -> this.c.warpMinGain, v -> this.c.warpMinGain = (int) v)
+                    .visibleWhen(() -> !this.c.movement.equals("walk"))))
         ));
     }
 
@@ -581,6 +594,15 @@ public final class MacroSettings {
 
     private static List<String> splitList(String text) {
         return new ArrayList<>(Arrays.stream(text.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
+    }
+
+    private static String movementLabel(String id) {
+        return switch (id) {
+            case "etherwarp" -> "Etherwarp";
+            case "transmission" -> "Instant Transmission";
+            case "both" -> "Etherwarp + Transmission";
+            default -> "Walk";
+        };
     }
 
     private static String capitalize(String text) {

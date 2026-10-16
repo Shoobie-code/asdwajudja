@@ -2,6 +2,7 @@ package com.skyblockminer;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -16,6 +17,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.ClipContext.Block;
 import net.minecraft.world.level.ClipContext.Fluid;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
@@ -34,8 +36,21 @@ final class TargetFinder {
         this.spread = Math.max(0.0, Math.min(0.45, spread));
     }
 
+    private static final IdentityHashMap<net.minecraft.world.level.block.Block, String> IDS = new IdentityHashMap<>();
+
     static String blockId(ClientLevel level, BlockPos pos) {
-        return BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString();
+        return blockId(level.getBlockState(pos));
+    }
+
+    /** Registry id of a block, cached: building the id string allocates, and scans ask for thousands per tick. */
+    static String blockId(BlockState state) {
+        net.minecraft.world.level.block.Block block = state.getBlock();
+        String id = IDS.get(block);
+        if (id == null) {
+            id = BuiltInRegistries.BLOCK.getKey(block).toString();
+            IDS.put(block, id);
+        }
+        return id;
     }
 
     TargetFinder.Target find(LocalPlayer player, ClientLevel level, Map<String, Integer> costs, double reach, Set<BlockPos> excluded, Predicate<BlockPos> allow) {
@@ -53,11 +68,25 @@ final class TargetFinder {
             List<TargetFinder.Candidate> candidates = new ArrayList<>();
             MutableBlockPos cursor = new MutableBlockPos();
 
+            double offX = eye.x - center.getX() - 0.5;
+            double offY = eye.y - center.getY() - 0.5;
+            double offZ = eye.z - center.getZ() - 0.5;
             for (int x = -radius; x <= radius; x++) {
                 for (int y = -radius; y <= radius; y++) {
                     for (int z = -radius; z <= radius; z++) {
+                        // Corners of the scan cube are out of reach: skip them before touching the world.
+                        double ddx = x - offX;
+                        double ddy = y - offY;
+                        double ddz = z - offZ;
+                        if (ddx * ddx + ddy * ddy + ddz * ddz > candidateReachSq) {
+                            continue;
+                        }
                         cursor.set(center.getX() + x, center.getY() + y, center.getZ() + z);
-                        String id = blockId(level, cursor);
+                        BlockState state = level.getBlockState(cursor);
+                        if (state.isAir()) {
+                            continue;
+                        }
+                        String id = blockId(state);
                         Integer base = costs.get(id);
                         if (base != null) {
                             BlockPos pos = cursor.immutable();

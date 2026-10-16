@@ -32,7 +32,17 @@ public final class Macro {
     final Rotator rotator = new Rotator();
     final MiningEngine mining = new MiningEngine();
     final WorldMap map = new WorldMap();
-    final PathWalker walker = new PathWalker(this.map);
+    final PathWalker walker = new PathWalker(this.map, new PathWalker.Host() {
+        @Override
+        public void expectTeleport(long ms) {
+            Macro.this.expectTeleport(ms);
+        }
+
+        @Override
+        public void selectSlot(int slot) {
+            Macro.this.selectSlot(slot);
+        }
+    });
     final Combat combat = new Combat();
     final Commissions commissions = new Commissions();
     final RouteMiner routeMiner = new RouteMiner();

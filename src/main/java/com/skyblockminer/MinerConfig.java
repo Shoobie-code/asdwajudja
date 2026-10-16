@@ -54,6 +54,11 @@ public final class MinerConfig {
     public boolean hud = true;
     public boolean oreWalk = true;
     public boolean pathSafety = true;
+    /** How the walker travels: walk, etherwarp, transmission (Instant Transmission) or both teleports. */
+    public String movement = "walk";
+    public double etherwarpRange = 57.0;
+    public double transmissionRange = 8.0;
+    public int warpMinGain = 12;
     public int oreWalkRange = 64;
 
     // Farming
@@ -337,6 +342,12 @@ public final class MinerConfig {
         }
         this.combatRadius = clamp(this.combatRadius, 4, 64);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
+        if (!List.of("walk", "etherwarp", "transmission", "both").contains(this.movement)) {
+            this.movement = defaults.movement;
+        }
+        this.etherwarpRange = Math.max(10.0, Math.min(this.etherwarpRange, 61.0));
+        this.transmissionRange = Math.max(4.0, Math.min(this.transmissionRange, 12.0));
+        this.warpMinGain = clamp(this.warpMinGain, 4, 60);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
     }

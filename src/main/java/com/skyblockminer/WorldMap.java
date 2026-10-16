@@ -38,6 +38,7 @@ final class WorldMap {
     private static final int VERSION = 1;
     private static final int V5_MAGIC = 1555033003;
     private static final int SECTIONS_PER_TICK = 24;
+    private static final long SCAN_NANOS = 2_000_000L;
     private static final long SETTLE_MS = 2500L;
     private static final long AUTOSAVE_MS = 300000L;
     private static final double[][] DECODED = new double[256][];
@@ -170,10 +171,12 @@ final class WorldMap {
                     }
                 }
 
-                int budget = 24;
+                // Chunk scans are spread over ticks by time, so loading a new area never drops frames.
+                int budget = SECTIONS_PER_TICK * 4;
+                long deadline = System.nanoTime() + SCAN_NANOS;
                 Iterator<Long> it = this.pending.iterator();
 
-                while (it.hasNext() && budget > 0) {
+                while (it.hasNext() && budget > 0 && System.nanoTime() < deadline) {
                     long key = it.next();
                     it.remove();
                     int cx = (int)(key >> 32);
