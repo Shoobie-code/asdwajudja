@@ -30,6 +30,7 @@ final class PathWalker {
     private static final int MAX_SKIP = 10;
     private static final int SKIP_CHECK_TICKS = 3;
     private static final int HOP_CHECK_TICKS = 5;
+    private static final int HOP_RETRY_TICKS = 15;
     private static final long HOP_AIM_MS = 2500L;
     private static final long HOP_WAIT_MS = 1200L;
     private static final int MAX_HOP_FAILS = 3;
@@ -63,6 +64,7 @@ final class PathWalker {
     private int hopFails;
     private boolean hopsOff;
     private final Set<Integer> failedHops = new HashSet<>();
+    private double[] rawLengths;
     private int hops;
 
     /** What the walker needs from the running macro. */
@@ -174,6 +176,7 @@ final class PathWalker {
             this.skipCheckIn = 0;
             this.hopCheckIn = 0;
             this.failedHops.clear();
+            this.rawLengths = this.finder.raw() == null ? null : WarpPlanner.lengths(this.finder.raw());
             this.segmentStart = player.position();
             this.bestRemaining = Double.MAX_VALUE;
             this.lastProgressAt = System.currentTimeMillis();
@@ -216,6 +219,10 @@ final class PathWalker {
                 this.releaseKeys(mc);
                 this.tickHop(mc, player, rotator, config);
                 return this.state;
+            }
+            if (!config.movement.equals("walk")) {
+                // No hop from here: the view rarely opens up within a few steps, so look again a bit later.
+                this.hopCheckIn = HOP_RETRY_TICKS;
             }
         }
 
@@ -333,7 +340,7 @@ final class PathWalker {
     /** Looks for a teleport along the path that saves enough walking, and starts it if one is found. */
     private boolean planHop(Minecraft mc, LocalPlayer player, ClientLevel level, Pathfinder.Shapes shapes, MinerConfig config) {
         String mode = config.movement;
-        if (this.hopsOff || mode.equals("walk") || this.finder.raw() == null) {
+        if (this.hopsOff || mode.equals("walk") || this.finder.raw() == null || this.rawLengths == null) {
             return false;
         }
         List<double[]> raw = this.finder.raw();
@@ -347,8 +354,8 @@ final class PathWalker {
             if (slot >= 0) {
                 Vec3 eyePos = player.getEyePosition();
                 double[] eye = {eyePos.x, eyePos.y, eyePos.z};
-                int j = WarpPlanner.etherwarpHop(shapes, eye, raw, this.rawIndex, config.etherwarpRange, config.warpMinGain,
-                    this.failedHops::contains);
+                int j = WarpPlanner.etherwarpHop(Pathfinder.cached(shapes), eye, raw, this.rawLengths, this.rawIndex,
+                    config.etherwarpRange, config.warpMinGain, this.failedHops::contains);
                 if (j >= 0) {
                     int[] b = WarpPlanner.blockUnder(raw.get(j));
                     BlockPos block = new BlockPos(b[0], b[1], b[2]);
@@ -364,10 +371,9 @@ final class PathWalker {
         }
         if (transmission) {
             int slot = transmissionSlot(player);
-            double[] along = WarpPlanner.lengths(raw);
-            double left = along[along.length - 1] - along[this.rawIndex];
+            double left = this.rawLengths[this.rawLengths.length - 1] - this.rawLengths[this.rawIndex];
             if (slot >= 0 && left > config.transmissionRange + 3.0) {
-                double[] land = WarpPlanner.transmissionHop(shapes, feet, raw, this.rawIndex, config.transmissionRange);
+                double[] land = WarpPlanner.transmissionHop(shapes, feet, raw, this.rawLengths, this.rawIndex, config.transmissionRange);
                 if (land != null) {
                     // Look level, toward the landing point, so the hop keeps its height.
                     Vec3 aim = new Vec3(land[0], player.getEyePosition().y, land[2]);
@@ -405,6 +411,9 @@ final class PathWalker {
         if (ether) {
             mc.options.keyShift.setDown(true);
             this.sneakHeld = true;
+        } else {
+            // Sneaking with an Aspect of the Void would etherwarp instead of transmitting.
+            mc.options.keyShift.setDown(false);
         }
         rotator.track(player, hop.aim, Math.min(1.0, config.rotationSpeed / 100.0 * 1.3));
         boolean ready = rotator.settled(player, ether ? 1.0 : 2.0)
@@ -424,12 +433,27 @@ final class PathWalker {
         }
     }
 
+    /** Server replies to a teleport: no mana turns teleports off for this trip, a blocked view fails this hop. */
+    void onChat(String text) {
+        if (this.hop == null || !this.hop.waiting) {
+            return;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (text.startsWith("You do not have enough mana")) {
+            this.hopsOff = true;
+            MinerMod.message("Out of mana: walking the rest of the way", net.minecraft.ChatFormatting.YELLOW);
+            this.hopFailed(mc, "not enough mana");
+        } else if (text.startsWith("There are blocks in the way")) {
+            this.hopFailed(mc, "blocks in the way");
+        }
+    }
+
     private void hopFailed(Minecraft mc, String why) {
         Hop hop = this.hop;
         if (hop.rawIndex >= 0) {
             this.failedHops.add(hop.rawIndex);
         }
-        if (++this.hopFails >= MAX_HOP_FAILS) {
+        if (++this.hopFails >= MAX_HOP_FAILS && !this.hopsOff) {
             this.hopsOff = true;
             MinerMod.message(hop.kind.label + " is not working (out of mana?), walking the rest of the way", net.minecraft.ChatFormatting.YELLOW);
         }

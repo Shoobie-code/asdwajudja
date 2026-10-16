@@ -220,4 +220,81 @@ class PathingTest {
         world.set(5, 65, 0).set(5, 65, -1).set(5, 65, 1);
         assertNull(WarpPlanner.transmissionHop(world.shapes(), new double[]{0.5, 65, 0.5}, path, 0, 8));
     }
+
+    @Test
+    void neverCutsDiagonallyBetweenTwoBlocks() {
+        World world = new World().floor(0, 0, 6, 6, 64);
+        // Two blocks touching at a corner: the diagonal between them is too narrow for the body.
+        world.set(3, 65, 2).set(3, 66, 2).set(2, 65, 3).set(2, 66, 3);
+        Pathfinder finder = new Pathfinder();
+        finder.setSafety(false);
+        assertTrue(finder.start(world.shapes(), 2.5, 65, 2.5, List.of(new double[]{3.5, 65, 3.5}), 0.1));
+        finder.run();
+        List<double[]> raw = finder.raw();
+        for (int i = 1; i < raw.size(); i++) {
+            double dx = raw.get(i)[0] - raw.get(i - 1)[0];
+            double dz = raw.get(i)[2] - raw.get(i - 1)[2];
+            boolean diagonal = dx != 0 && dz != 0;
+            assertFalse(diagonal && raw.get(i - 1)[0] == 2.5 && raw.get(i - 1)[2] == 2.5 && raw.get(i)[0] == 3.5 && raw.get(i)[2] == 3.5,
+                "squeezed through the corner");
+        }
+    }
+
+    @Test
+    void walksRoundAShortGapInsteadOfJumping() {
+        // A hole in a wide floor: walking round it costs less than the gap jump.
+        World world = new World().floor(0, -2, 12, 2, 64).clear(6, 64, 0);
+        Pathfinder finder = search(world, new double[]{0.5, 65, 0.5}, new double[]{12.5, 65, 0.5}, 0.5);
+        for (int i = 0; i < finder.waypoints().size(); i++) {
+            assertFalse(finder.gapAt(i));
+        }
+    }
+
+    @Test
+    void safePathsKeepAwayFromLava() {
+        // A lava strip along z = 1 next to the direct line at z = 0; a detour at z = -2 is clear.
+        World world = new World().floor(0, -3, 20, 1, 64);
+        for (int x = 2; x <= 18; x++) {
+            world.lava(x, 64, 1);
+        }
+        Pathfinder finder = search(world, new double[]{0.5, 65, 0.5}, new double[]{20.5, 65, 0.5}, 0.5);
+        int nextToLava = 0;
+        for (double[] cell : finder.raw()) {
+            if (cell[2] == 0.5 && cell[0] > 3 && cell[0] < 17) {
+                nextToLava++;
+            }
+        }
+        assertTrue(nextToLava < 3, "walked " + nextToLava + " cells beside lava");
+    }
+
+    @Test
+    void rayPassesOverABottomSlab() {
+        World world = new World();
+        double[] slab = {0.0, 0.5};
+        Pathfinder.Shapes shapes = (x, y, z) -> x == 3 && y == 64 && z == 0 ? slab : Pathfinder.EMPTY;
+        assertNull(WarpPlanner.trace(shapes, new double[]{0.5, 64.75, 0.5}, new double[]{1, 0, 0}, 10));
+        assertArrayEquals(new int[]{3, 64, 0}, WarpPlanner.trace(shapes, new double[]{0.5, 64.25, 0.5}, new double[]{1, 0, 0}, 10));
+        assertTrue(world.solid.isEmpty());
+    }
+
+    @Test
+    void etherwarpWithCachedLengthsMatches() {
+        World world = new World().floor(0, 0, 60, 0, 64);
+        List<double[]> path = new ArrayList<>();
+        for (int x = 0; x <= 60; x++) {
+            path.add(new double[]{x + 0.5, 65, 0.5});
+        }
+        double[] eye = {0.5, 65 + WarpPlanner.EYE, 0.5};
+        int a = WarpPlanner.etherwarpHop(world.shapes(), eye, path, 0, 57, 12, null);
+        int b = WarpPlanner.etherwarpHop(world.shapes(), eye, path, WarpPlanner.lengths(path), 0, 57, 12, j -> j > 50);
+        assertTrue(a > 50);
+        assertEquals(50, b);
+    }
+
+    @Test
+    void packedKeysKeepNegativeCoordinatesApart() {
+        assertTrue(LongMap.pack(-1, 64, 0) != LongMap.pack(0, 64, -1));
+        assertTrue(LongMap.pack(-1, -1, -1) != LongMap.pack(1, 1, 1));
+        assertTrue(LongMap.pack(0, -64, 0) != LongMap.pack(0, 64, 0));
+    }
 }

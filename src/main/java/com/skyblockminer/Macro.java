@@ -432,6 +432,7 @@ public final class Macro {
     }
 
     public void onChat(String text) {
+        this.walker.onChat(text);
         if (!this.running) {
             return;
         }

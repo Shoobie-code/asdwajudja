@@ -17,6 +17,8 @@ final class WarpPlanner {
     static final double EYE = 1.62;
     /** Path points more than this many times the hop length along the path cannot be on a straight hop. */
     private static final double PATH_SLACK = 1.6;
+    /** Most etherwarp candidates ray traced in one check. */
+    static final int MAX_TRACED = 40;
 
     private WarpPlanner() {
     }
@@ -143,7 +145,12 @@ final class WarpPlanner {
      */
     static int etherwarpHop(Pathfinder.Shapes source, double[] eye, List<double[]> path, int from, double range, double minGain,
         java.util.function.IntPredicate skip) {
-        double[] along = lengths(path);
+        return etherwarpHop(source, eye, path, lengths(path), from, range, minGain, skip);
+    }
+
+    static int etherwarpHop(Pathfinder.Shapes source, double[] eye, List<double[]> path, double[] along, int from, double range,
+        double minGain, java.util.function.IntPredicate skip) {
+        int traced = 0;
         for (int j = path.size() - 1; j > from; j--) {
             if (along[j] - along[from] < minGain) {
                 return -1;
@@ -159,8 +166,15 @@ final class WarpPlanner {
                 continue;
             }
             int[] block = blockUnder(p);
-            if (landable(source, block[0], block[1], block[2]) && aimAt(source, eye, block[0], block[1], block[2], range) != null) {
+            if (!landable(source, block[0], block[1], block[2])) {
+                continue;
+            }
+            if (aimAt(source, eye, block[0], block[1], block[2], range) != null) {
                 return j;
+            }
+            // Ray tracing is the costly part: give up after a bounded number of candidates per check.
+            if (++traced >= MAX_TRACED) {
+                return -1;
             }
         }
         return -1;
@@ -172,7 +186,10 @@ final class WarpPlanner {
      * landing point, or null if no stretch ahead is straight and flat enough.
      */
     static double[] transmissionHop(Pathfinder.Shapes source, double[] feet, List<double[]> path, int from, double distance) {
-        double[] along = lengths(path);
+        return transmissionHop(source, feet, path, lengths(path), from, distance);
+    }
+
+    static double[] transmissionHop(Pathfinder.Shapes source, double[] feet, List<double[]> path, double[] along, int from, double distance) {
         for (int j = path.size() - 1; j > from; j--) {
             double[] p = path.get(j);
             if (along[j] - along[from] > distance * PATH_SLACK + 2.0) {
