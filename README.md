@@ -33,6 +33,7 @@ Discord alerts.
 - Pathfinder: near-shortest routes (it only turns greedy on very long searches), jumps one-block gaps such as holes and lava streams, and routes around spots it got stuck at.
 - Travel method (General → Movement): walk, or teleport along the path with **etherwarp** (Aspect of the Void or Etherwarp Conduit, sneak + use) and/or **Instant Transmission** (Aspect of the End or Void, used on flat straight stretches). Each etherwarp is checked against the real world before use; if teleports stop working (for example no mana) it walks the rest of the way.
 - Failsafes: stops on teleports, forced rotations, bedrock cages, unexplained pushes, held-slot changes and players inside you. Also alerts on mentions, private messages and words like "macro".
+- Alt alert: when a failsafe catches a macro check it can /msg your other account ("yo im getting macro checked" by default), with a cooldown so it only sends once per check.
 - Player proximity alerts, with an option to stop.
 - Auto rejoin after kicks, Limbo and server swaps. It then warps back and walks to your saved spot using the pathfinder.
 - Scheduled breaks with varied lengths, and optional daily active hours (for example `08:00-23:00`; overnight windows work too).
