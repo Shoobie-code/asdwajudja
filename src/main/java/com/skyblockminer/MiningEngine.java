@@ -32,6 +32,8 @@ final class MiningEngine {
     private boolean abilityRelease;
     private boolean sneakHeld;
     private int broken;
+    private int searchIn;
+    private static final int IDLE_SCAN_TICKS = 3;
 
     void configure(MinerConfig config) {
         this.finder.configure(config.randomize, config.aimSpread / 100.0);
@@ -70,6 +72,7 @@ final class MiningEngine {
     void reset(Minecraft mc) {
         this.release(mc);
         this.target = null;
+        this.searchIn = 0;
         this.excluded.clear();
         this.abilityQueued = false;
         this.abilityRelease = false;
@@ -102,8 +105,10 @@ final class MiningEngine {
         }
 
         double reach = this.reach(player, config);
-        if (this.target == null) {
+        if (this.target == null && --this.searchIn <= 0) {
             this.target = this.finder.find(player, level, costs, reach, this.excluded.keySet(), allow);
+            // Nothing in reach usually stays that way for a moment: scan every few ticks instead of every tick.
+            this.searchIn = this.target == null ? IDLE_SCAN_TICKS : 0;
             this.mineTicks = 0;
             this.aimTicks = 0;
             this.driftIn = 12 + this.random.nextInt(25);

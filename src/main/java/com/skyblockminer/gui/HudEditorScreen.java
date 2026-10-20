@@ -40,7 +40,8 @@ public final class HudEditorScreen extends Screen {
             new Panel("Status", () -> c.hudX, v -> c.hudX = v, () -> c.hudY, v -> c.hudY = v),
             new Panel("Loot tracker", () -> c.trackerX, v -> c.trackerX = v, () -> c.trackerY, v -> c.trackerY = v),
             new Panel("Notifications", () -> c.toastX, v -> c.toastX = v, () -> c.toastY, v -> c.toastY = v),
-            new Panel("Skills", () -> c.skillsX, v -> c.skillsX = v, () -> c.skillsY, v -> c.skillsY = v));
+            new Panel("Skills", () -> c.skillsX, v -> c.skillsX = v, () -> c.skillsY, v -> c.skillsY = v),
+            new Panel("Info", () -> c.infoX, v -> c.infoX = v, () -> c.infoY, v -> c.infoY = v));
     }
 
     public static void open(Macro macro, Runnable back) {
@@ -164,6 +165,8 @@ public final class HudEditorScreen extends Screen {
         this.config.toastY = defaults.toastY;
         this.config.skillsX = defaults.skillsX;
         this.config.skillsY = defaults.skillsY;
+        this.config.infoX = defaults.infoX;
+        this.config.infoY = defaults.infoY;
     }
 
     /** Buttons sit side by side under the hint; side is -1 (left) or 1 (right). */

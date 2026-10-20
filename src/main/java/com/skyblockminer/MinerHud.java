@@ -18,10 +18,13 @@ final class MinerHud implements HudElement {
     private List<String> skillLines = List.of();
     private long skillLinesAt;
 
-    MinerHud(Macro macro, MinerConfig config, SkillTracker skills) {
+    private final Helpers helpers;
+
+    MinerHud(Macro macro, MinerConfig config, SkillTracker skills, Helpers helpers) {
         this.macro = macro;
         this.config = config;
         this.skills = skills;
+        this.helpers = helpers;
     }
 
     @Override
@@ -52,6 +55,10 @@ final class MinerHud implements HudElement {
             if (!this.skillLines.isEmpty()) {
                 HudRenderer.panel(graphics, mc.font, this.config.skillsX, this.config.skillsY, "Skills", this.skillLines, accent);
             }
+        }
+        List<String> info = this.helpers.lines();
+        if (!info.isEmpty()) {
+            HudRenderer.panel(graphics, mc.font, this.config.infoX, this.config.infoY, "Info", info, accent);
         }
         Toasts.render(graphics, mc.font, this.config.toastX, this.config.toastY);
     }

@@ -54,6 +54,11 @@ public final class MinerConfig {
     public boolean hud = true;
     public boolean oreWalk = true;
     public boolean pathSafety = true;
+    /** How the walker travels: walk, etherwarp, transmission (Instant Transmission) or both teleports. */
+    public String movement = "walk";
+    public double etherwarpRange = 57.0;
+    public double transmissionRange = 8.0;
+    public int warpMinGain = 12;
     public int oreWalkRange = 64;
 
     // Farming
@@ -155,7 +160,10 @@ public final class MinerConfig {
     public int solverClickDelay = 250;
 
     // Interface
-    public String accent = "violet";
+    public String accent = "amber";
+    /** Off = no macro can start (the menu's master switch). */
+    public boolean masterSwitch = true;
+    public int guiOpacity = 92;
     public boolean toasts = true;
     public boolean itemTracker = true;
     public boolean bazaarPrices = true;
@@ -189,6 +197,21 @@ public final class MinerConfig {
     public int skillsX = 4;
     public int skillsY = 230;
     public java.util.Map<String, Double> skillBest = new java.util.HashMap<>();
+
+    // Helpers (ideas from SkyHanni)
+    public boolean infoPanel = true;
+    public int infoEvents = 4;
+    public int infoX = 4;
+    public int infoY = 330;
+    public boolean gardenAlerts = true;
+    public int pestAlertAt = 4;
+    public boolean chatFilter = false;
+    public boolean filterLobby = true;
+    public boolean filterWatchdog = true;
+    public boolean filterProfile = true;
+    public boolean filterAbility = true;
+    public boolean filterCombo = true;
+    public List<String> filterCustom = new ArrayList<>();
 
     private transient int revision;
     private transient boolean dirty;
@@ -337,6 +360,18 @@ public final class MinerConfig {
         }
         this.combatRadius = clamp(this.combatRadius, 4, 64);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
+        if (!List.of("walk", "etherwarp", "transmission", "both").contains(this.movement)) {
+            this.movement = defaults.movement;
+        }
+        this.etherwarpRange = Math.max(10.0, Math.min(this.etherwarpRange, 61.0));
+        this.transmissionRange = Math.max(4.0, Math.min(this.transmissionRange, 12.0));
+        this.warpMinGain = clamp(this.warpMinGain, 4, 60);
+        this.infoEvents = clamp(this.infoEvents, 0, 6);
+        this.guiOpacity = clamp(this.guiOpacity, 40, 100);
+        if (!com.skyblockminer.gui.Theme.ACCENTS.containsKey(this.accent)) {
+            this.accent = defaults.accent;
+        }
+        this.pestAlertAt = clamp(this.pestAlertAt, 1, 8);
         this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
     }

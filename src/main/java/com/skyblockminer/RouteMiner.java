@@ -20,7 +20,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.HitResult.Type;
 
 final class RouteMiner implements Routine {
-    private static final double ETHERWARP_RANGE = 57.0;
     private static final int MAX_WARP_TRIES = 3;
     private static final long POINT_LIMIT_MS = 120000L;
     private final Random random = new Random();
@@ -152,7 +151,7 @@ final class RouteMiner implements Routine {
             mc.options.keyShift.setDown(true);
             this.sneakHeld = true;
             if (this.aim == null) {
-                this.aim = warpPoint(player, level, point);
+                this.aim = warpPoint(player, level, point, macro.config.etherwarpRange);
                 if (this.aim == null) {
                     this.walk(macro, mc);
                     return "Point " + (this.index + 1) + " is out of sight, walking";
@@ -160,7 +159,7 @@ final class RouteMiner implements Routine {
             }
 
             macro.rotator.track(player, this.aim, Math.min(1.0, macro.config.rotationSpeed / 100.0 * 1.3));
-            boolean ready = player.isShiftKeyDown() && macro.rotator.settled(player, 1.0) && looksAt(player, level, point);
+            boolean ready = player.isShiftKeyDown() && macro.rotator.settled(player, 1.0) && looksAt(player, level, point, macro.config.etherwarpRange + 2.0);
             if (ready && ++this.settleTicks >= 2 + this.random.nextInt(4)) {
                 macro.expectTeleport(2500L);
                 this.warpFrom = player.position();
@@ -202,7 +201,7 @@ final class RouteMiner implements Routine {
             MinerMod.LOGGER.info("Etherwarp to point {} failed {} times, walking", this.index + 1, this.warpTries);
             this.walk(macro, mc);
         } else {
-            this.aim = warpPoint(player, level, this.point(macro));
+            this.aim = warpPoint(player, level, this.point(macro), macro.config.etherwarpRange);
             if (this.aim == null) {
                 this.walk(macro, mc);
             } else {
@@ -266,16 +265,13 @@ final class RouteMiner implements Routine {
     }
 
     static int warpSlot(LocalPlayer player) {
-        return Inv.hotbar(player, stack -> {
-            String name = Inv.name(stack);
-            return name.contains("Aspect of the Void") || name.contains("Etherwarp Conduit");
-        });
+        return PathWalker.etherwarpSlot(player);
     }
 
-    static Vec3 warpPoint(LocalPlayer player, ClientLevel level, BlockPos point) {
+    static Vec3 warpPoint(LocalPlayer player, ClientLevel level, BlockPos point, double range) {
         Vec3 eye = player.getEyePosition();
         Vec3 center = Vec3.atCenterOf(point);
-        if (center.distanceTo(eye) > 57.0) {
+        if (center.distanceTo(eye) > range + 0.87) {
             return null;
         } else {
             List<Direction> faces = new ArrayList<>(List.of(Direction.values()));
@@ -298,7 +294,7 @@ final class RouteMiner implements Routine {
                             case Z -> faceCenter.add(u, v, 0.0);
                         };
                         Vec3 spot = onFace.subtract(normal.scale(0.02));
-                        if (spot.distanceTo(eye) <= 57.0 && clips(player, level, eye, spot, point)) {
+                        if (spot.distanceTo(eye) <= range && clips(player, level, eye, spot, point)) {
                             return spot;
                         }
                     }
@@ -309,9 +305,9 @@ final class RouteMiner implements Routine {
         }
     }
 
-    private static boolean looksAt(LocalPlayer player, ClientLevel level, BlockPos point) {
+    static boolean looksAt(LocalPlayer player, ClientLevel level, BlockPos point, double range) {
         Vec3 eye = player.getEyePosition();
-        Vec3 end = eye.add(TargetFinder.look(player).scale(59.0));
+        Vec3 end = eye.add(TargetFinder.look(player).scale(range));
         BlockHitResult hit = level.clip(new ClipContext(eye, end, Block.OUTLINE, Fluid.NONE, player));
         return hit.getType() == Type.BLOCK && hit.getBlockPos().equals(point);
     }

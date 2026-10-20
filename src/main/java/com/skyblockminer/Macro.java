@@ -32,7 +32,17 @@ public final class Macro {
     final Rotator rotator = new Rotator();
     final MiningEngine mining = new MiningEngine();
     final WorldMap map = new WorldMap();
-    final PathWalker walker = new PathWalker(this.map);
+    final PathWalker walker = new PathWalker(this.map, new PathWalker.Host() {
+        @Override
+        public void expectTeleport(long ms) {
+            Macro.this.expectTeleport(ms);
+        }
+
+        @Override
+        public void selectSlot(int slot) {
+            Macro.this.selectSlot(slot);
+        }
+    });
     final Combat combat = new Combat();
     final Commissions commissions = new Commissions();
     final RouteMiner routeMiner = new RouteMiner();
@@ -169,6 +179,11 @@ public final class Macro {
     public void start(MacroType type) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || mc.level == null) {
+            return;
+        }
+        if (!this.config.masterSwitch) {
+            MinerMod.message("Macros are switched off (menu → Settings → Master switch)", ChatFormatting.RED);
+            Toasts.push("Master switch", "Macros are switched off", Toasts.Kind.WARNING);
             return;
         }
         if (this.running) {
@@ -422,6 +437,7 @@ public final class Macro {
     }
 
     public void onChat(String text) {
+        this.walker.onChat(text);
         if (!this.running) {
             return;
         }

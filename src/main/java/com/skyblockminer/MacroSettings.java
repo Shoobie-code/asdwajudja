@@ -2,6 +2,9 @@ package com.skyblockminer;
 
 import com.skyblockminer.gui.ClickGuiScreen;
 import com.skyblockminer.gui.HudEditorScreen;
+import com.skyblockminer.gui.Menu;
+import com.skyblockminer.gui.Menu.Card;
+import com.skyblockminer.gui.Menu.Tab;
 import com.skyblockminer.gui.Setting;
 import com.skyblockminer.gui.Setting.Button;
 import com.skyblockminer.gui.Setting.Category;
@@ -41,12 +44,14 @@ public final class MacroSettings {
     private final MinerConfig c;
     private final List<Category> categories;
     private final Map<String, Setting> byId = new LinkedHashMap<>();
+    private Menu.KeyBinds keys;
+    private Menu.Layout layout;
 
     public MacroSettings(Macro macro) {
         this.macro = macro;
         this.c = macro.config;
         this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
-            this.notifications(), this.market(), this.visuals(), this.general());
+            this.notifications(), this.market(), this.helpers(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
                 for (Setting setting : section.settings()) {
@@ -60,6 +65,129 @@ public final class MacroSettings {
 
     public List<Category> categories() {
         return this.categories;
+    }
+
+    /** Gives the menu access to the mod's key mappings; call once after registering them. */
+    public void keys(Menu.KeyBinds keys) {
+        this.keys = keys;
+        this.layout = null;
+    }
+
+    /**
+     * The menu's tabs in the Skymacro overlay layout: each macro is a card with its own settings, modules with an
+     * on/off switch are cards in Misc, and everything else (movement, failsafes, alerts, HUD) sits on Settings.
+     */
+    public Menu.Layout layout() {
+        if (this.layout == null) {
+            this.layout = this.buildLayout();
+        }
+        return this.layout;
+    }
+
+    private Menu.Layout buildLayout() {
+        Menu.KeyBinds binds = this.keys != null ? this.keys : new Menu.KeyBinds() {
+            @Override
+            public String menuKey() {
+                return "Right Shift";
+            }
+
+            @Override
+            public String toggleKey() {
+                return null;
+            }
+
+            @Override
+            public void rebindMenu(int glfwKey) {
+            }
+        };
+        List<Tab> tabs = List.of(
+            new Tab("Combat", "⚔", "Mob killing and slayer weapons.", List.of(
+                this.macroCard(MacroType.COMBAT, binds, "Combat", "Targets", "Weapon"))),
+            new Tab("Farms", "☘", "Garden farming, farm building and visitors.", List.of(
+                this.macroCard(MacroType.FARMING, binds, "Farming", "Farm layout", "Rewarp", "Pests"),
+                this.macroCard(MacroType.BUILDER, binds, "Farming", "Farm builder"),
+                this.moduleCard("Garden Visitors", "visitors.enabled", "Farming", "Visitors"))),
+            new Tab("Mining", "⛏", "Every mining macro, from Mithril to the Fossil Excavator.", List.of(
+                this.macroCard(MacroType.MITHRIL, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.GEMSTONE, binds, "Mining", "Mining", "Gemstones", "Hazards"),
+                this.macroCard(MacroType.ORE, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.TUNNELS, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.CUSTOM, binds, "Mining", "Mining", "Hazards"),
+                this.macroCard(MacroType.ROUTE, binds, "Mining", "Route miner", "Mining"),
+                this.macroCard(MacroType.POWDER, binds, "Mining", "Powder & commissions", "Mining"),
+                this.macroCard(MacroType.COMMISSIONS, binds, "Mining", "Powder & commissions", "Mining"),
+                this.macroCard(MacroType.GLACITE, binds, "Mining", "Glacite commissions", "Mining"),
+                this.macroCard(MacroType.EXCAVATOR, binds, "Mining", "Fossil Excavator"))),
+            new Tab("Foraging", "♣", "Tree farms on the Park and Galatea.", List.of(
+                this.macroCard(MacroType.FORAGING, binds, "Foraging", "Tree farm"))),
+            new Tab("Fishing", "⚓", "Fishing with sea creature handling.", List.of(
+                this.macroCard(MacroType.FISHING, binds, "Fishing", "Fishing", "Sea creatures"))),
+            new Tab("Hunting", "☠", "Slayer quests and Garden pests.", List.of(
+                this.moduleCard("Slayer Auto-start", "slayer.auto", "Combat", "Slayer quests"),
+                new Card("Pest Hunter", null, () -> this.c.farmPestAction.equals("kill"), () -> {
+                    this.c.farmPestAction = this.c.farmPestAction.equals("kill") ? "notify" : "kill";
+                    this.changed();
+                }, null, this.sections("Farming", "Pests")))),
+            new Tab("Misc", "✚", "Helpers that run alongside any macro.", List.of(
+                this.moduleCard("Auto Sell", "sell.enabled", "General", "Auto sell"),
+                this.infoCard("Menu Solvers", "General", "Menu solvers"),
+                this.moduleCard("Info Panel", "info.panel", "Helpers", "Info panel"),
+                this.moduleCard("Garden Alerts", "garden.alerts", "Helpers", "Garden"),
+                this.moduleCard("Chat Filter", "chat.filter", "Helpers", "Chat filter"),
+                this.moduleCard("Market", "market.enabled", "Market", "Market", "Bazaar flips", "Auction flips"),
+                this.moduleCard("Skill Tracker", "skills.track", "Market", "Skills"))));
+        List<Card> settingsCards = List.of(
+            this.infoCard("Movement", "General", "Movement"),
+            this.moduleCard("Failsafes", "safety.failsafes", "Failsafes", "Failsafes", "Scheduler"),
+            this.infoCard("Alerts", "Alerts", "Discord", "In game"),
+            this.infoCard("HUD", "Visuals", "HUD"),
+            this.infoCard("Window", "General", "Window"));
+        return new Menu.Layout(tabs, settingsCards, binds);
+    }
+
+    private Card macroCard(MacroType type, Menu.KeyBinds binds, String category, String... sections) {
+        return new Card(type.label,
+            () -> {
+                if (this.macro.selected() != type) {
+                    return "Select";
+                }
+                String key = binds.toggleKey();
+                return key == null ? "Selected" : key;
+            },
+            () -> this.macro.running() && this.macro.mode() == type,
+            () -> {
+                if (this.macro.running() && this.macro.mode() == type) {
+                    this.macro.stop("Stopped");
+                } else {
+                    Minecraft.getInstance().gui.setScreen(null);
+                    this.macro.start(type);
+                }
+            },
+            () -> this.macro.select(type),
+            this.sections(category, sections));
+    }
+
+    /** A module whose ON/OFF button flips the toggle setting {@code id}. */
+    private Card moduleCard(String name, String id, String category, String... sections) {
+        if (!(this.byId.get(id) instanceof Toggle toggle)) {
+            throw new IllegalStateException("No toggle " + id);
+        }
+        return new Card(name, null, toggle::get, toggle::toggle, null, this.sections(category, sections));
+    }
+
+    private Card infoCard(String name, String category, String... sections) {
+        return new Card(name, null, null, null, null, this.sections(category, sections));
+    }
+
+    private List<Section> sections(String category, String... names) {
+        Category found = this.categories.stream().filter(cat -> cat.name().equals(category)).findFirst()
+            .orElseThrow(() -> new IllegalStateException("No category " + category));
+        List<Section> result = new ArrayList<>();
+        for (String name : names) {
+            result.add(found.sections().stream().filter(section -> section.title().equals(name)).findFirst()
+                .orElseThrow(() -> new IllegalStateException("No section " + category + " / " + name)));
+        }
+        return result;
     }
 
     public Setting find(String id) {
@@ -431,7 +559,7 @@ public final class MacroSettings {
                 this.toggle("hud.targets", "Highlight targets", "Outlines the block or spot the macro is working on.",
                     () -> this.c.showTarget, v -> this.c.showTarget = v),
                 this.button("hud.edit", "HUD layout", "Drag the HUD panels where you want them.", "Edit",
-                    () -> HudEditorScreen.open(this.macro, () -> ClickGuiScreen.open(this.macro, this.categories))))),
+                    () -> HudEditorScreen.open(this.macro, () -> ClickGuiScreen.open(this.macro, this.layout()))))),
             new Section("Theme", List.of(
                 this.choice("theme.accent", "Accent color", "Highlight color of the menu and HUD.",
                     () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v)))
@@ -484,6 +612,36 @@ public final class MacroSettings {
         ));
     }
 
+    private Category helpers() {
+        return new Category("Helpers", "★", List.of(
+            new Section("Info panel", List.of(
+                this.toggle("info.panel", "Info panel", "SkyBlock time, upcoming events (Jacob's Contest, Dark Auction, Cult...) and Garden pests and visitors.",
+                    () -> this.c.infoPanel, v -> this.c.infoPanel = v),
+                this.slider("info.events", "Events shown", "How many upcoming events to list, soonest first.", 0, 6, 1, "",
+                    () -> this.c.infoEvents, v -> this.c.infoEvents = (int) v).visibleWhen(() -> this.c.infoPanel))),
+            new Section("Garden", List.of(
+                this.toggle("garden.alerts", "Garden alerts", "Pops up when a visitor arrives or pests build up.",
+                    () -> this.c.gardenAlerts, v -> this.c.gardenAlerts = v),
+                this.slider("garden.pests", "Pest alert at", "Alert once this many pests are alive.", 1, 8, 1, " pests",
+                    () -> this.c.pestAlertAt, v -> this.c.pestAlertAt = (int) v).visibleWhen(() -> this.c.gardenAlerts))),
+            new Section("Chat filter", List.of(
+                this.toggle("chat.filter", "Chat filter", "Hides spam. Hidden lines still trigger alerts and trackers; DMs and lines saying \"macro\" are never hidden.",
+                    () -> this.c.chatFilter, v -> this.c.chatFilter = v),
+                this.toggle("chat.lobby", "Lobby joins", "\"... joined the lobby!\"", () -> this.c.filterLobby, v -> this.c.filterLobby = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.watchdog", "Watchdog reports", "Watchdog and staff ban announcements.", () -> this.c.filterWatchdog, v -> this.c.filterWatchdog = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.profile", "Profile and server", "\"You are playing on profile\", profile ID, \"Sending to server\".",
+                    () -> this.c.filterProfile, v -> this.c.filterProfile = v).visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.ability", "Ability spam", "Not enough mana, cooldowns, \"blocks in the way\" and ability damage lines.",
+                    () -> this.c.filterAbility, v -> this.c.filterAbility = v).visibleWhen(() -> this.c.chatFilter),
+                this.toggle("chat.combo", "Kill combo", "Kill combo gains and expiry.", () -> this.c.filterCombo, v -> this.c.filterCombo = v)
+                    .visibleWhen(() -> this.c.chatFilter),
+                this.text("chat.custom", "Also hide", "Hide lines containing any of these, comma separated.", "e.g. [Auction], Sacks", false,
+                    () -> String.join(", ", this.c.filterCustom), v -> this.c.filterCustom = splitList(v)).visibleWhen(() -> this.c.chatFilter)))
+        ));
+    }
+
     private Category general() {
         return new Category("General", "⚙", List.of(
             new Section("Window", List.of(
@@ -513,7 +671,20 @@ public final class MacroSettings {
                 this.toggle("general.sprint", "Sprint when walking", "Sprints on long straight path sections.",
                     () -> this.c.sprint, v -> this.c.sprint = v),
                 this.toggle("general.pathsafety", "Safe paths", "Prefers routes away from lava, fire and cliff edges.",
-                    () -> this.c.pathSafety, v -> this.c.pathSafety = v)))
+                    () -> this.c.pathSafety, v -> this.c.pathSafety = v),
+                this.choice("general.movement", "Travel method",
+                    "Teleports along paths with an Aspect of the Void (etherwarp) or Aspect of the End/Void (Instant Transmission) in the hotbar.",
+                    () -> List.of("walk", "etherwarp", "transmission", "both"), MacroSettings::movementLabel,
+                    () -> this.c.movement, v -> this.c.movement = v),
+                this.slider("general.etherrange", "Etherwarp range", "57 plus your Tuned Transmission levels.", 10, 61, 1, " blocks",
+                    () -> this.c.etherwarpRange, v -> this.c.etherwarpRange = v)
+                    .visibleWhen(() -> this.c.movement.equals("etherwarp") || this.c.movement.equals("both")),
+                this.slider("general.itrange", "Transmission distance", "8 for the Aspect of the End; 8 plus Tuned Transmission for the Void.", 4, 12, 1, " blocks",
+                    () -> this.c.transmissionRange, v -> this.c.transmissionRange = v)
+                    .visibleWhen(() -> this.c.movement.equals("transmission") || this.c.movement.equals("both")),
+                this.slider("general.warpgain", "Teleport when it saves", "Only etherwarps when it skips at least this much walking.", 4, 60, 1, " blocks",
+                    () -> this.c.warpMinGain, v -> this.c.warpMinGain = (int) v)
+                    .visibleWhen(() -> !this.c.movement.equals("walk"))))
         ));
     }
 
@@ -581,6 +752,15 @@ public final class MacroSettings {
 
     private static List<String> splitList(String text) {
         return new ArrayList<>(Arrays.stream(text.split(",")).map(String::trim).filter(s -> !s.isEmpty()).toList());
+    }
+
+    private static String movementLabel(String id) {
+        return switch (id) {
+            case "etherwarp" -> "Etherwarp";
+            case "transmission" -> "Instant Transmission";
+            case "both" -> "Etherwarp + Transmission";
+            default -> "Walk";
+        };
     }
 
     private static String capitalize(String text) {

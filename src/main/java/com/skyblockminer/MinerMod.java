@@ -48,6 +48,7 @@ public final class MinerMod implements ClientModInitializer {
     private static Flips flips;
     private static AuctionSniper sniper;
     private static SkillTracker skills;
+    private static Helpers helpers;
     private static int marketTicks;
 
     @Override
@@ -62,6 +63,7 @@ public final class MinerMod implements ClientModInitializer {
         flips = new Flips();
         sniper = new AuctionSniper(config, macro, market);
         skills = new SkillTracker(config.skillBest);
+        helpers = new Helpers(config);
 
         Category category = Category.register(Identifier.fromNamespaceAndPath(ID, "main"));
         KeyMapping toggleKey = KeyMappingHelper.registerKeyMapping(
@@ -74,6 +76,24 @@ public final class MinerMod implements ClientModInitializer {
             new KeyMapping("key.skyblockminer.market", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
         KeyMapping panicKey = KeyMappingHelper.registerKeyMapping(
             new KeyMapping("key.skyblockminer.panic", Type.KEYSYM, InputConstants.UNKNOWN.getValue(), category));
+        settings.keys(new com.skyblockminer.gui.Menu.KeyBinds() {
+            @Override
+            public String menuKey() {
+                return menuKey.getTranslatedKeyMessage().getString();
+            }
+
+            @Override
+            public String toggleKey() {
+                return toggleKey.isUnbound() ? null : toggleKey.getTranslatedKeyMessage().getString();
+            }
+
+            @Override
+            public void rebindMenu(int glfwKey) {
+                menuKey.setKey(Type.KEYSYM.getOrCreate(glfwKey));
+                KeyMapping.resetMapping();
+                Minecraft.getInstance().options.save();
+            }
+        });
 
         ClientChunkEvents.CHUNK_LOAD.register((level, chunk) -> macro.map.onChunkLoad(level, chunk));
         ClientLifecycleEvents.CLIENT_STOPPING.register(mc -> {
@@ -104,7 +124,7 @@ public final class MinerMod implements ClientModInitializer {
                 HudEditorScreen.open(macro, null);
             } else if (openMenu) {
                 openMenu = false;
-                ClickGuiScreen.open(macro, settings.categories());
+                ClickGuiScreen.open(macro, settings.layout());
             } else if (openMarket) {
                 openMarket = false;
                 marketOpenedAt = System.currentTimeMillis();
@@ -119,18 +139,24 @@ public final class MinerMod implements ClientModInitializer {
             macro.onTick(mc);
             macro.render(mc);
             solvers.tick(mc);
+            helpers.tick(mc);
             macro.recording.tick(mc);
         });
         LevelRenderEvents.END_MAIN.register(context -> macro.onFrame());
-        ClientReceiveMessageEvents.GAME.register((message, overlay) -> {
-            if (!overlay) {
-                macro.onChat(message.getString());
-            } else if (config.skillTracker) {
-                skills.onActionBar(message.getString(), System.currentTimeMillis(), macro.running() ? macro.mode().id : null);
-            }
-        });
+        ClientReceiveMessageEvents.GAME.register(MinerMod::onGameMessage);
+        // Filtered lines are hidden from the chat but still handled, so alerts and trackers keep working.
+        ClientReceiveMessageEvents.GAME_CANCELED.register(MinerMod::onGameMessage);
+        ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> overlay || !ChatFilter.hide(message.getString(), config));
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> MinerCommands.register(dispatcher, macro, config, settings));
-        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "status"), new MinerHud(macro, config, skills));
+        HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "status"), new MinerHud(macro, config, skills, helpers));
+    }
+
+    private static void onGameMessage(Component message, boolean overlay) {
+        if (!overlay) {
+            macro.onChat(message.getString());
+        } else if (config.skillTracker) {
+            skills.onActionBar(message.getString(), System.currentTimeMillis(), macro.running() ? macro.mode().id : null);
+        }
     }
 
     static void openMenu() {

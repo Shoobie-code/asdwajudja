@@ -30,7 +30,10 @@ for line in hints:
         src = f.read_text()
         m = header_re(cls).search(src)
         assert m, (cls, line)
-        src = src[:m.end()] + '\n    ' + member + src[m.end():]
+        at = m.end()
+        if m.group(2) == 'enum':  # members go after the constant list
+            at = src.index(';', at) + 1
+        src = src[:at] + '\n    ' + member + src[at:]
         f.write_text(src)
         continue
     if op == 'sub':  # sub <cls> <regex> => <replacement>
