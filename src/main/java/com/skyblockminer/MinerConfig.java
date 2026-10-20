@@ -43,6 +43,11 @@ public final class MinerConfig {
     public boolean chatAlerts = true;
     public int playerRadius = 8;
     public boolean stopForPlayers = false;
+    /** Private-message another account when a failsafe catches a macro check. */
+    public boolean altAlert = true;
+    public String altName = "";
+    public String altMessage = "yo im getting macro checked";
+    public int altCooldown = 5;
     public int breakEvery = 0;
     public int breakLength = 5;
     public String webhookUrl = "";

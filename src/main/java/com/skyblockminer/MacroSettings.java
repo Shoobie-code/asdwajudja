@@ -138,7 +138,7 @@ public final class MacroSettings {
                 this.moduleCard("Skill Tracker", "skills.track", "Market", "Skills"))));
         List<Card> settingsCards = List.of(
             this.infoCard("Movement", "General", "Movement"),
-            this.moduleCard("Failsafes", "safety.failsafes", "Failsafes", "Failsafes", "Scheduler"),
+            this.moduleCard("Failsafes", "safety.failsafes", "Failsafes", "Failsafes", "Alt alert", "Scheduler"),
             this.infoCard("Alerts", "Alerts", "Discord", "In game"),
             this.infoCard("HUD", "Visuals", "HUD"),
             this.infoCard("Window", "General", "Window"));
@@ -516,6 +516,23 @@ public final class MacroSettings {
                     () -> this.c.stopForPlayers, v -> this.c.stopForPlayers = v),
                 this.toggle("safety.rejoin", "Auto rejoin", "Goes back to SkyBlock after kicks, Limbo and server swaps.",
                     () -> this.c.autoRejoin, v -> this.c.autoRejoin = v))),
+            new Section("Alt alert", List.of(
+                this.toggle("alt.enabled", "Message my alt", "Private-messages your other account when a failsafe catches a macro check.",
+                    () -> this.c.altAlert, v -> this.c.altAlert = v),
+                this.text("alt.name", "Alt username", "Minecraft name of the account to message.", "MyAltAccount", false,
+                    () -> this.c.altName, v -> {
+                        String name = v.trim();
+                        if (name.isEmpty() || AltAlert.NAME.matcher(name).matches()) {
+                            this.c.altName = name;
+                        } else {
+                            Toasts.push("Alt username", "Use a Minecraft name: 1-16 letters, numbers or _", Toasts.Kind.ERROR);
+                        }
+                    }),
+                this.text("alt.message", "Message", "What to send.", AltAlert.DEFAULT_MESSAGE, false,
+                    () -> this.c.altMessage, v -> this.c.altMessage = v),
+                this.slider("alt.cooldown", "Cooldown", "Minutes before another check can message again.", 0, 60, 1, " min",
+                    () -> this.c.altCooldown, v -> this.c.altCooldown = (int) v),
+                this.button("alt.test", "Test alt message", "Sends the message to your alt now.", "Send", this.macro::testAltAlert))),
             new Section("Scheduler", List.of(
                 this.slider("breaks.every", "Break every", "Minutes of work between breaks (0 = no breaks).", 0, 240, 5, " min",
                     () -> this.c.breakEvery, v -> this.c.breakEvery = (int) v),

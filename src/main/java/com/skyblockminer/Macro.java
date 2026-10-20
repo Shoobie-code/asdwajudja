@@ -65,6 +65,7 @@ public final class Macro {
     private final Map<MacroType, Routine> routines = new EnumMap<>(MacroType.class);
     private final List<Routine> allRoutines;
     private final Webhook webhook = new Webhook();
+    private final AltAlert altAlert = new AltAlert();
     private boolean running;
     private MacroType mode = MacroType.MITHRIL;
     private String status = "Off";
@@ -272,6 +273,10 @@ public final class Macro {
         if (this.running) {
             this.stop("FAILSAFE: " + reason);
             alert();
+            String altCommand = this.altAlert.onCheck(this.config, System.currentTimeMillis());
+            if (altCommand != null) {
+                this.command(altCommand);
+            }
             this.webhook.send(this.config, "FAILSAFE", reason, 15158332, true);
         }
     }
@@ -374,6 +379,21 @@ public final class Macro {
         }
         this.webhook.send(this.config, "Test message", "Notifications are working.", 3447003, true);
         Toasts.push("Webhook", "Test message sent", Toasts.Kind.SUCCESS);
+    }
+
+    /** Sends the alt message now, ignoring the cooldown, so it can be checked from the GUI. */
+    public void testAltAlert() {
+        String command = AltAlert.command(this.config);
+        if (command == null) {
+            Toasts.push("Alt alert", "Set a valid Minecraft name for your other account first", Toasts.Kind.ERROR);
+            return;
+        }
+        if (Minecraft.getInstance().getConnection() == null) {
+            Toasts.push("Alt alert", "Join a server first", Toasts.Kind.ERROR);
+            return;
+        }
+        this.command(command);
+        Toasts.push("Alt alert", "Sent /" + command, Toasts.Kind.SUCCESS);
     }
 
     static void alert() {
