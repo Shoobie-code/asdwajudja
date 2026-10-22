@@ -19,6 +19,7 @@ public enum MacroType {
     FISHING("fishing", "Fishing", Category.FISHING, null),
     BUILDER("builder", "Farm Builder", Category.FARMING, null),
     COMBAT("combat", "Combat", Category.COMBAT, null),
+    WYNN_COMBAT("wynncombat", "Wynn Combat", Category.WYNNCRAFT, null),
     GOTO("goto", "Walking", Category.MINING, null);
 
     public enum Category {
@@ -26,7 +27,8 @@ public enum MacroType {
         FARMING("Farming"),
         FORAGING("Foraging"),
         FISHING("Fishing"),
-        COMBAT("Combat");
+        COMBAT("Combat"),
+        WYNNCRAFT("Wynncraft");
 
         public final String label;
 
@@ -46,6 +48,14 @@ public enum MacroType {
         this.label = label;
         this.category = category;
         this.blocks = blocks;
+    }
+
+    /** The network this macro is written for, or null when it works anywhere (walking). */
+    Server.Kind server() {
+        if (this == GOTO) {
+            return null;
+        }
+        return this.category == Category.WYNNCRAFT ? Server.Kind.WYNNCRAFT : Server.Kind.HYPIXEL;
     }
 
     boolean minesInPlace() {

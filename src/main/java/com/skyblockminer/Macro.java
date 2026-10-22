@@ -52,6 +52,8 @@ public final class Macro {
     final FishingMacro fishing = new FishingMacro();
     final FarmBuilder builder = new FarmBuilder();
     final CombatMacro combatMacro = new CombatMacro();
+    final WynnCombatMacro wynnCombat = new WynnCombatMacro();
+    final WynnStatus wynn = new WynnStatus();
     final GlaciteCommissions glacite = new GlaciteCommissions();
     final ExcavatorMacro excavator = new ExcavatorMacro();
     final AutoSell autoSell = new AutoSell();
@@ -117,6 +119,7 @@ public final class Macro {
         this.routines.put(MacroType.FISHING, this.fishing);
         this.routines.put(MacroType.BUILDER, this.builder);
         this.routines.put(MacroType.COMBAT, this.combatMacro);
+        this.routines.put(MacroType.WYNN_COMBAT, this.wynnCombat);
         this.routines.put(MacroType.GLACITE, this.glacite);
         this.routines.put(MacroType.EXCAVATOR, this.excavator);
         this.allRoutines = List.copyOf(this.routines.values());
@@ -185,6 +188,12 @@ public final class Macro {
         if (!this.config.masterSwitch) {
             MinerMod.message("Macros are switched off (menu → Settings → Master switch)", ChatFormatting.RED);
             Toasts.push("Master switch", "Macros are switched off", Toasts.Kind.WARNING);
+            return;
+        }
+        String wrongServer = Server.mismatch(type, Server.current(mc));
+        if (wrongServer != null) {
+            MinerMod.message(wrongServer, ChatFormatting.RED);
+            Toasts.push("Wrong server", wrongServer, Toasts.Kind.WARNING);
             return;
         }
         if (this.running) {
@@ -410,7 +419,8 @@ public final class Macro {
     }
 
     private boolean canRejoin() {
-        return this.mode != MacroType.GOTO && this.config.autoRejoin && this.rejoins < MAX_REJOINS;
+        // Rejoining means going back to SkyBlock, so Wynncraft macros stop on a world change instead.
+        return this.mode != MacroType.GOTO && this.mode.server() == Server.Kind.HYPIXEL && this.config.autoRejoin && this.rejoins < MAX_REJOINS;
     }
 
     private void beginRejoin(String why) {
@@ -517,6 +527,11 @@ public final class Macro {
                 alert();
             }
         }
+    }
+
+    /** Action bar text, read for Wynncraft health, mana and spell clicks. */
+    public void onActionBar(String text) {
+        this.wynn.onActionBar(text, System.currentTimeMillis());
     }
 
     public void onParticle(ParticleOptions particle, double x, double y, double z) {
