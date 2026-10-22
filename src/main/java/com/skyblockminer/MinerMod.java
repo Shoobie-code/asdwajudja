@@ -154,8 +154,12 @@ public final class MinerMod implements ClientModInitializer {
     private static void onGameMessage(Component message, boolean overlay) {
         if (!overlay) {
             macro.onChat(message.getString());
-        } else if (config.skillTracker) {
-            skills.onActionBar(message.getString(), System.currentTimeMillis(), macro.running() ? macro.mode().id : null);
+        } else {
+            String text = message.getString();
+            macro.onActionBar(text);
+            if (config.skillTracker) {
+                skills.onActionBar(text, System.currentTimeMillis(), macro.running() ? macro.mode().id : null);
+            }
         }
     }
 

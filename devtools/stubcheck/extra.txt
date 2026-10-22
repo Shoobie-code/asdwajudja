@@ -20,3 +20,9 @@ add net/minecraft/client/KeyMapping public static void resetMapping() { }
 add com/mojang/blaze3d/platform/InputConstants$Type public com.mojang.blaze3d.platform.InputConstants.Key getOrCreate(int a0) { return null; }
 add net/minecraft/client/Options public void save() { }
 add net/minecraft/client/KeyMapping public void setKey(com.mojang.blaze3d.platform.InputConstants.Key a0) { }
+add net/minecraft/client/Minecraft public net.minecraft.client.multiplayer.ServerData getCurrentServer() { return null; }
+add net/minecraft/client/multiplayer/ServerData public String ip;
+add net/minecraft/world/entity/Display public static class TextDisplay extends net.minecraft.world.entity.Display { public net.minecraft.network.chat.Component getText() { return null; } }
+extends net/minecraft/world/entity/Display net.minecraft.world.entity.Entity
+add net/minecraft/world/entity/Entity public boolean hasCustomName() { return false; }
+add net/minecraft/world/entity/Entity public net.minecraft.network.chat.Component getCustomName() { return null; }

@@ -116,6 +116,20 @@ public final class MinerConfig {
     public String combatAttackMode = "melee";
     public String combatWarpCommand = "";
 
+    // Wynncraft combat
+    public String wynnClass = "warrior";
+    public List<String> wynnMobs = new ArrayList<>();
+    public int wynnRadius = 16;
+    public double[] wynnSpot = null;
+    public int wynnWeaponSlot = 0;
+    public int wynnRange = 0;
+    public String wynnSpells = "1";
+    public double wynnSpellSeconds = 2.0;
+    public int wynnMinMana = 30;
+    public int wynnHealSpell = 0;
+    public int wynnHealBelow = 50;
+    public int wynnClickTicks = 2;
+
     // Auto sell and schedule
     public boolean autoSell = false;
     public List<String> sellItems = new ArrayList<>();
@@ -364,6 +378,26 @@ public final class MinerConfig {
             this.activeHours = "";
         }
         this.combatRadius = clamp(this.combatRadius, 4, 64);
+        if (WynnSpells.WynnClass.parse(this.wynnClass) == null) {
+            this.wynnClass = defaults.wynnClass;
+        }
+        if (this.wynnMobs == null) {
+            this.wynnMobs = new ArrayList<>();
+        }
+        if (this.wynnSpot != null && this.wynnSpot.length != 3) {
+            this.wynnSpot = null;
+        }
+        if (this.wynnSpells == null) {
+            this.wynnSpells = defaults.wynnSpells;
+        }
+        this.wynnRadius = clamp(this.wynnRadius, 4, 64);
+        this.wynnWeaponSlot = clamp(this.wynnWeaponSlot, 0, 9);
+        this.wynnRange = clamp(this.wynnRange, 0, 20);
+        this.wynnSpellSeconds = Math.max(0.5, Math.min(this.wynnSpellSeconds, 30.0));
+        this.wynnMinMana = clamp(this.wynnMinMana, 0, 100);
+        this.wynnHealSpell = clamp(this.wynnHealSpell, 0, 4);
+        this.wynnHealBelow = clamp(this.wynnHealBelow, 5, 95);
+        this.wynnClickTicks = clamp(this.wynnClickTicks, 1, 10);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
         if (!List.of("walk", "etherwarp", "transmission", "both").contains(this.movement)) {
             this.movement = defaults.movement;

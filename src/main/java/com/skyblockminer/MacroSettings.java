@@ -50,7 +50,7 @@ public final class MacroSettings {
     public MacroSettings(Macro macro) {
         this.macro = macro;
         this.c = macro.config;
-        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.safety(),
+        this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.wynncraft(), this.safety(),
             this.notifications(), this.market(), this.helpers(), this.visuals(), this.general());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
@@ -103,6 +103,8 @@ public final class MacroSettings {
         List<Tab> tabs = List.of(
             new Tab("Combat", "⚔", "Mob killing and slayer weapons.", List.of(
                 this.macroCard(MacroType.COMBAT, binds, "Combat", "Targets", "Weapon"))),
+            new Tab("Wynncraft", "✦", "Macros for Wynncraft. They only start while you are on Wynncraft.", List.of(
+                this.macroCard(MacroType.WYNN_COMBAT, binds, "Wynncraft", "Targets", "Class & spells", "Healing"))),
             new Tab("Farms", "☘", "Garden farming, farm building and visitors.", List.of(
                 this.macroCard(MacroType.FARMING, binds, "Farming", "Farm layout", "Rewarp", "Pests"),
                 this.macroCard(MacroType.BUILDER, binds, "Farming", "Farm builder"),
@@ -500,6 +502,49 @@ public final class MacroSettings {
                     () -> this.c.combatAttackMode, v -> this.c.combatAttackMode = v),
                 this.slider("combat.weapon", "Weapon slot", "Hotbar slot of the weapon (0 = find automatically).", 0, 9, 1, "",
                     () -> this.c.combatWeaponSlot, v -> this.c.combatWeaponSlot = (int) v)))
+        ));
+    }
+
+    private Category wynncraft() {
+        return new Category("Wynncraft", "✦", List.of(
+            new Section("Macro", List.of(this.start("wynn.start", MacroType.Category.WYNNCRAFT))),
+            new Section("Targets", List.of(
+                this.text("wynn.mobs", "Mob names", "Parts of mob names to attack, comma separated (empty = any mob with a name label).",
+                    "e.g. Wolf, Zombie", false, () -> String.join(", ", this.c.wynnMobs), v -> this.c.wynnMobs = splitList(v)),
+                this.slider("wynn.radius", "Radius", "How far from the spot to look for mobs.", 4, 64, 1, " blocks",
+                    () -> this.c.wynnRadius, v -> this.c.wynnRadius = (int) v),
+                this.button("wynn.setspot", "Grinding spot", "Center of the area; the macro walks here on start.", "Set here", () -> {
+                    LocalPlayer player = Minecraft.getInstance().player;
+                    if (player != null) {
+                        this.c.wynnSpot = new double[]{player.getX(), player.getY(), player.getZ()};
+                        this.saved("Wynncraft spot saved");
+                    }
+                }),
+                this.button("wynn.clearspot", "Clear grinding spot", "Uses wherever you start the macro instead.", "Clear", () -> {
+                    this.c.wynnSpot = null;
+                    this.saved("Wynncraft spot cleared");
+                }))),
+            new Section("Class & spells", List.of(
+                this.choice("wynn.class", "Class", "Archers attack with right click and cast mirrored combos (L-R-L).",
+                    () -> WynnSpells.CLASS_IDS, v -> WynnSpells.WynnClass.parse(v).label,
+                    () -> this.c.wynnClass, v -> this.c.wynnClass = v),
+                this.slider("wynn.weapon", "Weapon slot", "Hotbar slot of your weapon (0 = keep the held item).", 0, 9, 1, "",
+                    () -> this.c.wynnWeaponSlot, v -> this.c.wynnWeaponSlot = (int) v),
+                this.slider("wynn.range", "Attack range", "How close to get before attacking (0 = 3 for melee classes, 12 for ranged).", 0, 20, 1,
+                    " blocks", () -> this.c.wynnRange, v -> this.c.wynnRange = (int) v),
+                this.text("wynn.spells", "Spell rotation", "Spells to cast in order, 1 to 4 (1st R-L-R, 2nd R-R-R, 3rd R-L-L, 4th R-R-L). Empty = only basic attacks.",
+                    "1, 3", false, () -> this.c.wynnSpells, v -> this.c.wynnSpells = v),
+                this.slider("wynn.spellevery", "Time between spells", "Basic attacks fill the gaps.", 0.5, 30, 0.5, " s",
+                    () -> this.c.wynnSpellSeconds, v -> this.c.wynnSpellSeconds = v),
+                this.slider("wynn.minmana", "Keep mana above", "Spells wait while mana is below this.", 0, 100, 5, "%",
+                    () -> this.c.wynnMinMana, v -> this.c.wynnMinMana = (int) v),
+                this.slider("wynn.clickticks", "Click gap", "Ticks between the clicks of a combo (raise it if spells misfire).", 1, 10, 1, " ticks",
+                    () -> this.c.wynnClickTicks, v -> this.c.wynnClickTicks = (int) v))),
+            new Section("Healing", List.of(
+                this.slider("wynn.healspell", "Heal spell", "Spell to cast when health is low, like 1 for a mage's Heal (0 = off).", 0, 4, 1, "",
+                    () -> this.c.wynnHealSpell, v -> this.c.wynnHealSpell = (int) v),
+                this.slider("wynn.healbelow", "Heal below", "Health that triggers the heal spell.", 5, 95, 5, "%",
+                    () -> this.c.wynnHealBelow, v -> this.c.wynnHealBelow = (int) v)))
         ));
     }
 

@@ -17,6 +17,7 @@ Discord alerts.
 | Foraging | Plants saplings on free dirt, uses bone meal and chops with a Treecapitator, then repeats. With a tree route (Galatea, the Park, the Hub) it walks from tree to tree and chops instead |
 | Fishing | Casts, reels in on the `!!!` bite marker and recasts on a timeout. It can fight sea creatures with a melee or right-click weapon |
 | Combat | Can start the next slayer quest when one ends\*. Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
+| Wynncraft | Wynn Combat\*: grinds mobs on Wynncraft by name (or any named mob) around a saved spot. It walks into range, mixes basic attacks with a spell rotation cast as click combos (R-L-R style, mirrored for archers), holds spells while mana is low and can cast a heal spell when health drops. Health and mana are read from Wynncraft's glyph-based action bar |
 
 | Building | Farm builder: set two corners and it places a layout (crop lanes with water rows every N rows, walls, floor or full fill), walking between spots with the pathfinder |
 
@@ -32,6 +33,7 @@ Discord alerts.
 - Path following cuts corners: the walker jumps ahead to the farthest of the next 10 waypoints it can walk to in a straight line (solid floor, head room, no hazards or drops).
 - Pathfinder: near-shortest routes (it only turns greedy on very long searches), jumps one-block gaps such as holes and lava streams, and routes around spots it got stuck at.
 - Travel method (General → Movement): walk, or teleport along the path with **etherwarp** (Aspect of the Void or Etherwarp Conduit, sneak + use) and/or **Instant Transmission** (Aspect of the End or Void, used on flat straight stretches). Each etherwarp is checked against the real world before use; if teleports stop working (for example no mana) it walks the rest of the way.
+- Server check: SkyBlock macros only start on Hypixel and Wynncraft macros only on Wynncraft (unknown servers such as singleplayer are allowed). Auto rejoin is SkyBlock only, so Wynncraft macros stop on a world change.
 - Failsafes: stops on teleports, forced rotations, bedrock cages, unexplained pushes, held-slot changes and players inside you. Also alerts on mentions, private messages and words like "macro".
 - Alt alert: when a failsafe catches a macro check it can /msg your other account ("yo im getting macro checked" by default), with a cooldown so it only sends once per check.
 - Player proximity alerts, with an option to stop.
