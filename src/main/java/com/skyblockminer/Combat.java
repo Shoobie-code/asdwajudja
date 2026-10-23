@@ -99,6 +99,10 @@ final class Combat {
                     this.repathIn = 30;
                 }
 
+                // Eyes on the mob once it is close and in sight; the walker strafes toward it.
+                if (distance < 10.0 && visible(player, level, this.target)) {
+                    walker.lookAt(this.target.getBoundingBox().getCenter().add(0.0, this.target.getBbHeight() * 0.2, 0.0));
+                }
                 walker.tick(mc, player, rotator, config);
                 return String.format("Chasing %s (%.0fm)", name, distance);
             }

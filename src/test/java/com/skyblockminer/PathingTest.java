@@ -430,6 +430,29 @@ class PathingTest {
         assertEquals(1, Pathfinder.gapsAt(3.0));
     }
 
+    // ---- keys from the camera's facing ----
+
+    @Test
+    void keysFollowTheMoveRelativeToTheCamera() {
+        assertArrayEquals(new boolean[]{true, false, false, false}, PathWalker.keysFor(PathWalker.sector(5.0, 0)));
+        // Positive is to the right of the camera.
+        assertArrayEquals(new boolean[]{true, false, false, true}, PathWalker.keysFor(PathWalker.sector(45.0, 0)));
+        assertArrayEquals(new boolean[]{false, true, false, false}, PathWalker.keysFor(PathWalker.sector(-90.0, 0)));
+        assertArrayEquals(new boolean[]{false, false, true, false}, PathWalker.keysFor(PathWalker.sector(-178.0, 0)));
+        assertArrayEquals(new boolean[]{false, false, true, true}, PathWalker.keysFor(PathWalker.sector(140.0, 0)));
+        assertArrayEquals(new boolean[4], PathWalker.keysFor(99));
+    }
+
+    @Test
+    void keysHoldNearABoundary() {
+        // 25 degrees right is W+D from scratch, but stays W when W was already held.
+        assertEquals(1, PathWalker.sector(25.0, 2));
+        assertEquals(0, PathWalker.sector(25.0, 0));
+        assertEquals(1, PathWalker.sector(31.0, 0));
+        assertEquals(4, PathWalker.sector(-170.0, 4));
+        assertEquals(4, PathWalker.sector(170.0, -3));
+    }
+
     @Test
     void packedKeysKeepNegativeCoordinatesApart() {
         assertTrue(LongMap.pack(-1, 64, 0) != LongMap.pack(0, 64, -1));
