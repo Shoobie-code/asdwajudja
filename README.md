@@ -73,6 +73,25 @@ they are published when a `v*` tag is pushed, with notes from `release-notes/<ta
 **build-preview** for branches, **build-latest** once merged into `main`. Put it in `.minecraft/mods` together with Fabric Loader
 and Fabric API for Minecraft 26.2.
 
+### Loader (auto updates)
+Instead of the macro jar you can put **`skymacro-loader-*.jar`** (attached to the same releases) in `.minecraft/mods`.
+At every launch it checks this repo's releases, downloads the newest macro jar into `.minecraft/skymacro/` and loads it,
+so you never have to swap jars by hand. If GitHub can't be reached it runs the copy it already has.
+
+The title screen gets a small **Skymacro** panel in the top-left corner showing what is running, with two buttons:
+- **Stable**: the newest `v*` release (until the first version is tagged, the `main` build).
+- **Beta**: whichever is newest of the `main` build (`build-latest`) and `v*` prereleases such as `v2.2.0-beta.1`.
+  Branch builds (`build-preview`) are never used.
+
+Clicking a channel downloads it in the background; click **Quit game to apply** and start the game again to load it.
+Clicking the channel you're on checks for an update. Settings are in `.minecraft/skymacro/loader.properties`
+(`offline=true` stops update checks, `repo=` points at a fork). If the macro jar itself is also in `mods`, the loader
+leaves it alone and does nothing.
+
+Fabric only loads mods it finds at startup, so the loader adds the downloaded jar to the game itself (class path,
+mixins and entrypoint) before Minecraft starts. A switch always needs a restart because the running macro's classes
+can't be swapped out.
+
 ## Usage
 
 Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
@@ -113,6 +132,7 @@ included; the features were reimplemented from how the game behaves.
 ```
 
 This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle.properties`.
+The loader is a separate Gradle build: `gradle -p loader build` writes it to `loader/build/libs/`.
 
 ### Offline check
 `devtools/stubcheck/check.sh` compiles the mod and runs the unit tests without the Minecraft jar. It does
@@ -138,4 +158,8 @@ src/main/java/com/skyblockminer/
   Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming
   Helpers, SkyblockTime, ChatFilter   info panel, event timers, Garden alerts, chat filter
   gui/                ClickGuiScreen, Menu, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
+loader/src/main/java/com/skyblockminer/loader/
+  LoaderPreLaunch     update check and download at startup, then Injector puts the jar on the class path
+  Releases, Updater   GitHub release picking (stable / beta) and downloads
+  TitleWidget         title screen channel switcher (drawn by mixin/TitleScreenMixin)
 ```
