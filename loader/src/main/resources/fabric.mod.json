@@ -1,0 +1,18 @@
+{
+    "schemaVersion": 1,
+    "id": "skymacro-loader",
+    "version": "${version}",
+    "name": "Skyblock Macro Loader",
+    "description": "Downloads the latest Skyblock Macro release from GitHub at startup and loads it. Switch between stable and beta builds from the title screen.",
+    "environment": "client",
+    "entrypoints": {
+        "preLaunch": ["com.skyblockminer.loader.LoaderPreLaunch"],
+        "client": ["com.skyblockminer.loader.LoaderClient"]
+    },
+    "mixins": ["skymacro-loader.mixins.json"],
+    "depends": {
+        "minecraft": "=26.2",
+        "fabricloader": ">=0.19.5",
+        "fabric-api": "*"
+    }
+}
