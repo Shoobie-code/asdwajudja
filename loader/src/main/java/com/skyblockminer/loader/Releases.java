@@ -40,9 +40,12 @@ public final class Releases {
     }
 
     public record Release(String tag, boolean prerelease, boolean draft, Instant publishedAt, List<Asset> assets) {
-        /** The macro jar attached to this release, if any (the loader's own jar is skipped). */
+        /**
+         * The macro jar attached to this release, if any (the loader's own jar is skipped). Rolling builds keep
+         * jars from older versions next to the new one, so the most recently uploaded jar wins.
+         */
         public Optional<Asset> macroJar() {
-            return this.assets.stream().filter(a -> isMacroJar(a.name())).findFirst();
+            return this.assets.stream().filter(a -> isMacroJar(a.name())).max(Comparator.comparing(Asset::updatedAt));
         }
     }
 
