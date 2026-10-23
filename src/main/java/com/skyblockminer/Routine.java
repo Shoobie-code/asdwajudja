@@ -16,6 +16,10 @@ interface Routine {
     /** Clears all state before a fresh start. */
     void reset();
 
+    /** Called when the macro stops, after {@link #releaseKeys}. */
+    default void stopped() {
+    }
+
     /** Lets go of every key the routine may be holding (called on pause, break and stop). */
     default void releaseKeys(Minecraft mc) {
     }
