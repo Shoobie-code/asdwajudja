@@ -50,6 +50,15 @@ class ReleasesTest {
     }
 
     @Test
+    void rollingBuildUsesNewestJarNotStaleOnes() {
+        String main = release("build-latest", false, "2026-10-02T20:29:04Z",
+            asset(1, "skyblock-macro-2.0.0.jar", "2026-10-02T21:31:38Z") + "," + asset(2, "skyblock-macro-2.1.0.jar", "2026-10-23T00:50:47Z")
+                + "," + asset(3, "skymacro-loader-1.0.0.jar", "2026-10-23T00:50:47Z"));
+        assertEquals(2L, pick(Channel.STABLE, main));
+        assertEquals(2L, pick(Channel.BETA, main));
+    }
+
+    @Test
     void stableFallsBackToMainBuildWithoutTags() {
         assertEquals(30L, pick(Channel.STABLE, MAIN, PREVIEW));
         assertEquals(30L, pick(Channel.BETA, MAIN, PREVIEW));
