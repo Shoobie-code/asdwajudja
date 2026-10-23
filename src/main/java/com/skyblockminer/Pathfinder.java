@@ -16,7 +16,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 
 /**
  * Time-sliced A* over standable cells. Moves are walking steps (8 directions), step-ups, jumps of up to 1.25,
- * drops of up to 4 and jumps across one-block gaps (holes, lava streams). Points are {x, feet height, z}.
+ * drops (as deep as the fall budget allows, any depth into water), sprint-jumps across gaps of up to three
+ * blocks, ladder and vine climbing and swimming. Points are {x, feet height, z}.
+ *
+ * <p>Costs are travel time, counted in blocks walked at the set speed: at a high speed a ladder, a swim or a
+ * long fall costs more blocks of walking than it does at a slow one. Sharp turns cost a little extra, so paths
+ * keep their direction where that is free.
  *
  * <p>The search starts close to optimal (weight {@value #WEIGHT_FINE}) and, if it is still running after
  * {@value #SWITCH_AT} cells, switches to a greedier weight so long trips finish quickly. Cells the walker got
@@ -28,7 +33,19 @@ final class Pathfinder {
     private static final double BODY = 1.8;
     private static final double STEP = 0.6;
     private static final double JUMP = 1.25;
-    private static final double MAX_DROP = 4.0;
+    /** Falls up to this far never hurt. */
+    private static final double SAFE_FALL = 3.0;
+    /** How far below a step to look for a landing. */
+    private static final int FALL_SCAN = 24;
+    private static final double SPRINT_SPEED = 5.6;
+    private static final double CLIMB_UP_SPEED = 2.35;
+    private static final double CLIMB_DOWN_SPEED = 3.0;
+    /** Swimming and wading take about this many times longer than sprinting. */
+    private static final double SWIM_SLOW = 2.5;
+    /** Extra cost per half-heart of fall damage, so a drop that hurts is only used when it saves real time. */
+    private static final double DAMAGE_COST = 2.0;
+    /** Extra cost of a 90 degree turn at sprint speed (turns of 60 degrees or less are free). */
+    private static final double TURN_COST = 0.3;
     private static final double WEIGHT_FINE = 1.15;
     private static final double WEIGHT_FAST = 2.0;
     private static final int SWITCH_AT = 30000;
@@ -39,6 +56,17 @@ final class Pathfinder {
     );
     private static final IdentityHashMap<Block, Boolean> HAZARD_CACHE = new IdentityHashMap<>();
     static final double[] EMPTY = new double[0];
+    /** Water: no collision, slows movement, and a landing in it never hurts. */
+    static final double[] WATER = new double[0];
+    /** Ladders and vines: no collision for pathing, can be climbed up and down. */
+    static final double[] CLIMB = new double[0];
+    /** Hay bales: a full block that takes 80% off fall damage. */
+    static final double[] SOFT = new double[]{0.0, 1.0};
+    private static final Set<String> WATERS = Set.of("water", "bubble_column", "kelp", "kelp_plant", "seagrass", "tall_seagrass");
+    private static final Set<String> CLIMBS = Set.of(
+        "ladder", "vine", "weeping_vines", "weeping_vines_plant", "twisting_vines", "twisting_vines_plant", "cave_vines", "cave_vines_plant"
+    );
+    private static final IdentityHashMap<Block, double[]> KIND_CACHE = new IdentityHashMap<>();
     private static final int[][] CARDINALS = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
     /** Extra cost per neighbouring hazard (lava, fire, cactus...) and per neighbouring deep drop. */
     private static final double HAZARD_COST = 1.5;
@@ -47,6 +75,9 @@ final class Pathfinder {
     private static final double GAP_COST = 2.5;
     private static final double AVOID_COST = 12.0;
     private boolean safety = true;
+    private double speed = SPRINT_SPEED;
+    private int maxGap = gapsAt(SPRINT_SPEED);
+    private double fallBudget = 1.0;
     static final double[] HAZARD = new double[]{Double.NaN, Double.NaN};
     private final LongMap<Boolean> avoid = new LongMap<>(64);
     private Pathfinder.Shapes source;
@@ -76,6 +107,44 @@ final class Pathfinder {
     /** When on, routes keep away from hazards and cliff edges if that costs little extra distance. */
     void setSafety(boolean safety) {
         this.safety = safety;
+    }
+
+    /** Travel speed in blocks per second (5.6 is a plain sprint). Sets how slow moves are weighed and how wide a gap can be jumped. */
+    void setSpeed(double blocksPerSecond) {
+        this.speed = Math.max(3.0, Math.min(15.0, blocksPerSecond));
+        this.maxGap = gapsAt(this.speed);
+    }
+
+    /** How many half-hearts a fall may cost. 0 keeps drops to three blocks, which never hurt. */
+    void setFallBudget(double halfHearts) {
+        this.fallBudget = Math.max(0.0, halfHearts);
+    }
+
+    /** Widest gap a sprint-jump clears at this speed, with some margin: 2 at a plain sprint, 3 from about 6.7 blocks/s. */
+    static int gapsAt(double blocksPerSecond) {
+        return Math.max(1, Math.min(3, (int) Math.floor(blocksPerSecond * 0.45)));
+    }
+
+    /** Fall damage in half-hearts for a fall of {@code blocks} onto the given landing cell and the cell below it. */
+    static double fallDamage(double blocks, double[] landing, double[] below) {
+        if (landing == WATER) {
+            return 0.0;
+        }
+        double damage = Math.max(0.0, Math.ceil(blocks - SAFE_FALL - 1.0E-6));
+        return below == SOFT ? Math.ceil(damage * 0.2) : damage;
+    }
+
+    /** Ticks a fall of {@code blocks} takes, from standing still (gravity 0.08, drag 0.98). */
+    static int fallTicks(double blocks) {
+        double v = 0.0;
+        double fallen = 0.0;
+        int ticks = 0;
+        while (fallen < blocks && ticks < 200) {
+            v = (v + 0.08) * 0.98;
+            fallen += v;
+            ticks++;
+        }
+        return ticks;
     }
 
     /** Makes later searches avoid the cell (x, y, z), for example where the walker kept getting stuck. */
@@ -261,38 +330,64 @@ final class Pathfinder {
     }
 
     private void expand(Pathfinder.Node node) {
+        if (node.climb) {
+            this.climb(node);
+        }
         for (int[] direction : DIRECTIONS) {
             int nx = node.x + direction[0];
             int nz = node.z + direction[1];
             boolean diagonal = direction[0] != 0 && direction[1] != 0;
             boolean level = false;
-            for (int dy = 1; dy >= -4; dy--) {
+            for (int dy = 1; dy >= -FALL_SCAN; dy--) {
                 int ny = node.y + dy;
                 double floor = this.floor(nx, ny, nz);
                 if (Double.isNaN(floor)) {
+                    // Nothing below a block (or a hazard) at or under foot level can be reached from here.
+                    if (dy <= 0 && this.source.get(nx, ny, nz).length != 0) {
+                        break;
+                    }
                     continue;
                 }
                 double height = ny + floor;
                 double rise = height - node.h;
-                if (rise > JUMP + 1.0E-6 || rise < -MAX_DROP) {
+                if (rise > JUMP + 1.0E-6) {
                     continue;
                 }
                 boolean jump = rise > STEP;
                 boolean drop = rise < -STEP;
+                // Past the first floor at or below foot level, nothing lower is reachable either.
                 if (diagonal && (jump || drop)) {
-                    continue;
+                    if (dy > 0) {
+                        continue;
+                    }
+                    break;
+                }
+                double damage = drop ? fallDamage(-rise, this.source.get(nx, ny, nz), this.source.get(nx, ny - 1, nz)) : 0.0;
+                if (damage > this.fallBudget) {
+                    break;
                 }
                 double top = Math.max(node.h, height) + BODY;
                 if (!this.clear(nx, nz, height, top) || !this.clear(node.x, node.z, node.h, jump ? node.h + JUMP + BODY : top)) {
-                    continue;
+                    if (dy > 0) {
+                        continue;
+                    }
+                    break;
                 }
                 if (diagonal) {
                     double low = Math.max(node.h, height);
                     if (!this.clear(nx, node.z, low, low + BODY) || !this.clear(node.x, nz, low, low + BODY)) {
-                        continue;
+                        if (dy > 0) {
+                            continue;
+                        }
+                        break;
                     }
                 }
-                double cost = (diagonal ? 1.4142 : 1.0) + (jump ? 0.8 : 0.0) + (drop ? 0.2 * -rise : 0.0);
+                double cost = diagonal ? 1.4142 : 1.0;
+                if (jump) {
+                    cost += 0.8;
+                } else if (drop) {
+                    cost = Math.max(cost, fallTicks(-rise) * this.speed / 20.0) + DAMAGE_COST * damage;
+                }
                 this.relax(node, nx, ny, nz, height, cost, false);
                 level = !drop;
                 break;
@@ -304,37 +399,51 @@ final class Pathfinder {
         }
     }
 
+    /** Up or down a ladder or vine column. */
+    private void climb(Pathfinder.Node node) {
+        if (this.source.get(node.x, node.y + 1, node.z) == CLIMB && this.clear(node.x, node.z, node.y + 1, node.y + 1 + BODY)) {
+            this.relax(node, node.x, node.y + 1, node.z, node.y + 1, this.speed / CLIMB_UP_SPEED, false);
+        }
+        if (this.source.get(node.x, node.y - 1, node.z) == CLIMB) {
+            this.relax(node, node.x, node.y - 1, node.z, node.y - 1, this.speed / CLIMB_DOWN_SPEED, false);
+        }
+    }
+
     /**
-     * Jump over a one-block gap (a hole at least two deep, or a hazard) to a floor two cells away that is at
-     * most 0.5 higher and at most 2 lower. Only tried where no ordinary step was possible.
+     * Sprint-jump across a gap (a hole at least two deep, or a hazard) of up to {@link #maxGap} blocks, to a
+     * floor at most 0.5 higher (level or lower for gaps wider than one) and at most 2 lower. Only tried where no
+     * ordinary step was possible.
      */
     private void gapJump(Pathfinder.Node node, int dx, int dz) {
-        int mx = node.x + dx;
-        int mz = node.z + dz;
-        if (!Double.isNaN(this.floor(mx, node.y, mz)) || !Double.isNaN(this.floor(mx, node.y - 1, mz))) {
-            return;
-        }
         double arc = node.h + JUMP + BODY;
-        if (!this.clear(node.x, node.z, node.h, arc) || !this.clear(mx, mz, node.h, arc)) {
+        if (!this.clear(node.x, node.z, node.h, arc)) {
             return;
         }
-        int lx = node.x + 2 * dx;
-        int lz = node.z + 2 * dz;
-        for (int dy = 0; dy >= -2; dy--) {
-            int ly = node.y + dy;
-            double floor = this.floor(lx, ly, lz);
-            if (Double.isNaN(floor)) {
-                continue;
+        for (int n = 1; n <= this.maxGap; n++) {
+            int mx = node.x + n * dx;
+            int mz = node.z + n * dz;
+            if (!Double.isNaN(this.floor(mx, node.y, mz)) || !Double.isNaN(this.floor(mx, node.y - 1, mz)) || !this.clear(mx, mz, node.h, arc)) {
+                return;
             }
-            double height = ly + floor;
-            double rise = height - node.h;
-            if (rise > 0.5 + 1.0E-6 || rise < -2.0) {
-                continue;
+            int lx = mx + dx;
+            int lz = mz + dz;
+            for (int dy = 0; dy >= -2; dy--) {
+                int ly = node.y + dy;
+                double floor = this.floor(lx, ly, lz);
+                if (Double.isNaN(floor)) {
+                    continue;
+                }
+                double height = ly + floor;
+                double rise = height - node.h;
+                if (rise > (n == 1 ? 0.5 : 0.0) + 1.0E-6 || rise < -2.0) {
+                    return;
+                }
+                if (this.clear(lx, lz, height, Math.max(height + BODY, arc))) {
+                    // Each extra block of gap adds risk as well as distance.
+                    this.relax(node, lx, ly, lz, height, n + 1 + GAP_COST * n, true);
+                }
+                return;
             }
-            if (this.clear(lx, lz, height, Math.max(height + BODY, arc))) {
-                this.relax(node, lx, ly, lz, height, 2.0 + GAP_COST, true);
-            }
-            return;
         }
     }
 
@@ -342,11 +451,16 @@ final class Pathfinder {
         long key = LongMap.pack(x, y, z);
         Pathfinder.Node node = this.nodes.get(key);
         if (node == null) {
-            node = new Pathfinder.Node(x, y, z, h);
-            this.nodes.put(key, node);
+            node = this.node(x, y, z, h);
         }
         if (node.closed) {
             return;
+        }
+        if (node.water || from.water) {
+            cost *= SWIM_SLOW;
+        }
+        if (from.parent != null && !gap) {
+            cost += this.turnCost(from.parent, from, x, z);
         }
         if (this.safety) {
             if (Double.isNaN(node.danger)) {
@@ -414,9 +528,29 @@ final class Pathfinder {
         if (!this.clear(x, z, h, h + BODY)) {
             return null;
         }
+        return this.node(x, y, z, h);
+    }
+
+    private Pathfinder.Node node(int x, int y, int z, double h) {
         Pathfinder.Node node = new Pathfinder.Node(x, y, z, h);
+        double[] cell = this.source.get(x, y, z);
+        node.climb = cell == CLIMB;
+        node.water = cell == WATER;
         this.nodes.put(LongMap.pack(x, y, z), node);
         return node;
+    }
+
+    /** Turns sharper than 60 degrees cost extra, more so at speed, where they mean braking. */
+    private double turnCost(Pathfinder.Node before, Pathfinder.Node at, int x, int z) {
+        int ax = at.x - before.x;
+        int az = at.z - before.z;
+        int bx = x - at.x;
+        int bz = z - at.z;
+        if (ax == 0 && az == 0 || bx == 0 && bz == 0) {
+            return 0.0;
+        }
+        double cos = (ax * bx + az * bz) / (Math.hypot(ax, az) * Math.hypot(bx, bz));
+        return cos < 0.5 ? TURN_COST * (1.0 - cos) * this.speed / SPRINT_SPEED : 0.0;
     }
 
     /**
@@ -464,6 +598,11 @@ final class Pathfinder {
         double[] here = source.get(x, y, z);
         if (here == HAZARD) {
             return Double.NaN;
+        } else if (here == CLIMB) {
+            return 0.0;
+        } else if (here == WATER) {
+            // Only the top water cell can be swum in (or waded through, when it is shallow).
+            return source.get(x, y + 1, z) == WATER ? Double.NaN : 0.0;
         } else if (here.length > 0) {
             return here[1] <= 0.500001 ? here[1] : Double.NaN;
         } else {
@@ -504,6 +643,16 @@ final class Pathfinder {
         return cached;
     }
 
+    /** {@link #WATER}, {@link #CLIMB} or {@link #SOFT} for blocks that move differently, otherwise null. Cached per block. */
+    static double[] kind(BlockState state) {
+        Block block = state.getBlock();
+        if (!KIND_CACHE.containsKey(block)) {
+            String name = BuiltInRegistries.BLOCK.getKey(block).getPath();
+            KIND_CACHE.put(block, WATERS.contains(name) ? WATER : CLIMBS.contains(name) ? CLIMB : name.equals("hay_block") ? SOFT : null);
+        }
+        return KIND_CACHE.get(block);
+    }
+
     static Pathfinder.Shapes world(ClientLevel level) {
         LongMap<double[]> cache = new LongMap<>(4096);
         return (x, y, z) -> {
@@ -514,6 +663,8 @@ final class Pathfinder {
                 BlockState state = level.getBlockState(pos);
                 if (hazard(state)) {
                     shape = HAZARD;
+                } else if (kind(state) != null) {
+                    shape = kind(state);
                 } else {
                     VoxelShape collision = state.getCollisionShape(level, pos);
                     shape = collision.isEmpty() ? EMPTY : new double[]{collision.min(Axis.Y), collision.max(Axis.Y)};
@@ -732,6 +883,8 @@ final class Pathfinder {
         Pathfinder.Node parent;
         boolean closed;
         boolean gap;
+        boolean climb;
+        boolean water;
 
         Node(int x, int y, int z, double h) {
             this.x = x;
