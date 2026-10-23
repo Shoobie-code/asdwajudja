@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
+import net.minecraft.gizmos.Gizmos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
@@ -44,6 +45,12 @@ final class PathWalker {
     private List<Vec3> goals;
     private double radius;
     private List<Vec3> path;
+    /** The current path's details, copied from the finder so a new search can run while this path is walked. */
+    private boolean[] pathGaps = new boolean[0];
+    private boolean pathPartial;
+    private List<double[]> pathRaw;
+    /** A new search runs while the old path is still walked (a new goal was set mid-walk). */
+    private boolean replanning;
     private int index;
     private int repaths;
     private int legs;
@@ -52,6 +59,10 @@ final class PathWalker {
     private double bestRemaining;
     private long lastProgressAt;
     private int jumpTicks;
+    /** Ticks left of backing off diagonally to get unstuck, and which way (a {@link #sector}). */
+    private int backTicks;
+    private int backSector;
+    private int unsticks;
     private double lookDrop;
     /** Measured sprinting speed on the ground, in blocks per second; the pathfinder plans with it. */
     private double speed = 5.6;
@@ -127,6 +138,7 @@ final class PathWalker {
     }
 
     void stop(Minecraft mc) {
+        this.replanning = false;
         this.endHop(mc);
         this.releaseKeys(mc);
         this.state = PathWalker.State.IDLE;
@@ -134,13 +146,58 @@ final class PathWalker {
     }
 
     private void search(Minecraft mc, String why) {
-        this.releaseKeys(mc);
-        this.state = PathWalker.State.SEARCHING;
         this.pendingStart = true;
         this.searchWaitTicks = 0;
         if (!why.equals("start")) {
             MinerMod.LOGGER.info("Path: planning again ({})", why);
+        } else if (this.state == PathWalker.State.WALKING && this.path != null && this.hop == null) {
+            // A new goal mid-walk (a mob that moved, the next spot): keep walking the old path while the new one is
+            // found, instead of stopping dead every time.
+            this.replanning = true;
+            return;
         }
+        this.replanning = false;
+        this.releaseKeys(mc);
+        this.state = PathWalker.State.SEARCHING;
+    }
+
+    /** Takes the finished search's path; false (and FAILED) when there is none. */
+    private boolean adopt(Minecraft mc, LocalPlayer player) {
+        List<Vec3> found = this.finder.result();
+        MinerMod.LOGGER.info(
+            "Path: {} after exploring {} cells in {} ms{}",
+            found == null ? "none" : found.size() + " waypoints",
+            this.finder.explored(),
+            this.finder.elapsedMs(),
+            this.finder.partial() ? " (partial: the goal is beyond what is known)" : ""
+        );
+        if (found == null || found.isEmpty()) {
+            this.fail(mc, "no path found");
+            return false;
+        }
+        this.path = found;
+        this.pathGaps = new boolean[found.size()];
+        for (int i = 0; i < found.size(); i++) {
+            this.pathGaps[i] = this.finder.gapAt(i);
+        }
+        this.pathPartial = this.finder.partial();
+        this.pathRaw = this.finder.raw();
+        this.index = 0;
+        this.rawIndex = 0;
+        this.skipCheckIn = 0;
+        this.hopCheckIn = 0;
+        this.failedHops.clear();
+        this.rawLengths = this.pathRaw == null ? null : WarpPlanner.lengths(this.pathRaw);
+        this.segmentStart = player.position();
+        this.bestRemaining = Double.MAX_VALUE;
+        this.lastProgressAt = System.currentTimeMillis();
+        this.lookDrop = 0.25 + this.random.nextDouble() * 0.6;
+        this.state = PathWalker.State.WALKING;
+        return true;
+    }
+
+    private boolean gapAt(int i) {
+        return i >= 0 && i < this.pathGaps.length && this.pathGaps[i];
     }
 
     private boolean beginSearch(Minecraft mc, LocalPlayer player) {
@@ -166,32 +223,18 @@ final class PathWalker {
             if (this.pendingStart && !this.beginSearch(mc, player)) {
                 return this.state;
             }
-            if (!this.finder.step()) {
+            if (!this.finder.step() || !this.adopt(mc, player)) {
                 return this.state;
             }
-            this.path = this.finder.result();
-            MinerMod.LOGGER.info(
-                "Path: {} after exploring {} cells in {} ms{}",
-                this.path == null ? "none" : this.path.size() + " waypoints",
-                this.finder.explored(),
-                this.finder.elapsedMs(),
-                this.finder.partial() ? " (partial: the goal is beyond what is known)" : ""
-            );
-            if (this.path == null || this.path.isEmpty()) {
-                this.fail(mc, "no path found");
-                return this.state;
+        } else if (this.state == PathWalker.State.WALKING && this.replanning) {
+            if (this.pendingStart) {
+                this.beginSearch(mc, player);
+            } else if (this.finder.step()) {
+                this.replanning = false;
+                if (!this.adopt(mc, player)) {
+                    return this.state;
+                }
             }
-            this.index = 0;
-            this.rawIndex = 0;
-            this.skipCheckIn = 0;
-            this.hopCheckIn = 0;
-            this.failedHops.clear();
-            this.rawLengths = this.finder.raw() == null ? null : WarpPlanner.lengths(this.finder.raw());
-            this.segmentStart = player.position();
-            this.bestRemaining = Double.MAX_VALUE;
-            this.lastProgressAt = System.currentTimeMillis();
-            this.lookDrop = 0.25 + this.random.nextDouble() * 0.6;
-            this.state = PathWalker.State.WALKING;
         }
 
         if (this.state != PathWalker.State.WALKING) {
@@ -203,14 +246,14 @@ final class PathWalker {
         }
         ClientLevel level = mc.level;
         Vec3 pos = player.position();
-        if (player.onGround() && this.inGoal(pos) && !this.finder.partial()) {
+        if (player.onGround() && this.inGoal(pos) && !this.pathPartial) {
             this.releaseKeys(mc);
             this.state = PathWalker.State.DONE;
             return this.state;
         }
         int before = this.index;
         while (this.index < this.path.size() - 1
-            && reached(pos, this.path.get(this.index), this.finder.gapAt(this.index + 1) ? TAKEOFF_REACHED : WAYPOINT_REACHED)) {
+            && reached(pos, this.path.get(this.index), this.gapAt(this.index + 1) ? TAKEOFF_REACHED : WAYPOINT_REACHED)) {
             this.index++;
         }
         Pathfinder.Shapes live = null;
@@ -223,7 +266,7 @@ final class PathWalker {
             this.segmentStart = pos;
         }
 
-        if (player.onGround() && --this.hopCheckIn <= 0) {
+        if (player.onGround() && !this.replanning && --this.hopCheckIn <= 0) {
             this.hopCheckIn = HOP_CHECK_TICKS;
             if (this.planHop(mc, player, level, live == null ? this.map.shapes(level) : live, config)) {
                 this.releaseKeys(mc);
@@ -238,11 +281,15 @@ final class PathWalker {
 
         Vec3 target = this.path.get(this.index);
         boolean last = this.index == this.path.size() - 1;
-        boolean gap = this.finder.gapAt(this.index);
+        boolean gap = this.gapAt(this.index);
         double horizontal = horizontal(pos, target);
         if (last && horizontal < 0.5 && Math.abs(pos.y - target.y) < 1.3) {
             this.releaseKeys(mc);
-            if (this.finder.partial() && this.legs < MAX_LEGS) {
+            if (this.replanning) {
+                // The old path ran out before the new one was ready: wait for it here.
+                return this.state;
+            }
+            if (this.pathPartial && this.legs < MAX_LEGS) {
                 this.legs++;
                 this.search(mc, "continuing a partial path");
             } else {
@@ -273,8 +320,19 @@ final class PathWalker {
         // A gap jump: sprint and jump from the edge once lined up with the landing.
         double span = this.index > 0 ? horizontal(this.path.get(this.index - 1), target) : 2.0;
         boolean leap = gap && player.onGround() && horizontal < span + 0.4 && yawError < 12.0;
-        if (now - this.lastProgressAt > UNSTICK_MS && player.onGround() && this.jumpTicks == 0) {
-            this.jumpTicks = 4;
+        // No progress: first try a jump, then back off to one side and come at it again, like a player would.
+        if (now - this.lastProgressAt > UNSTICK_MS * (1 + this.unsticks) && player.onGround() && this.jumpTicks == 0 && this.backTicks == 0) {
+            if (this.unsticks++ % 2 == 0) {
+                this.jumpTicks = 4;
+            } else {
+                this.backTicks = 5 + this.random.nextInt(4);
+                this.backSector = this.random.nextBoolean() ? 3 : -3;
+            }
+        }
+        if (this.backTicks > 0) {
+            this.backTicks--;
+            this.setKeys(mc, this.backSector, false, false);
+            return this.state;
         }
         boolean jump = climb || leap || player.onGround() && player.horizontalCollision && moving || this.jumpTicks > 0;
         if (this.jumpTicks > 0) {
@@ -282,11 +340,17 @@ final class PathWalker {
         }
         boolean sprint = config.sprint && forward && moving && Math.abs(relative) < 30.0
             && (leap || gap || !jump && horizontal > 4.0 && !this.sharpTurnAhead(pos, target));
+        // Sprint-jumping is faster than sprinting: do it on long, level stretches with room overhead.
+        if (sprint && config.sprintJump && !gap && player.onGround() && horizontal > 5.0 && Math.abs(target.y - pos.y) < 0.6
+            && Math.abs(relative) < 15.0 && headroom(this.map.shapes(level), new double[]{pos.x, pos.y, pos.z}, new double[]{target.x, target.y, target.z})) {
+            jump = true;
+        }
         this.setKeys(mc, moving ? this.sector : NO_KEYS, sprint, jump);
         double remaining = this.remainingLength(pos);
         if (remaining < this.bestRemaining - 0.5) {
             this.bestRemaining = remaining;
             this.lastProgressAt = now;
+            this.unsticks = 0;
         }
         if (remaining < this.repathRemaining - 10.0) {
             this.repaths = 0;
@@ -364,10 +428,10 @@ final class PathWalker {
     /** Looks for a teleport along the path that saves enough walking, and starts it if one is found. */
     private boolean planHop(Minecraft mc, LocalPlayer player, ClientLevel level, Pathfinder.Shapes shapes, MinerConfig config) {
         String mode = config.movement;
-        if (this.hopsOff || mode.equals("walk") || this.finder.raw() == null || this.rawLengths == null) {
+        if (this.hopsOff || mode.equals("walk") || this.pathRaw == null || this.rawLengths == null) {
             return false;
         }
-        List<double[]> raw = this.finder.raw();
+        List<double[]> raw = this.pathRaw;
         Vec3 pos = player.position();
         double[] feet = {pos.x, pos.y, pos.z};
         this.rawIndex = WarpPlanner.nearest(raw, feet, this.rawIndex, 80);
@@ -577,6 +641,20 @@ final class PathWalker {
         return Math.hypot(pos.x - (from.x + dx * t), pos.z - (from.z + dz * t));
     }
 
+    /** Draws the path still to walk: blue for walking, orange for gap jumps, red for drops of more than 3 blocks. */
+    void render(LocalPlayer player) {
+        if (this.state != PathWalker.State.WALKING || this.path == null) {
+            return;
+        }
+        Vec3 from = player.position().add(0.0, 0.1, 0.0);
+        for (int i = this.index; i < this.path.size(); i++) {
+            Vec3 to = this.path.get(i).add(0.0, 0.1, 0.0);
+            int color = this.gapAt(i) ? 0xFFFFA040 : from.y - to.y > 3.0 ? 0xFFFF5050 : 0xFF50C8FF;
+            Gizmos.line(from, to, color, 2.0F);
+            from = to;
+        }
+    }
+
     /** Look at {@code point} (a mob, a block to mine next) during the next tick's walking. */
     void lookAt(Vec3 point) {
         this.lookTarget = point;
@@ -608,6 +686,24 @@ final class PathWalker {
             return new boolean[4];
         }
         return new boolean[]{Math.abs(sector) <= 1, sector <= -1 && sector >= -3, Math.abs(sector) >= 3, sector >= 1 && sector <= 3};
+    }
+
+    /** Whether a jump arc fits under the ceiling for the next three blocks toward {@code target}. */
+    static boolean headroom(Pathfinder.Shapes shapes, double[] pos, double[] target) {
+        double dx = target[0] - pos[0];
+        double dz = target[2] - pos[2];
+        double length = Math.hypot(dx, dz);
+        if (length < 1.0E-3) {
+            return false;
+        }
+        for (int i = 0; i <= 3; i++) {
+            int x = (int) Math.floor(pos[0] + dx / length * i);
+            int z = (int) Math.floor(pos[2] + dz / length * i);
+            if (!Pathfinder.clear(shapes, x, z, pos[1] + 0.01, pos[1] + 1.8 + 1.25)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** Whether the path bends by more than 70 degrees at {@code target} and it is close enough to need braking. */

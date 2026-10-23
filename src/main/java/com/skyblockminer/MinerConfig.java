@@ -19,6 +19,14 @@ public final class MinerConfig {
     public List<String> customBlocks = new ArrayList<>();
     public boolean prioritizeTitanium = true;
     public int rotationSpeed = 48;
+    /** How far turns miss before correcting, in percent of natural (0 lands exactly). */
+    public int overshoot = 100;
+    /** Typical pause before turning to something new, in ms. */
+    public int reactionTime = 150;
+    /** Split wide turns into strokes with a pause, as when lifting the mouse. */
+    public boolean mouseLifts = true;
+    /** Let the view wander a few tenths of a degree while holding on a target. */
+    public boolean idleDrift = true;
     public double reach = 4.5;
     public boolean sneak = true;
     public boolean useAbility = true;
@@ -35,6 +43,8 @@ public final class MinerConfig {
     public boolean randomize = true;
     public int aimSpread = 35;
     public boolean sprint = true;
+    /** Sprint-jump along long, level stretches of a path (faster than sprinting). */
+    public boolean sprintJump = true;
     public boolean slayerCommissions = true;
     public int weaponSlot = 0;
     public int avoidRadius = 10;
@@ -59,6 +69,8 @@ public final class MinerConfig {
     public boolean hud = true;
     public boolean oreWalk = true;
     public boolean pathSafety = true;
+    /** Draw the path the walker is following. */
+    public boolean showPath = false;
     /** How the walker travels: walk, etherwarp, transmission (Instant Transmission) or both teleports. */
     public String movement = "walk";
     public double etherwarpRange = 57.0;
@@ -399,6 +411,8 @@ public final class MinerConfig {
         this.wynnHealBelow = clamp(this.wynnHealBelow, 5, 95);
         this.wynnClickTicks = clamp(this.wynnClickTicks, 1, 10);
         this.rotationSpeed = clamp(this.rotationSpeed, 1, 100);
+        this.overshoot = clamp(this.overshoot, 0, 300);
+        this.reactionTime = clamp(this.reactionTime, 0, 600);
         if (!List.of("walk", "etherwarp", "transmission", "both").contains(this.movement)) {
             this.movement = defaults.movement;
         }

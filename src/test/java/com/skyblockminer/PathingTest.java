@@ -454,6 +454,17 @@ class PathingTest {
     }
 
     @Test
+    void sprintJumpsOnlyWithRoomOverhead() {
+        World world = new World().floor(0, 0, 10, 0, 64);
+        double[] pos = {0.5, 65, 0.5};
+        double[] target = {9.5, 65, 0.5};
+        assertTrue(PathWalker.headroom(world.shapes(), pos, target));
+        // A ceiling three blocks up leaves no room for the jump arc.
+        world.set(2, 67, 0);
+        assertFalse(PathWalker.headroom(world.shapes(), pos, target));
+    }
+
+    @Test
     void packedKeysKeepNegativeCoordinatesApart() {
         assertTrue(LongMap.pack(-1, 64, 0) != LongMap.pack(0, 64, -1));
         assertTrue(LongMap.pack(-1, -1, -1) != LongMap.pack(1, 1, 1));
