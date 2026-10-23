@@ -53,6 +53,9 @@ final class PathWalker {
     private long lastProgressAt;
     private int jumpTicks;
     private double lookDrop;
+    /** Measured sprinting speed on the ground, in blocks per second; the pathfinder plans with it. */
+    private double speed = 5.6;
+    private Vec3 lastPos;
     private boolean keysHeld;
     private boolean sneakHeld;
     private int skipCheckIn;
@@ -143,6 +146,8 @@ final class PathWalker {
             return false;
         }
         this.pendingStart = false;
+        this.finder.setSpeed(this.speed);
+        this.finder.setFallBudget(fallBudget(player));
         if (!this.finder.start(this.map.shapes(mc.level), player.position(), this.goals, this.radius)) {
             this.fail(mc, "not standing on solid ground");
             return false;
@@ -152,6 +157,7 @@ final class PathWalker {
 
     PathWalker.State tick(Minecraft mc, LocalPlayer player, Rotator rotator, MinerConfig config) {
         this.finder.setSafety(config.pathSafety);
+        this.measureSpeed(mc, player);
         if (this.state == PathWalker.State.SEARCHING) {
             if (this.pendingStart && !this.beginSearch(mc, player)) {
                 return this.state;
@@ -249,7 +255,8 @@ final class PathWalker {
         long now = System.currentTimeMillis();
         boolean climb = player.onGround() && target.y - pos.y > 0.6 && horizontal < 1.8;
         // A gap jump: sprint and jump from the edge once lined up with the landing.
-        boolean leap = gap && player.onGround() && horizontal < 2.4 && yawError < 12.0;
+        double span = this.index > 0 ? horizontal(this.path.get(this.index - 1), target) : 2.0;
+        boolean leap = gap && player.onGround() && horizontal < span + 0.4 && yawError < 12.0;
         if (now - this.lastProgressAt > UNSTICK_MS && player.onGround() && this.jumpTicks == 0) {
             this.jumpTicks = 4;
         }
@@ -506,6 +513,27 @@ final class PathWalker {
             }
         }
         return false;
+    }
+
+    /** Keeps a running average of the ground speed while sprinting, so paths match speed boosts and slowdowns. */
+    private void measureSpeed(Minecraft mc, LocalPlayer player) {
+        Vec3 pos = player.position();
+        if (this.lastPos != null && player.onGround() && mc.options.keySprint.isDown() && mc.options.keyUp.isDown()) {
+            double perSecond = horizontal(this.lastPos, pos) * 20.0;
+            if (perSecond > 3.0 && perSecond < 20.0) {
+                this.speed = Mth.clamp(this.speed * 0.95 + perSecond * 0.05, 4.0, 12.0);
+            }
+        }
+        this.lastPos = pos;
+    }
+
+    /**
+     * Half-hearts a planned fall may cost: whatever is above half health, measured as a share of max health on
+     * the vanilla 20-point scale. Nothing when below half.
+     */
+    static double fallBudget(LocalPlayer player) {
+        float max = player.getMaxHealth();
+        return max <= 0.0F ? 0.0 : Math.max(0.0, player.getHealth() / max * 20.0 - 10.0);
     }
 
     private static boolean reached(Vec3 pos, Vec3 node, double within) {

@@ -249,6 +249,12 @@ final class WorldMap {
                 code = 1;
             } else if (Pathfinder.hazard(state)) {
                 code = 2;
+            } else if (Pathfinder.kind(state) == Pathfinder.WATER) {
+                code = 3;
+            } else if (Pathfinder.kind(state) == Pathfinder.CLIMB) {
+                code = 4;
+            } else if (Pathfinder.kind(state) == Pathfinder.SOFT) {
+                code = 5;
             } else {
                 VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
                 code = shape.isEmpty() ? 1 : encode(shape.min(Axis.Y), shape.max(Axis.Y));
@@ -505,6 +511,9 @@ final class WorldMap {
     static {
         DECODED[1] = Pathfinder.EMPTY;
         DECODED[2] = Pathfinder.HAZARD;
+        DECODED[3] = Pathfinder.WATER;
+        DECODED[4] = Pathfinder.CLIMB;
+        DECODED[5] = Pathfinder.SOFT;
 
         for (int code = 128; code < 256; code++) {
             DECODED[code] = new double[]{(code >> 4 & 7) / 8.0, (code & 15) / 8.0};
