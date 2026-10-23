@@ -13,9 +13,12 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Follows a {@link Pathfinder} path: walks, cuts corners, jumps gaps, re-plans when stuck or knocked off, and
- * (when the movement setting allows and the item is in the hotbar) teleports along the path with etherwarp
- * or Instant Transmission to skip long stretches.
+ * Follows a {@link Pathfinder} path: walks, cuts corners, jumps gaps, re-plans when stuck, knocked off or when
+ * a block on the way ahead changes, and (when the movement setting allows and the item is in the hotbar)
+ * teleports along the path with etherwarp or Instant Transmission to skip long stretches.
+ *
+ * <p>A trip longer than what is known is walked in legs. The next leg is planned while the current one is still
+ * being walked, so the walk carries on without stopping where one leg ends.
  */
 final class PathWalker {
     private static final long STUCK_MS = 3500L;
@@ -34,9 +37,19 @@ final class PathWalker {
     private static final long HOP_AIM_MS = 2500L;
     private static final long HOP_WAIT_MS = 1200L;
     private static final int MAX_HOP_FAILS = 3;
+    private static final int BLOCK_CHECK_TICKS = 5;
+    /** How many path cells ahead are checked for blocks that were mined or placed since the search. */
+    private static final int BLOCK_CHECK_CELLS = 12;
+    /** The next leg of a partial path is planned once the current one has this many blocks left. */
+    private static final double LEG_AHEAD = 16.0;
     private final WorldMap map;
     private final Host host;
-    private final Pathfinder finder = new Pathfinder();
+    private Pathfinder finder = new Pathfinder();
+    /** The next leg, planned from the end of the current partial path while it is walked. */
+    private Pathfinder ahead;
+    private boolean aheadDone;
+    private int blockCheckIn;
+    private int checkIndex;
     private final Random random = new Random();
     private PathWalker.State state = PathWalker.State.IDLE;
     private boolean pendingStart;
@@ -127,6 +140,7 @@ final class PathWalker {
     }
 
     void stop(Minecraft mc) {
+        this.ahead = null;
         this.endHop(mc);
         this.releaseKeys(mc);
         this.state = PathWalker.State.IDLE;
@@ -134,6 +148,7 @@ final class PathWalker {
     }
 
     private void search(Minecraft mc, String why) {
+        this.ahead = null;
         this.releaseKeys(mc);
         this.state = PathWalker.State.SEARCHING;
         this.pendingStart = true;
@@ -169,29 +184,9 @@ final class PathWalker {
             if (!this.finder.step()) {
                 return this.state;
             }
-            this.path = this.finder.result();
-            MinerMod.LOGGER.info(
-                "Path: {} after exploring {} cells in {} ms{}",
-                this.path == null ? "none" : this.path.size() + " waypoints",
-                this.finder.explored(),
-                this.finder.elapsedMs(),
-                this.finder.partial() ? " (partial: the goal is beyond what is known)" : ""
-            );
-            if (this.path == null || this.path.isEmpty()) {
-                this.fail(mc, "no path found");
+            if (!this.walkFound(mc, player)) {
                 return this.state;
             }
-            this.index = 0;
-            this.rawIndex = 0;
-            this.skipCheckIn = 0;
-            this.hopCheckIn = 0;
-            this.failedHops.clear();
-            this.rawLengths = this.finder.raw() == null ? null : WarpPlanner.lengths(this.finder.raw());
-            this.segmentStart = player.position();
-            this.bestRemaining = Double.MAX_VALUE;
-            this.lastProgressAt = System.currentTimeMillis();
-            this.lookDrop = 0.25 + this.random.nextDouble() * 0.6;
-            this.state = PathWalker.State.WALKING;
         }
 
         if (this.state != PathWalker.State.WALKING) {
@@ -236,16 +231,35 @@ final class PathWalker {
             }
         }
 
+        if (--this.blockCheckIn <= 0 && this.finder.raw() != null) {
+            this.blockCheckIn = BLOCK_CHECK_TICKS;
+            if (live == null) {
+                live = this.map.shapes(level);
+            }
+            this.checkIndex = WarpPlanner.nearest(this.finder.raw(), new double[]{pos.x, pos.y, pos.z}, this.checkIndex, 40);
+            if (this.finder.blockedAhead(live, this.checkIndex + 1, BLOCK_CHECK_CELLS) >= 0) {
+                if (++this.repaths > MAX_REPATHS) {
+                    this.fail(mc, "the way ahead kept changing");
+                } else {
+                    this.search(mc, "a block on the way ahead changed");
+                }
+                return this.state;
+            }
+        }
+        this.planAhead(mc, player, config, pos);
+
         Vec3 target = this.path.get(this.index);
         boolean last = this.index == this.path.size() - 1;
         boolean gap = this.finder.gapAt(this.index);
         double horizontal = horizontal(pos, target);
-        if (last && horizontal < 0.5 && Math.abs(pos.y - target.y) < 1.3) {
-            this.releaseKeys(mc);
+        // With the next leg ready the walk runs straight on into it instead of stopping on the last cell.
+        boolean nextReady = this.ahead != null && this.aheadDone && this.ahead.result() != null && !this.ahead.result().isEmpty();
+        if (last && (horizontal < 0.5 || nextReady && horizontal < 1.5) && Math.abs(pos.y - target.y) < 1.3) {
             if (this.finder.partial() && this.legs < MAX_LEGS) {
                 this.legs++;
-                this.search(mc, "continuing a partial path");
+                this.nextLeg(mc, player);
             } else {
+                this.releaseKeys(mc);
                 this.state = PathWalker.State.DONE;
             }
             return this.state;
@@ -303,7 +317,7 @@ final class PathWalker {
                     double dx = target.x - pos.x;
                     double dz = target.z - pos.z;
                     double length = Math.max(0.01, Math.hypot(dx, dz));
-                    this.finder.avoid((int) Math.floor(pos.x + dx / length * 0.9), (int) Math.floor(pos.y + 0.01),
+                    this.finder.avoid((int) Math.floor(pos.x + dx / length * 0.9), Pathfinder.cellY(pos.y),
                         (int) Math.floor(pos.z + dz / length * 0.9));
                 }
                 this.repathRemaining = remaining;
@@ -311,6 +325,86 @@ final class PathWalker {
             }
         }
         return this.state;
+    }
+
+    /** Takes the finished search's path and starts walking it. False (and failed) when there is none. */
+    private boolean walkFound(Minecraft mc, LocalPlayer player) {
+        this.path = this.finder.result();
+        MinerMod.LOGGER.info(
+            "Path: {} after exploring {} cells in {} ms{}",
+            this.path == null ? "none" : this.path.size() + " waypoints",
+            this.finder.explored(),
+            this.finder.elapsedMs(),
+            this.finder.partial() ? " (partial: the goal is beyond what is known)" : ""
+        );
+        if (this.path == null || this.path.isEmpty()) {
+            this.fail(mc, "no path found");
+            return false;
+        }
+        this.index = 0;
+        this.rawIndex = 0;
+        this.checkIndex = 0;
+        this.skipCheckIn = 0;
+        this.hopCheckIn = 0;
+        this.blockCheckIn = BLOCK_CHECK_TICKS;
+        this.failedHops.clear();
+        this.rawLengths = this.finder.raw() == null ? null : WarpPlanner.lengths(this.finder.raw());
+        this.segmentStart = player.position();
+        this.bestRemaining = Double.MAX_VALUE;
+        this.lastProgressAt = System.currentTimeMillis();
+        this.lookDrop = 0.25 + this.random.nextDouble() * 0.6;
+        this.state = PathWalker.State.WALKING;
+        return true;
+    }
+
+    /**
+     * Near the end of a partial path, starts planning the next leg from its last cell, and gives that search a
+     * time slice every tick while walking on.
+     */
+    private void planAhead(Minecraft mc, LocalPlayer player, MinerConfig config, Vec3 pos) {
+        if (this.ahead == null) {
+            if (!this.finder.partial() || this.legs >= MAX_LEGS || mc.level == null || this.remainingLength(pos) > LEG_AHEAD) {
+                return;
+            }
+            List<double[]> raw = this.finder.raw();
+            double[] end = raw.get(raw.size() - 1);
+            List<double[]> targets = new java.util.ArrayList<>(this.goals.size());
+            for (Vec3 goal : this.goals) {
+                targets.add(new double[]{goal.x, goal.y, goal.z});
+            }
+            Pathfinder next = new Pathfinder();
+            next.shareAvoid(this.finder);
+            next.setSpeed(this.speed);
+            next.setFallBudget(fallBudget(player));
+            next.setSafety(config.pathSafety);
+            this.ahead = next;
+            this.aheadDone = !next.start(this.map.shapes(mc.level), end[0], end[1], end[2], targets, this.radius);
+        }
+        if (!this.aheadDone) {
+            this.aheadDone = this.ahead.step();
+        }
+    }
+
+    /** At the end of a partial path: walks straight into the leg planned ahead, or waits for it, or plans one now. */
+    private void nextLeg(Minecraft mc, LocalPlayer player) {
+        Pathfinder next = this.ahead;
+        this.ahead = null;
+        if (next == null) {
+            this.search(mc, "continuing a partial path");
+            return;
+        }
+        this.finder = next;
+        if (!this.aheadDone) {
+            // Still searching: stand still until it is done, as with any other search.
+            this.releaseKeys(mc);
+            this.state = PathWalker.State.SEARCHING;
+            this.pendingStart = false;
+        } else if (next.result() == null || next.result().isEmpty()) {
+            this.search(mc, "continuing a partial path");
+        } else {
+            MinerMod.LOGGER.info("Path: next leg was planned ahead");
+            this.walkFound(mc, player);
+        }
     }
 
     // ---- teleports ----

@@ -52,6 +52,12 @@ class PathingTest {
             return this;
         }
 
+        World shape(int x, int y, int z, double[] shape) {
+            this.solid.remove(LongMap.pack(x, y, z));
+            this.special.put(LongMap.pack(x, y, z), shape);
+            return this;
+        }
+
         World ladder(int x, int y, int z) {
             this.special.put(LongMap.pack(x, y, z), Pathfinder.CLIMB);
             return this;
@@ -428,6 +434,80 @@ class PathingTest {
         assertEquals(2, Pathfinder.gapsAt(5.6));
         assertEquals(3, Pathfinder.gapsAt(8.0));
         assertEquals(1, Pathfinder.gapsAt(3.0));
+    }
+
+    // ---- partial-height floors, slow surfaces, portals, changed blocks ----
+
+    @Test
+    void walksAcrossSoulSandAndChests() {
+        // A one-wide bridge over the void whose middle is soul sand (0.875 tall) and a chest (0.875 tall):
+        // before, anything between half a block and 0.9 tall was a wall.
+        World world = new World().floor(0, 0, 12, 0, 64);
+        for (int x = 4; x <= 6; x++) {
+            world.shape(x, 64, 0, Pathfinder.SLOW);
+        }
+        world.shape(9, 64, 0, new double[]{0.0, 0.875});
+        Pathfinder finder = search(world, new double[]{0.5, 65, 0.5}, new double[]{12.5, 65, 0.5}, 0.5);
+        assertFalse(finder.partial());
+        assertNotNull(finder.raw());
+        boolean onSand = false;
+        for (double[] p : finder.raw()) {
+            if (p[0] == 5.5) {
+                assertEquals(64.875, p[1], 1.0E-9);
+                onSand = true;
+            }
+        }
+        assertTrue(onSand);
+        assertEquals(65, Pathfinder.cellY(64.875));
+        assertEquals(65, Pathfinder.cellY(65.0));
+        assertEquals(65, Pathfinder.cellY(65.5));
+        assertEquals(65, Pathfinder.cellY(64.5625));
+    }
+
+    @Test
+    void walksRoundSoulSandWhenThatIsShort() {
+        // A strip of soul sand across the direct line; solid ground beside it one block further round.
+        World world = new World().floor(0, -6, 20, 6, 64);
+        for (int z = -6; z <= 3; z++) {
+            world.shape(10, 64, z, Pathfinder.SLOW).shape(11, 64, z, Pathfinder.SLOW).shape(12, 64, z, Pathfinder.SLOW);
+        }
+        Pathfinder finder = search(world, new double[]{0.5, 65, 0.5}, new double[]{20.5, 65, 0.5}, 0.5);
+        assertFalse(finder.partial());
+        for (double[] p : finder.raw()) {
+            assertTrue(p[1] == 65.0, "walked over soul sand at " + p[0] + ", " + p[2]);
+        }
+    }
+
+    @Test
+    void neverWalksIntoAPortal() {
+        // A one-wide corridor with a portal in it and a way round.
+        World world = new World().floor(0, -3, 12, 3, 64);
+        Pathfinder.Shapes base = world.shapes();
+        Pathfinder.Shapes withPortal = (x, y, z) -> x == 6 && z == 0 && (y == 65 || y == 66) ? Pathfinder.HAZARD : base.get(x, y, z);
+        Pathfinder finder = new Pathfinder();
+        assertTrue(finder.start(withPortal, 0.5, 65, 0.5, List.of(new double[]{12.5, 65, 0.5}), 0.5));
+        finder.run();
+        assertFalse(finder.partial());
+        for (double[] p : finder.raw()) {
+            assertFalse(p[0] == 6.5 && p[2] == 0.5, "walked through the portal");
+        }
+    }
+
+    @Test
+    void noticesABlockMinedOnThePathAhead() {
+        World world = new World().floor(0, 0, 12, 0, 64);
+        Pathfinder finder = search(world, new double[]{0.5, 65, 0.5}, new double[]{12.5, 65, 0.5}, 0.5);
+        assertEquals(-1, finder.blockedAhead(world.shapes(), 0, 20));
+        // The bridge loses a block two cells ahead, then gets a block placed at head height further on.
+        world.clear(3, 64, 0);
+        int blocked = finder.blockedAhead(world.shapes(), 0, 20);
+        assertTrue(blocked >= 0);
+        assertEquals(3.5, finder.raw().get(blocked)[0], 1.0E-9);
+        world.set(3, 64, 0).set(8, 66, 0);
+        blocked = finder.blockedAhead(world.shapes(), 0, 20);
+        assertEquals(8.5, finder.raw().get(blocked)[0], 1.0E-9);
+        // Only the cells asked about are looked at.
+        assertEquals(-1, finder.blockedAhead(world.shapes(), 0, 5));
     }
 
     // ---- keys from the camera's facing ----

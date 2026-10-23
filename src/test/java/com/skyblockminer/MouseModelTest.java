@@ -48,6 +48,31 @@ class MouseModelTest {
     }
 
     @Test
+    void comesToRestAtHighSensitivity() {
+        // At 100% sensitivity one count is about 0.61 degrees, so the goal can sit further than the 0.4 tolerance
+        // from every reachable angle. The view must still come to rest instead of flicking one count back and forth.
+        double gcd = Math.pow(0.8, 3.0) * 1.2;
+        for (long seed = 0; seed < 20; seed++) {
+            MouseModel mouse = mouse(seed, 0.5);
+            double yaw = 0.0;
+            double pitch = 0.0;
+            int lateMoves = 0;
+            double goalYaw = 65.5 * gcd;
+            double goalPitch = 15.5 * gcd;
+            for (int i = 0; i < 600; i++) {
+                double[] turn = mouse.step(yaw, pitch, goalYaw, goalPitch, FRAME, gcd);
+                yaw += turn[0];
+                pitch += turn[1];
+                if (i >= 300 && (turn[0] != 0.0 || turn[1] != 0.0)) {
+                    lateMoves++;
+                }
+            }
+            assertEquals(0, lateMoves, "seed " + seed + " still moving at " + yaw + ", " + pitch);
+            assertTrue(Math.abs(yaw - goalYaw) <= gcd && Math.abs(pitch - goalPitch) <= gcd);
+        }
+    }
+
+    @Test
     void everyStepIsWholeMouseCounts() {
         MouseModel mouse = mouse(3, 0.7);
         double yaw = 0.0;

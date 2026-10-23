@@ -17,11 +17,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 /**
  * Time-sliced A* over standable cells. Moves are walking steps (8 directions), step-ups, jumps of up to 1.25,
  * drops (as deep as the fall budget allows, any depth into water), sprint-jumps across gaps of up to three
- * blocks, ladder and vine climbing and swimming. Points are {x, feet height, z}.
+ * blocks, ladder and vine climbing and swimming. Points are {x, feet height, z}. Anything taller than half a
+ * block (soul sand, mud, chests, beds) can be stood on, not only full blocks.
  *
  * <p>Costs are travel time, counted in blocks walked at the set speed: at a high speed a ladder, a swim or a
- * long fall costs more blocks of walking than it does at a slow one. Sharp turns cost a little extra, so paths
- * keep their direction where that is free.
+ * long fall costs more blocks of walking than it does at a slow one. Soul sand and honey slow the walk down, so
+ * they cost more too. Sharp turns cost a little extra, so paths keep their direction where that is free.
  *
  * <p>The search starts close to optimal (weight {@value #WEIGHT_FINE}) and, if it is still running after
  * {@value #SWITCH_AT} cells, switches to a greedier weight so long trips finish quickly. Cells the walker got
@@ -42,6 +43,8 @@ final class Pathfinder {
     private static final double CLIMB_DOWN_SPEED = 3.0;
     /** Swimming and wading take about this many times longer than sprinting. */
     private static final double SWIM_SLOW = 2.5;
+    /** Walking on soul sand or honey takes about this many times longer (they slow you to about 40%). */
+    private static final double SURFACE_SLOW = 2.5;
     /** Extra cost per half-heart of fall damage, so a drop that hurts is only used when it saves real time. */
     private static final double DAMAGE_COST = 2.0;
     /** Extra cost of a 90 degree turn at sprint speed (turns of 60 degrees or less are free). */
@@ -52,7 +55,10 @@ final class Pathfinder {
     private static final int MAX_STRAIGHT = 48;
     private static final int[][] DIRECTIONS = new int[][]{{1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
     private static final Set<String> HAZARDS = Set.of(
-        "lava", "fire", "soul_fire", "magma_block", "cactus", "sweet_berry_bush", "powder_snow", "cobweb", "wither_rose", "campfire", "soul_campfire"
+        "lava", "fire", "soul_fire", "magma_block", "cactus", "sweet_berry_bush", "powder_snow", "cobweb", "wither_rose", "campfire", "soul_campfire",
+        "lava_cauldron", "pointed_dripstone",
+        // Walking into a portal warps you somewhere else (the hub's island portals), which also trips the teleport failsafe.
+        "nether_portal", "end_portal", "end_gateway"
     );
     private static final IdentityHashMap<Block, Boolean> HAZARD_CACHE = new IdentityHashMap<>();
     static final double[] EMPTY = new double[0];
@@ -62,6 +68,9 @@ final class Pathfinder {
     static final double[] CLIMB = new double[0];
     /** Hay bales: a full block that takes 80% off fall damage. */
     static final double[] SOFT = new double[]{0.0, 1.0};
+    /** Soul sand and honey: standable, but slow to walk on. */
+    static final double[] SLOW = new double[]{0.0, 0.875};
+    private static final Set<String> SLOWS = Set.of("soul_sand", "honey_block");
     private static final Set<String> WATERS = Set.of("water", "bubble_column", "kelp", "kelp_plant", "seagrass", "tall_seagrass");
     private static final Set<String> CLIMBS = Set.of(
         "ladder", "vine", "weeping_vines", "weeping_vines_plant", "twisting_vines", "twisting_vines_plant", "cave_vines", "cave_vines_plant"
@@ -79,7 +88,7 @@ final class Pathfinder {
     private int maxGap = gapsAt(SPRINT_SPEED);
     private double fallBudget = 1.0;
     static final double[] HAZARD = new double[]{Double.NaN, Double.NaN};
-    private final LongMap<Boolean> avoid = new LongMap<>(64);
+    private LongMap<Boolean> avoid = new LongMap<>(64);
     private Pathfinder.Shapes source;
     private Node[] heap = new Node[1024];
     private int heapSize;
@@ -95,6 +104,8 @@ final class Pathfinder {
     private long elapsedMs;
     private boolean finished;
     private List<double[]> raw;
+    /** The {x, y, z} cell of each raw point (its feet height alone does not say which cell it is). */
+    private int[][] rawCells;
     private List<double[]> waypoints;
     private boolean[] gaps;
     private List<Vec3> result;
@@ -156,6 +167,11 @@ final class Pathfinder {
         this.avoid.clear();
     }
 
+    /** Uses (and adds to) the same avoided cells as {@code other}, so a search planned ahead keeps what was learnt. */
+    void shareAvoid(Pathfinder other) {
+        this.avoid = other.avoid;
+    }
+
     boolean start(Pathfinder.Shapes source, Vec3 from, List<Vec3> goals, double goalRadius) {
         List<double[]> points = new ArrayList<>(goals.size());
         for (Vec3 goal : goals) {
@@ -172,6 +188,7 @@ final class Pathfinder {
         this.nodes = new LongMap<>(4096);
         this.weight = WEIGHT_FINE;
         this.raw = null;
+        this.rawCells = null;
         this.waypoints = null;
         this.gaps = null;
         this.result = null;
@@ -257,6 +274,34 @@ final class Pathfinder {
         return this.gaps != null && i >= 0 && i < this.gaps.length && this.gaps[i];
     }
 
+    /**
+     * The first raw cell from {@code from} on (looking {@code count} cells ahead) that can no longer be stood on
+     * in {@code live}, for example because a block was mined or placed since the search, or -1 when all still hold.
+     * Water and ladder cells are not checked.
+     */
+    int blockedAhead(Pathfinder.Shapes live, int from, int count) {
+        if (this.rawCells == null) {
+            return -1;
+        }
+        int end = Math.min(this.rawCells.length, Math.max(0, from) + count);
+        for (int i = Math.max(0, from); i < end; i++) {
+            int[] c = this.rawCells[i];
+            double[] here = live.get(c[0], c[1], c[2]);
+            if (here == WATER || here == CLIMB) {
+                continue;
+            }
+            if (!standsAt(live, c[0], c[1], c[2], this.raw.get(i)[1])) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /** The cell whose floor is at feet height {@code h}: a cell's floor runs from half a block below it to half above. */
+    static int cellY(double h) {
+        return (int) Math.ceil(h - 0.5 - 1.0E-6);
+    }
+
     boolean partial() {
         return this.partial;
     }
@@ -286,8 +331,11 @@ final class Pathfinder {
         }
         Collections.reverse(cells);
         this.raw = new ArrayList<>(cells.size());
-        for (Pathfinder.Node node : cells) {
+        this.rawCells = new int[cells.size()][];
+        for (int i = 0; i < cells.size(); i++) {
+            Pathfinder.Node node = cells.get(i);
             this.raw.add(node.point());
+            this.rawCells[i] = new int[]{node.x, node.y, node.z};
         }
         this.straighten(cells);
         return true;
@@ -458,6 +506,9 @@ final class Pathfinder {
         }
         if (node.water || from.water) {
             cost *= SWIM_SLOW;
+        } else if (node.slow || from.slow) {
+            // Half the move is on the slow block when only one end is.
+            cost *= node.slow && from.slow ? SURFACE_SLOW : (1.0 + SURFACE_SLOW) / 2.0;
         }
         if (from.parent != null && !gap) {
             cost += this.turnCost(from.parent, from, x, z);
@@ -536,6 +587,7 @@ final class Pathfinder {
         double[] cell = this.source.get(x, y, z);
         node.climb = cell == CLIMB;
         node.water = cell == WATER;
+        node.slow = this.source.get(x, y - 1, z) == SLOW;
         this.nodes.put(LongMap.pack(x, y, z), node);
         return node;
     }
@@ -607,7 +659,9 @@ final class Pathfinder {
             return here[1] <= 0.500001 ? here[1] : Double.NaN;
         } else {
             double[] below = source.get(x, y - 1, z);
-            return below != HAZARD && below.length != 0 && !(below[1] < 0.9) ? Math.max(0.0, below[1] - 1.0) : Double.NaN;
+            // Anything up to half a block tall is stood on from its own cell (above); taller tops, from soul sand
+            // and chests to fences, are stood on from the cell above them, a little below or above its bottom.
+            return below != HAZARD && below.length != 0 && below[1] > 0.500001 ? below[1] - 1.0 : Double.NaN;
         }
     }
 
@@ -643,12 +697,13 @@ final class Pathfinder {
         return cached;
     }
 
-    /** {@link #WATER}, {@link #CLIMB} or {@link #SOFT} for blocks that move differently, otherwise null. Cached per block. */
+    /** {@link #WATER}, {@link #CLIMB}, {@link #SOFT} or {@link #SLOW} for blocks that move differently, otherwise null. Cached per block. */
     static double[] kind(BlockState state) {
         Block block = state.getBlock();
         if (!KIND_CACHE.containsKey(block)) {
             String name = BuiltInRegistries.BLOCK.getKey(block).getPath();
-            KIND_CACHE.put(block, WATERS.contains(name) ? WATER : CLIMBS.contains(name) ? CLIMB : name.equals("hay_block") ? SOFT : null);
+            KIND_CACHE.put(block, WATERS.contains(name) ? WATER : CLIMBS.contains(name) ? CLIMB : name.equals("hay_block") ? SOFT
+                : SLOWS.contains(name) ? SLOW : null);
         }
         return KIND_CACHE.get(block);
     }
@@ -885,6 +940,7 @@ final class Pathfinder {
         boolean gap;
         boolean climb;
         boolean water;
+        boolean slow;
 
         Node(int x, int y, int z, double h) {
             this.x = x;

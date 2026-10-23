@@ -90,7 +90,9 @@ final class MouseModel {
     double[] step(double yaw, double pitch, double goalYaw, double goalPitch, double dtMs, double gcd) {
         if (!this.moving) {
             double distance = Math.hypot(goalYaw - yaw, goalPitch - pitch);
-            if (distance <= this.tolerance) {
+            // Whole counts can only land within half a count of the goal on each axis. At high sensitivity that
+            // is wider than the tolerance, and holding out for it would flick one count back and forth for ever.
+            if (distance <= Math.max(this.tolerance, gcd * 0.75)) {
                 return new double[]{0.0, 0.0};
             }
             if (this.waitMs > 0.0) {

@@ -255,6 +255,8 @@ final class WorldMap {
                 code = 4;
             } else if (Pathfinder.kind(state) == Pathfinder.SOFT) {
                 code = 5;
+            } else if (Pathfinder.kind(state) == Pathfinder.SLOW) {
+                code = 6;
             } else {
                 VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
                 code = shape.isEmpty() ? 1 : encode(shape.min(Axis.Y), shape.max(Axis.Y));
@@ -514,6 +516,7 @@ final class WorldMap {
         DECODED[3] = Pathfinder.WATER;
         DECODED[4] = Pathfinder.CLIMB;
         DECODED[5] = Pathfinder.SOFT;
+        DECODED[6] = Pathfinder.SLOW;
 
         for (int code = 128; code < 256; code++) {
             DECODED[code] = new double[]{(code >> 4 & 7) / 8.0, (code & 15) / 8.0};
