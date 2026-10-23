@@ -291,7 +291,7 @@ public final class Macro {
     }
 
     void applyConfig() {
-        this.rotator.setRandomize(this.config.randomize);
+        this.rotator.configure(this.config);
         this.mining.configure(this.config);
     }
 
@@ -590,6 +590,9 @@ public final class Macro {
         Routine routine = this.routine();
         if (routine != null) {
             routine.render(this, mc.player);
+        }
+        if (this.config.showPath) {
+            this.walker.render(mc.player);
         }
         if (this.config.showTarget && this.mining.breaking() && this.mining.target() != null) {
             Gizmos.cuboid(this.mining.target().pos(), GizmoStyle.strokeAndFill(0xFF55FFFF, 2.0F, 0x2055FFFF));

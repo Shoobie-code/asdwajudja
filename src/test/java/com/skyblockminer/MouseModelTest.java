@@ -169,4 +169,85 @@ class MouseModelTest {
         }
         assertTrue(worst < 8.0, "fell behind by " + worst);
     }
+
+    @Test
+    void driftStaysCloseToTheTarget() {
+        MouseModel mouse = mouse(21, 0.5);
+        double yaw = 0.0;
+        double pitch = 0.0;
+        int moves = 0;
+        for (int i = 0; i < 1200; i++) {
+            double[] turn = mouse.step(yaw, pitch, 0.0, 0.0, FRAME, GCD);
+            if (turn[0] != 0.0 || turn[1] != 0.0) {
+                moves++;
+            }
+            yaw += turn[0];
+            pitch += turn[1];
+            assertTrue(Math.hypot(yaw, pitch) < 0.8, "drifted to " + yaw + ", " + pitch);
+        }
+        assertTrue(moves > 3, "the hand never moved");
+        MouseModel still = mouse(21, 0.5);
+        still.configure(1.0, 150.0, true, false);
+        for (int i = 0; i < 600; i++) {
+            double[] turn = still.step(0.0, 0.0, 0.0, 0.0, FRAME, GCD);
+            assertEquals(0.0, Math.abs(turn[0]) + Math.abs(turn[1]), 1.0E-12);
+        }
+    }
+
+    @Test
+    void zeroOvershootLandsWithoutPassingTheTarget() {
+        for (long seed = 0; seed < 40; seed++) {
+            MouseModel mouse = mouse(seed, 0.5);
+            mouse.configure(0.0, 150.0, true, false);
+            for (double[] p : run(mouse, 60.0, 0.0, 120)) {
+                assertTrue(p[0] <= 60.0 + GCD, "seed " + seed + " passed the target: " + p[0]);
+            }
+        }
+    }
+
+    @Test
+    void liftsCanBeTurnedOff() {
+        MouseModel mouse = mouse(5, 0.8);
+        mouse.configure(1.0, 150.0, false, false);
+        List<double[]> trace = run(mouse, 300.0, 0.0, 300);
+        boolean started = false;
+        for (int i = 0; i < trace.size() - 1 && trace.get(i)[0] < 250.0; i++) {
+            started |= speedAt(trace, i) > 0.0;
+            assertTrue(!started || speedAt(trace, i) > 0.0, "paused mid-turn at " + trace.get(i)[0]);
+        }
+    }
+
+    @Test
+    void verticalTurnsTakeLonger() {
+        double sideways = 0.0;
+        double vertical = 0.0;
+        for (long seed = 0; seed < 30; seed++) {
+            sideways += framesToSettle(run(mouse(seed, 0.5), 50.0, 0.0, 300), 50.0, 0.0);
+            vertical += framesToSettle(run(mouse(seed, 0.5), 0.0, 50.0, 300), 0.0, 50.0);
+        }
+        assertTrue(vertical > sideways * 1.05, "vertical " + vertical + " vs sideways " + sideways);
+    }
+
+    private static int framesToSettle(List<double[]> trace, double yaw, double pitch) {
+        for (int i = 0; i < trace.size(); i++) {
+            if (Math.hypot(trace.get(i)[0] - yaw, trace.get(i)[1] - pitch) < 1.0) {
+                return i;
+            }
+        }
+        return trace.size();
+    }
+
+    @Test
+    void reactionFollowsTheSetting() {
+        MouseModel mouse = mouse(4, 0.5);
+        mouse.configure(1.0, 0.0, true, true);
+        assertEquals(0.0, mouse.reaction(90.0), 1.0E-12);
+        mouse.configure(1.0, 300.0, true, true);
+        double total = 0.0;
+        for (int i = 0; i < 200; i++) {
+            total += mouse.reaction(90.0);
+        }
+        assertTrue(total / 200 > 150.0 && total / 200 < 450.0, "average " + total / 200);
+        assertEquals(0.0, mouse.reaction(3.0), 1.0E-12);
+    }
 }

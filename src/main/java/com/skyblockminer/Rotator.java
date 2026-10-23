@@ -27,6 +27,11 @@ final class Rotator {
         this.mouse.setRandomize(randomize);
     }
 
+    void configure(MinerConfig config) {
+        this.mouse.setRandomize(config.randomize);
+        this.mouse.configure(config.overshoot / 100.0, config.reactionTime, config.mouseLifts, config.idleDrift);
+    }
+
     boolean active() {
         return this.target != null;
     }
