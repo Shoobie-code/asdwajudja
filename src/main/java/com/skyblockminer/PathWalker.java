@@ -57,6 +57,10 @@ final class PathWalker {
     private double speed = 5.6;
     private Vec3 lastPos;
     private boolean keysHeld;
+    /** Which of the eight W/A/S/D directions was held last (see {@link #sector}). */
+    private int sector;
+    /** Set by a macro for one tick: look here while walking, and steer with the keys. */
+    private Vec3 lookTarget;
     private boolean sneakHeld;
     private int skipCheckIn;
     private String failure = "";
@@ -246,12 +250,24 @@ final class PathWalker {
             }
             return this.state;
         }
-        Vec3 ahead = horizontal < 1.5 && !last && !gap ? this.path.get(this.index + 1) : target;
-        Vec3 look = new Vec3(ahead.x, player.getEyePosition().y - this.lookDrop, ahead.z);
-        rotator.follow(player, look, Math.min(1.0, config.rotationSpeed / 100.0 * 1.2));
-        float wantYaw = Rotator.anglesTo(player, target)[0];
-        double yawError = Math.abs(Mth.wrapDegrees(wantYaw - player.getYRot()));
-        boolean forward = yawError < (gap ? 20.0 : 60.0);
+        // Faster means turning toward the next waypoint earlier.
+        Vec3 ahead = horizontal < Math.max(1.5, this.speed * 0.25) && !last && !gap ? this.path.get(this.index + 1) : target;
+        Vec3 lookAt = this.lookTarget;
+        this.lookTarget = null;
+        if (lookAt != null) {
+            rotator.track(player, lookAt, config.rotationSpeed / 100.0);
+        } else {
+            rotator.follow(player, new Vec3(ahead.x, player.getEyePosition().y - this.lookDrop, ahead.z), Math.min(1.0, config.rotationSpeed / 100.0 * 1.2));
+        }
+        // The keys steer from where the camera points right now, so the walk goes on while a turn catches up,
+        // strafing like a player would.
+        double moveYaw = Rotator.anglesTo(player, horizontal < 0.3 ? target : ahead)[0];
+        double relative = Mth.wrapDegrees((float) (moveYaw - player.getYRot()));
+        this.sector = horizontal < 0.3 && Math.abs(target.y - pos.y) > 0.6 ? 0 : sector(relative, this.sector);
+        double yawError = Math.abs(Mth.wrapDegrees(Rotator.anglesTo(player, target)[0] - player.getYRot()));
+        boolean forward = Math.abs(this.sector) <= 1;
+        // Gap jumps need a straight run-up: wait for the camera to line up.
+        boolean moving = !gap || yawError < 20.0;
         long now = System.currentTimeMillis();
         boolean climb = player.onGround() && target.y - pos.y > 0.6 && horizontal < 1.8;
         // A gap jump: sprint and jump from the edge once lined up with the landing.
@@ -260,12 +276,13 @@ final class PathWalker {
         if (now - this.lastProgressAt > UNSTICK_MS && player.onGround() && this.jumpTicks == 0) {
             this.jumpTicks = 4;
         }
-        boolean jump = climb || leap || player.onGround() && player.horizontalCollision && forward || this.jumpTicks > 0;
+        boolean jump = climb || leap || player.onGround() && player.horizontalCollision && moving || this.jumpTicks > 0;
         if (this.jumpTicks > 0) {
             this.jumpTicks--;
         }
-        boolean sprint = config.sprint && forward && (leap || gap || yawError < 15.0 && !jump && horizontal > 4.0);
-        this.setKeys(mc, forward, sprint, jump);
+        boolean sprint = config.sprint && forward && moving && Math.abs(relative) < 30.0
+            && (leap || gap || !jump && horizontal > 4.0 && !this.sharpTurnAhead(pos, target));
+        this.setKeys(mc, moving ? this.sector : NO_KEYS, sprint, jump);
         double remaining = this.remainingLength(pos);
         if (remaining < this.bestRemaining - 0.5) {
             this.bestRemaining = remaining;
@@ -560,8 +577,59 @@ final class PathWalker {
         return Math.hypot(pos.x - (from.x + dx * t), pos.z - (from.z + dz * t));
     }
 
-    private void setKeys(Minecraft mc, boolean forward, boolean sprint, boolean jump) {
-        mc.options.keyUp.setDown(forward);
+    /** Look at {@code point} (a mob, a block to mine next) during the next tick's walking. */
+    void lookAt(Vec3 point) {
+        this.lookTarget = point;
+    }
+
+    /** No movement keys: a sector value outside -4..4. */
+    private static final int NO_KEYS = 99;
+
+    /**
+     * The key direction for a move {@code relative} degrees right of the camera: 0 is W, 1 W+D, 2 D, 3 S+D, 4 S,
+     * -1 W+A and so on. It keeps the {@code previous} sector until the move is 8 degrees past its edge, so the
+     * keys do not flicker on a boundary.
+     */
+    static int sector(double relative, int previous) {
+        if (previous >= -4 && previous <= 4) {
+            double off = Math.abs(relative - previous * 45.0) % 360.0;
+            off = Math.min(off, 360.0 - off);
+            if (off <= 22.5 + 8.0) {
+                return previous == -4 ? 4 : previous;
+            }
+        }
+        int sector = (int) Math.round(relative / 45.0);
+        return sector == -4 ? 4 : sector;
+    }
+
+    /** {W, A, S, D} for a sector. */
+    static boolean[] keysFor(int sector) {
+        if (sector < -4 || sector > 4) {
+            return new boolean[4];
+        }
+        return new boolean[]{Math.abs(sector) <= 1, sector <= -1 && sector >= -3, Math.abs(sector) >= 3, sector >= 1 && sector <= 3};
+    }
+
+    /** Whether the path bends by more than 70 degrees at {@code target} and it is close enough to need braking. */
+    private boolean sharpTurnAhead(Vec3 pos, Vec3 target) {
+        if (this.index >= this.path.size() - 1 || horizontal(pos, target) > this.speed * 0.3) {
+            return false;
+        }
+        Vec3 next = this.path.get(this.index + 1);
+        double ax = target.x - pos.x;
+        double az = target.z - pos.z;
+        double bx = next.x - target.x;
+        double bz = next.z - target.z;
+        double lengths = Math.hypot(ax, az) * Math.hypot(bx, bz);
+        return lengths > 1.0E-6 && (ax * bx + az * bz) / lengths < 0.34;
+    }
+
+    private void setKeys(Minecraft mc, int sector, boolean sprint, boolean jump) {
+        boolean[] keys = keysFor(sector);
+        mc.options.keyUp.setDown(keys[0]);
+        mc.options.keyLeft.setDown(keys[1]);
+        mc.options.keyDown.setDown(keys[2]);
+        mc.options.keyRight.setDown(keys[3]);
         mc.options.keySprint.setDown(sprint);
         mc.options.keyJump.setDown(jump);
         this.keysHeld = true;
@@ -570,6 +638,9 @@ final class PathWalker {
     void releaseKeys(Minecraft mc) {
         if (this.keysHeld) {
             mc.options.keyUp.setDown(false);
+            mc.options.keyLeft.setDown(false);
+            mc.options.keyDown.setDown(false);
+            mc.options.keyRight.setDown(false);
             mc.options.keySprint.setDown(false);
             mc.options.keyJump.setDown(false);
             this.keysHeld = false;
