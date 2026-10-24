@@ -114,11 +114,6 @@ final class PathWalker {
         return this.path == null ? 0 : this.path.size() - this.index;
     }
 
-    /** Teleports used since the last {@link #go}. */
-    int hops() {
-        return this.hops;
-    }
-
     void go(Minecraft mc, List<Vec3> goals, double radius) {
         this.goals = goals;
         this.radius = radius;

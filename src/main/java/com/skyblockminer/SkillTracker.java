@@ -131,10 +131,6 @@ public final class SkillTracker {
         return Collections.unmodifiableList(out);
     }
 
-    public Map<String, Double> best() {
-        return this.best;
-    }
-
     /** "1,234.5", "12.3k", "4M" to numbers. */
     static double parse(String text) {
         String clean = text.replace(",", "").trim();

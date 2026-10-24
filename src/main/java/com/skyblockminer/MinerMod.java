@@ -193,10 +193,6 @@ public final class MinerMod implements ClientModInitializer {
         sniper.tick(mc);
     }
 
-    static Macro macro() {
-        return macro;
-    }
-
     public static void onParticle(ParticleOptions particle, double x, double y, double z) {
         if (macro != null) {
             macro.onParticle(particle, x, y, z);

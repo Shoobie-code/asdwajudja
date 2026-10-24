@@ -113,7 +113,8 @@ final class Failsafes {
         return null;
     }
 
-    private static List<AbstractClientPlayer> realPlayers(Minecraft mc, LocalPlayer player) {
+    /** Other players in the world who are real accounts in the tab list (not NPCs, which use non-v4 UUIDs). */
+    static List<AbstractClientPlayer> realPlayers(Minecraft mc, LocalPlayer player) {
         return mc.level != null && mc.getConnection() != null
             ? mc.level
                 .players()

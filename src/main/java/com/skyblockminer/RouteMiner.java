@@ -73,7 +73,7 @@ final class RouteMiner implements Routine {
     public String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         List<BlockPos> route = macro.routes.points();
         if (route.size() < 2) {
-            macro.stop("The route needs at least 2 points: stand on each one and run /miner route add");
+            macro.stop("The route needs at least 2 points: stand on each one and run /sm route add");
             return "Stopped";
         } else {
             if (this.index >= route.size()) {

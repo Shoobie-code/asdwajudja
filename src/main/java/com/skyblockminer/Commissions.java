@@ -218,13 +218,8 @@ final class Commissions implements Routine {
                 this.spot = chosen.spots().stream().min(Comparator.comparingDouble(here::distanceToSqr)).orElseThrow();
                 macro.mining.reset(mc);
                 macro.combat.reset(mc, macro.walker);
-                if (this.data.type() == CommissionData.Type.MINING) {
-                    macro.walker.go(mc, List.of(this.spot), 2.5);
-                    this.phase(Commissions.Phase.TRAVELING);
-                } else {
-                    macro.walker.go(mc, List.of(this.spot), 4.0);
-                    this.phase(Commissions.Phase.TRAVELING);
-                }
+                macro.walker.go(mc, List.of(this.spot), this.data.type() == CommissionData.Type.MINING ? 2.5 : 4.0);
+                this.phase(Commissions.Phase.TRAVELING);
 
                 macro.message("Starting " + this.current);
                 return "Walking to " + this.current;
@@ -471,12 +466,13 @@ final class Commissions implements Routine {
         } else if (now < this.nextActionAt) {
             return "Selling";
         } else {
+            // The player's inventory is the last 36 slots of the menu; the final 9 of those are the hotbar, which is never sold.
             int size = player.containerMenu.slots.size();
 
-            for (int slot = Math.max(0, size - 36); slot < size; slot++) {
+            for (int slot = Math.max(0, size - 36); slot < size - 9; slot++) {
                 ItemStack stack = Inv.slot(mc, slot);
                 String name = Inv.name(stack);
-                if (!stack.isEmpty() && !Inv.isMiningTool(stack) && !CommissionData.TRASH.stream().noneMatch(name::contains)) {
+                if (!stack.isEmpty() && !Inv.isMiningTool(stack) && CommissionData.TRASH.stream().anyMatch(name::contains)) {
                     Inv.click(mc, slot);
                     this.nextActionAt = now + 250L + macro.random.nextInt(200);
                     return "Selling " + name;

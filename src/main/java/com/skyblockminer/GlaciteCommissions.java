@@ -244,6 +244,6 @@ final class GlaciteCommissions implements Routine {
 
     @Override
     public String rejoinWarp(MinerConfig config) {
-        return config.glaciteWarpCommand;
+        return config.glaciteWarpCommand.isBlank() ? null : config.glaciteWarpCommand;
     }
 }

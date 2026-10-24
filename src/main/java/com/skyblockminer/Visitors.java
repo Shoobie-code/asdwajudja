@@ -103,6 +103,8 @@ final class Visitors {
             if (this.visitor == null) {
                 return this.finish(mc, player, "Visitors done (" + this.accepted + " accepted)");
             }
+            // Give the turn toward a new visitor time before skipping them as unreachable.
+            this.nextActionAt = Math.max(this.nextActionAt, now);
         }
         macro.rotator.track(player, this.visitor.getBoundingBox().getCenter().add(0.0, 0.4, 0.0), config.rotationSpeed / 100.0);
         HitResult hit = mc.hitResult;

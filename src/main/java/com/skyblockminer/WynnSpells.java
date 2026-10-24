@@ -1,6 +1,7 @@
 package com.skyblockminer;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
@@ -53,7 +54,7 @@ final class WynnSpells {
         }
     }
 
-    static final List<String> CLASS_IDS = List.of("warrior", "assassin", "mage", "shaman", "archer");
+    static final List<String> CLASS_IDS = Arrays.stream(WynnClass.values()).map(type -> type.id).toList();
 
     private static final Click L = Click.LEFT;
     private static final Click R = Click.RIGHT;

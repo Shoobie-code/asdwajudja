@@ -208,7 +208,7 @@ final class MiningEngine {
     }
 
     static String pretty(String id) {
-        String name = id.substring(id.indexOf(58) + 1).replace('_', ' ');
+        String name = id.substring(id.indexOf(':') + 1).replace('_', ' ');
 
         return switch (name) {
             case "polished diorite" -> "Titanium";

@@ -112,6 +112,7 @@ final class FarmingMacro implements Routine {
         this.frame = 0;
         this.visitors.reset();
         this.huntUntil = 0L;
+        this.huntCenter = null;
         this.pests = 0;
         this.pestCombat.clear();
     }
@@ -125,10 +126,6 @@ final class FarmingMacro implements Routine {
     @Override
     public boolean breaking() {
         return this.breaking;
-    }
-
-    int crops() {
-        return this.crops;
     }
 
     @Override
@@ -394,6 +391,7 @@ final class FarmingMacro implements Routine {
                 case "kill" -> {
                     if (this.huntUntil == 0L) {
                         this.huntUntil = System.currentTimeMillis() + PEST_HUNT_MS;
+                        this.huntCenter = null;
                         this.noPestSince = 0L;
                         MinerMod.message("A pest spawned, hunting it with the vacuum.", ChatFormatting.YELLOW);
                     }

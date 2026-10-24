@@ -118,7 +118,7 @@ final class Combat {
         for (Entity entity : level.entitiesForRendering()) {
             if (entity instanceof ArmorStand stand && stand.hasCustomName()) {
                 String tag = ChatFormatting.stripFormatting(stand.getCustomName().getString());
-                if (tag != null && tag.contains("❤") && !mob.names().stream().noneMatch(tag::contains)) {
+                if (tag != null && tag.contains("❤") && mob.names().stream().anyMatch(tag::contains)) {
                     LivingEntity body = bodyUnder(level, player, stand);
                     if (body != null && mob.bounds().contains(body.getX(), body.getY(), body.getZ())) {
                         double distance = player.distanceToSqr(body);

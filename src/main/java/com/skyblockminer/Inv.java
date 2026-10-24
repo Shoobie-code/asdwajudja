@@ -133,6 +133,15 @@ final class Inv {
         return false;
     }
 
+    static boolean inventoryFull(LocalPlayer player) {
+        for (int slot = 0; slot < 36; slot++) {
+            if (player.getInventory().getItem(slot).isEmpty()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     /** First hotbar slot whose item name contains one of the lower-case keywords, or -1. */
     static int hotbarNamed(LocalPlayer player, List<String> keywords) {
         return hotbar(player, stack -> {
