@@ -19,6 +19,7 @@ Discord alerts.
 | Combat | Can start the next slayer quest when one ends\*. Kills mobs whose name tag matches your list (ghosts, zealots, graveyard zombies, crypt ghouls, goblins...) within a radius of a saved spot, with a melee or right-click weapon, and walks back to the spot when the area is clear |
 | Wynncraft | Wynn Combat\*: grinds mobs on Wynncraft by name (or any named mob) around a saved spot. It walks into range, mixes basic attacks with a spell rotation cast as click combos (R-L-R style, mirrored for archers), holds spells while mana is low and can cast a heal spell when health drops. Health and mana are read from Wynncraft's glyph-based action bar |
 
+| Userscripts | Your own macros in JavaScript: drop `.js` files into `config/skyblockminer/scripts` and they show up in the menu's **Scripts** tab to start and stop. Scripts can walk with the pathfinder, aim with the mouse-like rotations, hold keys, mine, attack, click through menus, run commands, react to chat and read the sidebar, tab list and nearby mobs, while the usual failsafes, breaks and panic key stay in charge. See [Userscripts](#userscripts) |
 | Building | Farm builder: set two corners and it places a layout (crop lanes with water rows every N rows, walls, floor or full fill), walking between spots with the pathfinder |
 
 **Money and progress**
@@ -108,6 +109,7 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 | `/sm visitors spot` | Save where the Garden visitors gather |
 | `/sm route add\|insert\|remove\|clear\|list\|save\|load\|routes\|import\|export\|show` | Edit mining routes |
 | `/sm goto <x> <y> <z>` | Walk somewhere with the pathfinder |
+| `/sm script` · `/sm script run <file>` · `/sm script stop` · `/sm script reload` | List userscripts, run one, stop it, or rescan the folder (a running script restarts with its new code) |
 
 `/miner` and `/macro` work as aliases of `/sm`.
 
@@ -116,6 +118,31 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 2. Walk to the last block of the farm and press **Rewarp point → Set here** (or run `/sm farm rewarp`).
 3. In the Garden, use `/setspawn` at the start so `warp garden` brings you back there.
 4. Start the macro. It aligns, farms lane by lane and rewarps at the end.
+
+### Userscripts
+On first start the mod creates `.minecraft/config/skyblockminer/scripts/` with `example.js` and `API.md`, the full
+list of what a script can call. Every `.js` file there becomes a card in the **Scripts** tab. A short script:
+
+```js
+// @name Wheat lane
+// @server hypixel
+command('warp garden');
+sleep(3000);
+look(90, 3);
+waitLook();
+mine(true);                  // keep breaking what the crosshair is on
+for (let lane = 0; lane < 10; lane++) {
+    key(lane % 2 ? 'left' : 'right');
+    sleep(20000);
+    key(lane % 2 ? 'left' : 'right', false);
+    press('forward', 300);
+}
+stop('Farm done');
+```
+
+Scripts run in Rhino (ES6 JavaScript) on their own thread, so `sleep`, `walkTo` and `waitForChat` never freeze the game.
+They are sandboxed: no Java classes, files or network, only the macro API. The engine is bundled into the mod jar, so it
+works the same with the loader.
 
 ## Credits
 
@@ -149,6 +176,7 @@ src/main/java/com/skyblockminer/
   AutoSell, Schedule  selling on a full inventory, active hours
   Solvers             experiment and harp menu solvers
   Recording, Prices   recorded-movement farming, Bazaar profit estimate
+  ScriptRoutine, ScriptRunner, ScriptApi, Scripts   userscripts: the macro side, the Rhino thread, the JS API, the folder
   GlaciteCommissions, ExcavatorMacro, Visitors, SlayerStarter   menu-driven automation (untested in game)
   MacroSettings       every option (feeds the GUI and /sm set)
   Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming

@@ -10,10 +10,19 @@ base {
     archivesName = project.archives_base_name
 }
 
+configurations {
+    // Libraries copied into the mod jar. Not jar-in-jar: the loader adds the macro jar to the class path by hand
+    // and would never see nested jars.
+    shade
+    implementation.extendsFrom shade
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    // JavaScript engine for userscripts (pure Java, no dependencies of its own).
+    shade "org.mozilla:rhino:${project.rhino_version}"
 
     testImplementation platform('org.junit:junit-bom:5.13.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -42,4 +51,9 @@ tasks.withType(JavaCompile).configureEach {
 
 jar {
     from('LICENSE') { rename { "${it}_${project.archives_base_name}" } }
+    from({ configurations.shade.collect { zipTree(it) } }) {
+        // Keep META-INF/services: Rhino finds its regexp engine through it.
+        exclude 'META-INF/MANIFEST.MF', 'META-INF/*.SF', 'META-INF/*.RSA', 'META-INF/*.DSA', 'module-info.class'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 }

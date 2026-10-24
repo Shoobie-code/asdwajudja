@@ -128,6 +128,8 @@ public final class MinerConfig {
     public String combatAttackMode = "melee";
     public String combatWarpCommand = "";
 
+    /** File name of the userscript the Userscript macro runs, in config/skyblockminer/scripts. */
+    public String script = "example.js";
     // Wynncraft combat
     public String wynnClass = "warrior";
     public List<String> wynnMobs = new ArrayList<>();

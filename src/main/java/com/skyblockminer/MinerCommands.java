@@ -115,6 +115,35 @@ final class MinerCommands {
                     MinerMod.message(saved.isEmpty() ? "No saved profiles" : "Profiles: " + String.join(", ", saved), ChatFormatting.AQUA);
                     return 1;
                 })))
+            .then(ClientCommands.literal("script")
+                .executes(c -> listScripts(macro, config, settings))
+                .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))
+                .then(ClientCommands.literal("run").then(ClientCommands.argument("file", StringArgumentType.greedyString())
+                    .suggests((c, b) -> {
+                        macro.scripts.scripts.list().forEach(info -> b.suggest(info.file()));
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        settings.reloadScripts();
+                        Scripts.Info info = macro.scripts.scripts.find(StringArgumentType.getString(c, "file").trim());
+                        if (info == null) {
+                            MinerMod.message("No such script. /sm script lists them.", ChatFormatting.RED);
+                            return 0;
+                        }
+                        config.script = info.file();
+                        config.markDirty();
+                        macro.start(MacroType.SCRIPT);
+                        return 1;
+                    })))
+                .then(ClientCommands.literal("stop").executes(c -> run(() -> macro.stop("Stopped"))))
+                .then(ClientCommands.literal("reload").executes(c -> {
+                    int count = settings.reloadScripts();
+                    MinerMod.message("Loaded " + count + (count == 1 ? " script" : " scripts") + " from " + macro.scripts.scripts.dir(), ChatFormatting.GREEN);
+                    if (macro.running() && macro.mode() == MacroType.SCRIPT) {
+                        macro.start(MacroType.SCRIPT);
+                    }
+                    return 1;
+                })))
             .then(ClientCommands.literal("build")
                 .executes(c -> run(() -> macro.start(MacroType.BUILDER)))
                 .then(ClientCommands.literal("pos1").executes(c -> set(settings, "builder.pos1", "")))
@@ -397,6 +426,21 @@ final class MinerCommands {
         config.save();
         macro.applyConfig();
         MinerMod.message(text, ChatFormatting.GREEN);
+        return 1;
+    }
+
+    private static int listScripts(Macro macro, MinerConfig config, MacroSettings settings) {
+        settings.reloadScripts();
+        List<Scripts.Info> scripts = macro.scripts.scripts.list();
+        MinerMod.message("Scripts folder: " + macro.scripts.scripts.dir(), ChatFormatting.AQUA);
+        if (scripts.isEmpty()) {
+            MinerMod.message("No .js files there yet.", ChatFormatting.GRAY);
+        }
+        for (Scripts.Info info : scripts) {
+            String mark = info.file().equals(config.script) ? " (selected)" : "";
+            String about = info.description().isEmpty() ? "" : " - " + info.description();
+            MinerMod.message(info.file() + ": " + info.name() + mark + about, ChatFormatting.AQUA);
+        }
         return 1;
     }
 
