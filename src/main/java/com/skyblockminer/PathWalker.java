@@ -119,10 +119,6 @@ final class PathWalker {
         return this.hops;
     }
 
-    boolean teleporting() {
-        return this.hop != null;
-    }
-
     void go(Minecraft mc, List<Vec3> goals, double radius) {
         this.goals = goals;
         this.radius = radius;

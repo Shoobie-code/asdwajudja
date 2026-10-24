@@ -865,11 +865,6 @@ final class Pathfinder {
         return best;
     }
 
-    static boolean standsAt(Pathfinder.Shapes source, int x, int y, int z, double h) {
-        double floor = floor(source, x, y, z);
-        return !Double.isNaN(floor) && Math.abs(y + floor - h) < 0.01 && clear(source, x, z, h, h + BODY);
-    }
-
     private static final class Node {
         final int x;
         final int y;

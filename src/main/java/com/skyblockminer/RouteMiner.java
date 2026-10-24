@@ -197,7 +197,7 @@ final class RouteMiner implements Routine {
     }
 
     private void retryWarp(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
-        if (++this.warpTries >= 3) {
+        if (++this.warpTries >= MAX_WARP_TRIES) {
             MinerMod.LOGGER.info("Etherwarp to point {} failed {} times, walking", this.index + 1, this.warpTries);
             this.walk(macro, mc);
         } else {
@@ -248,7 +248,7 @@ final class RouteMiner implements Routine {
                 return "Point " + (this.index + 1) + " next";
             }
 
-            if (System.currentTimeMillis() - this.phaseAt > 120000L) {
+            if (System.currentTimeMillis() - this.phaseAt > POINT_LIMIT_MS) {
                 this.next(macro, mc, player, level);
                 return "Moving on";
             } else {
