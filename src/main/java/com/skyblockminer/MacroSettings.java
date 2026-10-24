@@ -16,6 +16,7 @@ import com.skyblockminer.gui.Setting.Text;
 import com.skyblockminer.gui.Setting.Toggle;
 import com.skyblockminer.gui.Theme;
 import com.skyblockminer.gui.Toasts;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -46,12 +47,14 @@ public final class MacroSettings {
     private final Map<String, Setting> byId = new LinkedHashMap<>();
     private Menu.KeyBinds keys;
     private Menu.Layout layout;
+    /** One card per userscript, swapped on reload; the Scripts tab reads it through a live view. */
+    private List<Card> scriptCards = List.of();
 
     public MacroSettings(Macro macro) {
         this.macro = macro;
         this.c = macro.config;
         this.categories = List.of(this.mining(), this.farming(), this.foraging(), this.fishing(), this.combat(), this.wynncraft(), this.safety(),
-            this.notifications(), this.market(), this.helpers(), this.visuals(), this.general());
+            this.notifications(), this.market(), this.helpers(), this.visuals(), this.general(), this.userscripts());
         for (Category category : this.categories) {
             for (Section section : category.sections()) {
                 for (Setting setting : section.settings()) {
@@ -61,6 +64,7 @@ public final class MacroSettings {
                 }
             }
         }
+        this.reloadScripts();
     }
 
     public List<Category> categories() {
@@ -130,6 +134,17 @@ public final class MacroSettings {
                     this.c.farmPestAction = this.c.farmPestAction.equals("kill") ? "notify" : "kill";
                     this.changed();
                 }, null, this.sections("Farming", "Pests")))),
+            new Tab("Scripts", "✎", "Your own JavaScript macros from config/skyblockminer/scripts.", new AbstractList<>() {
+                @Override
+                public Card get(int index) {
+                    return MacroSettings.this.scriptCards.get(index);
+                }
+
+                @Override
+                public int size() {
+                    return MacroSettings.this.scriptCards.size();
+                }
+            }),
             new Tab("Misc", "✚", "Helpers that run alongside any macro.", List.of(
                 this.moduleCard("Auto Sell", "sell.enabled", "General", "Auto sell"),
                 this.infoCard("Menu Solvers", "General", "Menu solvers"),
@@ -167,6 +182,40 @@ public final class MacroSettings {
             },
             () -> this.macro.select(type),
             this.sections(category, sections));
+    }
+
+    /** Rescans the scripts folder and rebuilds the Scripts tab. Returns how many scripts it found. */
+    int reloadScripts() {
+        List<Card> cards = new ArrayList<>();
+        cards.add(this.infoCard("Userscripts", "Scripts", "Userscripts"));
+        List<Scripts.Info> found = this.macro.scripts.scripts.reload();
+        for (Scripts.Info info : found) {
+            cards.add(this.scriptCard(info));
+        }
+        this.scriptCards = List.copyOf(cards);
+        return found.size();
+    }
+
+    private Card scriptCard(Scripts.Info info) {
+        BooleanSupplier on = () -> this.macro.running() && this.macro.mode() == MacroType.SCRIPT && info.file().equals(this.c.script);
+        return new Card(info.name(),
+            () -> this.macro.selected() == MacroType.SCRIPT && info.file().equals(this.c.script) ? "Selected" : "Select",
+            on,
+            () -> {
+                if (on.getAsBoolean()) {
+                    this.macro.stop("Stopped");
+                } else {
+                    this.c.script = info.file();
+                    this.c.markDirty();
+                    Minecraft.getInstance().gui.setScreen(null);
+                    this.macro.start(MacroType.SCRIPT);
+                }
+            },
+            () -> {
+                this.c.script = info.file();
+                this.macro.select(MacroType.SCRIPT);
+            },
+            List.of());
     }
 
     /** A module whose ON/OFF button flips the toggle setting {@code id}. */
@@ -702,6 +751,28 @@ public final class MacroSettings {
                 this.text("chat.custom", "Also hide", "Hide lines containing any of these, comma separated.", "e.g. [Auction], Sacks", false,
                     () -> String.join(", ", this.c.filterCustom), v -> this.c.filterCustom = splitList(v)).visibleWhen(() -> this.c.chatFilter)))
         ));
+    }
+
+    private Category userscripts() {
+        return new Category("Scripts", "✎", List.of(
+            new Section("Userscripts", List.of(
+                this.choice("script.file", "Script", "Which script the Userscript macro runs. Each .js file in the scripts folder is one script.",
+                    () -> this.macro.scripts.scripts.list().stream().map(Scripts.Info::file).toList(),
+                    file -> {
+                        Scripts.Info info = this.macro.scripts.scripts.find(file);
+                        return info == null ? file : info.name();
+                    },
+                    () -> this.c.script, file -> this.c.script = file),
+                this.start("script.start", MacroType.Category.SCRIPTS),
+                this.button("script.reload", "Reload scripts", "Rescans the folder; a running script restarts with its new code.", "Reload", () -> {
+                    int count = this.reloadScripts();
+                    if (this.macro.running() && this.macro.mode() == MacroType.SCRIPT) {
+                        this.macro.start(MacroType.SCRIPT);
+                    }
+                    Toasts.push("Scripts", count + (count == 1 ? " script" : " scripts") + " loaded", Toasts.Kind.SUCCESS);
+                }),
+                this.button("script.folder", "Scripts folder", "Prints where the scripts live. API.md there lists everything a script can do.", "Show",
+                    () -> MinerMod.message("Scripts folder: " + this.macro.scripts.scripts.dir(), ChatFormatting.AQUA))))));
     }
 
     private Category general() {

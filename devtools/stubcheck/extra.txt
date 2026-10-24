@@ -28,3 +28,4 @@ add net/minecraft/world/entity/Entity public boolean hasCustomName() { return fa
 add net/minecraft/world/entity/Entity public net.minecraft.network.chat.Component getCustomName() { return null; }
 add net/minecraft/world/entity/LivingEntity public float getHealth() { return 0; }
 add net/minecraft/world/entity/LivingEntity public float getMaxHealth() { return 0; }
+add net/minecraft/client/multiplayer/ClientPacketListener public void sendChat(java.lang.String a0) {}

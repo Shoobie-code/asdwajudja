@@ -7,6 +7,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -56,6 +57,7 @@ public final class Macro {
     final WynnStatus wynn = new WynnStatus();
     final GlaciteCommissions glacite = new GlaciteCommissions();
     final ExcavatorMacro excavator = new ExcavatorMacro();
+    final ScriptRoutine scripts = new ScriptRoutine(this, FabricLoader.getInstance().getConfigDir().resolve(MinerMod.ID).resolve("scripts"));
     final AutoSell autoSell = new AutoSell();
     final Recording recording = new Recording();
     final Prices prices = new Prices();
@@ -122,6 +124,7 @@ public final class Macro {
         this.routines.put(MacroType.WYNN_COMBAT, this.wynnCombat);
         this.routines.put(MacroType.GLACITE, this.glacite);
         this.routines.put(MacroType.EXCAVATOR, this.excavator);
+        this.routines.put(MacroType.SCRIPT, this.scripts);
         this.allRoutines = List.copyOf(this.routines.values());
     }
 
@@ -266,6 +269,7 @@ public final class Macro {
         Minecraft mc = Minecraft.getInstance();
         this.running = false;
         this.releaseAll(mc);
+        this.allRoutines.forEach(Routine::stopped);
         this.rotator.stop();
         this.restoreForeground(mc);
         this.status = "Off";
@@ -470,6 +474,9 @@ public final class Macro {
         this.walker.onChat(text);
         if (!this.running) {
             return;
+        }
+        if (this.mode == MacroType.SCRIPT) {
+            this.scripts.onAnyChat(text);
         }
         if (text.contains(": ")) {
             String mention = this.config.chatAlerts ? Failsafes.chatMention(text, this.myName()) : null;

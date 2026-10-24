@@ -48,8 +48,9 @@ class LogicTest {
     @Test
     void macroTypesCycleWithinSelectable() {
         assertSame(MacroType.COMBAT.next(), MacroType.WYNN_COMBAT);
-        assertSame(MacroType.WYNN_COMBAT.next(), MacroType.MITHRIL);
-        assertSame(MacroType.MITHRIL.previous(), MacroType.WYNN_COMBAT);
+        assertSame(MacroType.WYNN_COMBAT.next(), MacroType.SCRIPT);
+        assertSame(MacroType.SCRIPT.next(), MacroType.MITHRIL);
+        assertSame(MacroType.MITHRIL.previous(), MacroType.SCRIPT);
         assertFalse(MacroType.SELECTABLE.contains(MacroType.GOTO));
         assertNull(MacroType.parse("goto"));
         assertSame(MacroType.FARMING, MacroType.parse(" Farming "));
