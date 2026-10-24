@@ -22,13 +22,6 @@ final class WynnStatus {
         this.updatedAt = now;
     }
 
-    void clear() {
-        this.health = null;
-        this.mana = null;
-        this.clicks = null;
-        this.updatedAt = 0L;
-    }
-
     private boolean fresh(long now) {
         return now - this.updatedAt <= STALE_MS;
     }

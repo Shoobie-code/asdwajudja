@@ -182,48 +182,22 @@ final class Routes {
     }
 
     static List<BlockPos> parse(String json) {
-        JsonElement root = JsonParser.parseString(json.trim());
-        JsonArray array = null;
-        if (root.isJsonArray()) {
-            array = root.getAsJsonArray();
-        } else if (root.isJsonObject()) {
-            JsonObject object = root.getAsJsonObject();
-
-            for (String key : new String[]{"points", "waypoints", "route"}) {
-                if (object.has(key) && object.get(key).isJsonArray()) {
-                    array = object.getAsJsonArray(key);
-                    break;
+        List<BlockPos> route = new ArrayList<>();
+        for (JsonElement element : pointArray(json)) {
+            if (element.isJsonObject()) {
+                JsonObject point = element.getAsJsonObject();
+                if (point.has("x") && point.has("y") && point.has("z")) {
+                    route.add(BlockPos.containing(point.get("x").getAsDouble(), point.get("y").getAsDouble(), point.get("z").getAsDouble()));
                 }
+            } else if (element.isJsonArray() && element.getAsJsonArray().size() >= 3) {
+                JsonArray point = element.getAsJsonArray();
+                route.add(BlockPos.containing(point.get(0).getAsDouble(), point.get(1).getAsDouble(), point.get(2).getAsDouble()));
             }
         }
-
-        if (array == null) {
-            throw new IllegalArgumentException("not a list of points");
-        } else {
-            List<BlockPos> route = new ArrayList<>();
-
-            for (JsonElement element : array) {
-                if (element.isJsonObject()) {
-                    JsonObject point = element.getAsJsonObject();
-                    if (point.has("x") && point.has("y") && point.has("z")) {
-                        route.add(BlockPos.containing(point.get("x").getAsDouble(), point.get("y").getAsDouble(), point.get("z").getAsDouble()));
-                    }
-                } else if (element.isJsonArray() && element.getAsJsonArray().size() >= 3) {
-                    JsonArray point = element.getAsJsonArray();
-                    route.add(BlockPos.containing(point.get(0).getAsDouble(), point.get(1).getAsDouble(), point.get(2).getAsDouble()));
-                }
-            }
-
-            if (route.isEmpty()) {
-                throw new IllegalArgumentException("no points with x, y and z");
-            } else {
-                return route;
-            }
+        if (route.isEmpty()) {
+            throw new IllegalArgumentException("no points with x, y and z");
         }
-    }
-
-    static String toJson(List<BlockPos> route) {
-        return toJson(route, Map.of());
+        return route;
     }
 
     static String toJson(List<BlockPos> route, Map<BlockPos, Flags> flags) {

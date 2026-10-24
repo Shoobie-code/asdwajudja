@@ -469,7 +469,7 @@ final class MinerCommands {
             "/sm - start or stop | /sm gui - menu (Right Shift) | /sm hud - move the HUD",
             "/sm market - bazaar, auction, craft and NPC flips, minion costs | /sm skills - XP rates and best methods",
             "/sm start [type] | stop | status | type <type>",
-            "  types: mithril gemstone ore tunnel custom route powder commissions glacite excavator farming foraging fishing combat builder",
+            "  types: " + String.join(" ", MacroType.SELECTABLE.stream().map(type -> type.id).toList()),
             "/sm set <setting> [value] - view or change any option | /sm settings - list them",
             "/sm farm rewarp|clear | forage spot|clear|add|clearroute | fish spot|clear | combat spot|clear | visitors spot - save spots where you stand",
             "/sm echo record|stop|clear - record a farm walk for the \"Recorded movement\" farm type",

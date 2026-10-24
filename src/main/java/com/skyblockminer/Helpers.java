@@ -45,13 +45,7 @@ final class Helpers {
             return;
         }
         List<String> tab = TabList.lines(mc);
-        String area = null;
-        for (String line : tab) {
-            if (line.startsWith("Area: ")) {
-                area = line.substring(6).trim();
-                break;
-            }
-        }
+        String area = TabList.area(tab);
         if (area == null || !area.equals(this.area)) {
             this.lastVisitors = -1;
             this.lastPests = -1;

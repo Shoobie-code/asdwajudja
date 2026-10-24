@@ -34,10 +34,6 @@ final class Recording {
         return this.frames;
     }
 
-    boolean recording() {
-        return this.recording != null;
-    }
-
     void start() {
         this.recording = new ArrayList<>();
         MinerMod.message("Recording movement. Walk your farm once, then run /sm echo stop.", ChatFormatting.GREEN);

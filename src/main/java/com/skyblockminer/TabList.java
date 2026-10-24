@@ -38,7 +38,12 @@ final class TabList {
     }
 
     static String area(Minecraft mc) {
-        for (String line : lines(mc)) {
+        return area(lines(mc));
+    }
+
+    /** The "Area: ..." tab line's value, or null when it is missing. */
+    static String area(List<String> lines) {
+        for (String line : lines) {
             if (line.startsWith("Area: ")) {
                 return line.substring(6).trim();
             }

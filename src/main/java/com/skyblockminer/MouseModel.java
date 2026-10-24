@@ -103,10 +103,6 @@ final class MouseModel {
         this.speed = Math.max(0.01, Math.min(1.0, speed));
     }
 
-    boolean moving() {
-        return this.moving;
-    }
-
     /** Peak turn speed in degrees per second at the current speed setting. */
     double maxVelocity() {
         return 250.0 + 1750.0 * this.speed;

@@ -40,16 +40,11 @@ final class AuctionSniper {
     private AuctionFlipper.Flip current;
     private long deadline;
     private long nextOpenAt;
-    private int bought;
 
     AuctionSniper(MinerConfig config, Macro macro, Market market) {
         this.config = config;
         this.macro = macro;
         market.onNewListings(fresh -> this.onFresh(market, fresh));
-    }
-
-    int bought() {
-        return this.bought;
     }
 
     /** Runs on an HTTP thread after each scan; only queues work for the game thread. */
@@ -112,7 +107,6 @@ final class AuctionSniper {
                         return;
                     }
                     Inv.click(mc, CONFIRM_SLOT);
-                    this.bought++;
                     MinerMod.message(String.format(Locale.ROOT, "Bought %s for %,d (resell at %,d for about +%,d)",
                         this.current.listing().name(), this.current.listing().price(), this.current.resellAt(), this.current.profit()),
                         ChatFormatting.GREEN);

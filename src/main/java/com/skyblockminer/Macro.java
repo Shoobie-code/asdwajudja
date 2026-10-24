@@ -362,14 +362,8 @@ public final class Macro {
     }
 
     boolean playerNear(Minecraft mc, Vec3 point, double radius) {
-        if (mc.level == null || mc.getConnection() == null) {
-            return false;
-        }
-        for (AbstractClientPlayer other : mc.level.players()) {
-            if (other != mc.player
-                && other.getUUID().version() == 4
-                && mc.getConnection().getPlayerInfo(other.getUUID()) != null
-                && other.position().distanceToSqr(point) <= radius * radius) {
+        for (AbstractClientPlayer other : Failsafes.realPlayers(mc, mc.player)) {
+            if (other.position().distanceToSqr(point) <= radius * radius) {
                 return true;
             }
         }
