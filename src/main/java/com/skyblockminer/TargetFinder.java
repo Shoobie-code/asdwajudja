@@ -109,7 +109,7 @@ final class TargetFinder {
             int evaluated = 0;
 
             for (TargetFinder.Candidate candidate : candidates) {
-                if (evaluated++ >= 24) {
+                if (evaluated++ >= EVALUATION_BUDGET) {
                     break;
                 }
 
@@ -139,10 +139,10 @@ final class TargetFinder {
             Vec3 normal = new Vec3(face.getStepX(), face.getStepY(), face.getStepZ());
             Vec3 faceCenter = center.add(normal.scale(0.5));
             if (!(eye.subtract(faceCenter).dot(normal) <= 0.0)) {
-                for (int i = 0; i < 7; i++) {
+                for (int i = 0; i < SAMPLES_PER_FACE; i++) {
                     double u = i == 0 ? 0.0 : (this.random.nextDouble() * 2.0 - 1.0) * (this.randomize ? this.spread : 0.3);
                     double v = i == 0 ? 0.0 : (this.random.nextDouble() * 2.0 - 1.0) * (this.randomize ? this.spread : 0.3);
-                    Vec3 point = facePoint(faceCenter, face, u, v).subtract(normal.scale(0.02));
+                    Vec3 point = facePoint(faceCenter, face, u, v).subtract(normal.scale(FACE_INSET));
                     Vec3 toPoint = point.subtract(eye);
                     if (!(toPoint.lengthSqr() > reachSq) && reaches(player, level, eye, point, pos)) {
                         visible.add(new TargetFinder.Point(point, toPoint.normalize().dot(look)));

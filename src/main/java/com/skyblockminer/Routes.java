@@ -21,10 +21,11 @@ import net.minecraft.gizmos.Gizmos;
 import net.minecraft.world.phys.Vec3;
 
 final class Routes {
-    private static final int POINT = -4174593;
-    private static final int POINT_FILL = 817908991;
-    private static final int NEXT = -11141291;
-    private static final int LINE = -1061139201;
+    private static final int POINT = 0xFFC04CFF;
+    private static final int POINT_FILL = 0x30C04CFF;
+    private static final int NEXT = 0xFF55FF55;
+    private static final int NEXT_FILL = 0x3055FF55;
+    private static final int LINE = 0xC0C04CFF;
     private static final double DRAW_DISTANCE = 128.0;
     private final List<BlockPos> points = new ArrayList<>();
     private final Map<BlockPos, Flags> flags = new HashMap<>();
@@ -248,21 +249,21 @@ final class Routes {
     void render(LocalPlayer player, int next) {
         if (!this.points.isEmpty()) {
             Vec3 here = player.position();
-            double maxSq = 16384.0;
+            double maxSq = DRAW_DISTANCE * DRAW_DISTANCE;
 
             for (int i = 0; i < this.points.size(); i++) {
                 BlockPos point = this.points.get(i);
                 boolean near = Vec3.atCenterOf(point).distanceToSqr(here) <= maxSq;
                 if (near) {
-                    int color = i == next ? -11141291 : -4174593;
-                    Gizmos.cuboid(point, GizmoStyle.strokeAndFill(color, 2.0F, i == next ? 810942293 : 817908991));
+                    int color = i == next ? NEXT : POINT;
+                    Gizmos.cuboid(point, GizmoStyle.strokeAndFill(color, 2.0F, i == next ? NEXT_FILL : POINT_FILL));
                     Gizmos.billboardTextOverBlock(String.valueOf(i + 1), point, 0, color, 0.32F);
                 }
 
                 if (this.points.size() >= 2) {
                     BlockPos to = this.points.get((i + 1) % this.points.size());
                     if (near || !(Vec3.atCenterOf(to).distanceToSqr(here) > maxSq)) {
-                        Gizmos.line(Vec3.atCenterOf(point).add(0.0, 0.5, 0.0), Vec3.atCenterOf(to).add(0.0, 0.5, 0.0), -1061139201, 2.0F);
+                        Gizmos.line(Vec3.atCenterOf(point).add(0.0, 0.5, 0.0), Vec3.atCenterOf(to).add(0.0, 0.5, 0.0), LINE, 2.0F);
                     }
                 }
             }

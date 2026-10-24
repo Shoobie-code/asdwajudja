@@ -91,16 +91,16 @@ final class WorldMap {
         if (level == this.level && this.area != null) {
             byte[][] chunk = this.chunks.get(key(pos.getX() >> 4, pos.getZ() >> 4));
             if (chunk != null) {
-                int index = (pos.getY() >> 4) - -4;
-                if (index >= 0 && index < 24) {
+                int index = (pos.getY() >> 4) - MIN_SECTION;
+                if (index >= 0 && index < SECTIONS) {
                     byte code = this.code(state);
                     if (chunk[index] == null) {
-                        if (code == 1) {
+                        if (code == EMPTY_CODE) {
                             return;
                         }
 
                         chunk[index] = new byte[4096];
-                        Arrays.fill(chunk[index], (byte)1);
+                        Arrays.fill(chunk[index], EMPTY_CODE);
                     }
 
                     chunk[index][(pos.getY() & 15) << 8 | (pos.getZ() & 15) << 4 | pos.getX() & 15] = code;
@@ -123,7 +123,7 @@ final class WorldMap {
             this.pending.clear();
         } else if (this.level != null) {
             if (this.area == null) {
-                if (now - this.levelSince >= 2500L) {
+                if (now - this.levelSince >= SETTLE_MS) {
                     String found = areaName(mc);
                     if (found != null) {
                         this.area = found;
@@ -134,7 +134,10 @@ final class WorldMap {
                         boolean fromV5 = this.imported;
                         this.loading = CompletableFuture.supplyAsync(() -> {
                             try {
-                                return (Map<Long, byte[][]>)(Files.exists(source) ? (fromV5 ? readV5(source) : read(source)) : new HashMap<>());
+                                if (!Files.exists(source)) {
+                                    return new HashMap<>();
+                                }
+                                return fromV5 ? readV5(source) : read(source);
                             } catch (RuntimeException | IOException e) {
                                 MinerMod.LOGGER.warn("Could not read map {}", source, e);
                                 return new HashMap<>();
@@ -186,7 +189,7 @@ final class WorldMap {
                     }
                 }
 
-                if (this.dirty && now - this.savedAt > 300000L) {
+                if (this.dirty && now - this.savedAt > AUTOSAVE_MS) {
                     this.saveAsync();
                 }
             }
@@ -194,16 +197,16 @@ final class WorldMap {
     }
 
     private int record(LevelChunk chunk) {
-        byte[][] sections = new byte[24][];
+        byte[][] sections = new byte[SECTIONS][];
         LevelChunkSection[] levelSections = chunk.getSections();
         int minSection = chunk.getMinSectionY();
         int read = 0;
         int oreCount = 0;
 
         for (int i = 0; i < levelSections.length; i++) {
-            int index = minSection + i - -4;
+            int index = minSection + i - MIN_SECTION;
             LevelChunkSection section = levelSections[i];
-            if (index >= 0 && index < 24 && section != null && !section.hasOnlyAir()) {
+            if (index >= 0 && index < SECTIONS && section != null && !section.hasOnlyAir()) {
                 byte[] blocks = new byte[4096];
                 boolean any = false;
 
@@ -213,7 +216,7 @@ final class WorldMap {
                             BlockState state = section.getBlockState(x, y, z);
                             byte code = this.code(state);
                             blocks[y << 8 | z << 4 | x] = code;
-                            any |= code != 1;
+                            any |= code != EMPTY_CODE;
                             int type = this.ores.type(state);
                             if (type >= 0) {
                                 if (oreCount == this.oreScratch.length) {
@@ -246,9 +249,9 @@ final class WorldMap {
         } else {
             byte code;
             if (state.isAir()) {
-                code = 1;
+                code = EMPTY_CODE;
             } else if (Pathfinder.hazard(state)) {
-                code = 2;
+                code = HAZARD_CODE;
             } else if (Pathfinder.kind(state) == Pathfinder.WATER) {
                 code = 3;
             } else if (Pathfinder.kind(state) == Pathfinder.CLIMB) {
@@ -257,7 +260,7 @@ final class WorldMap {
                 code = 5;
             } else {
                 VoxelShape shape = state.getCollisionShape(EmptyBlockGetter.INSTANCE, BlockPos.ZERO);
-                code = shape.isEmpty() ? 1 : encode(shape.min(Axis.Y), shape.max(Axis.Y));
+                code = shape.isEmpty() ? EMPTY_CODE : encode(shape.min(Axis.Y), shape.max(Axis.Y));
             }
 
             this.codes.put(state, code);
@@ -285,8 +288,8 @@ final class WorldMap {
         if (chunk == null) {
             return null;
         } else {
-            int index = (y >> 4) - -4;
-            return index >= 0 && index < 24 && chunk[index] != null ? decode(chunk[index][(y & 15) << 8 | (z & 15) << 4 | x & 15]) : Pathfinder.EMPTY;
+            int index = (y >> 4) - MIN_SECTION;
+            return index >= 0 && index < SECTIONS && chunk[index] != null ? decode(chunk[index][(y & 15) << 8 | (z & 15) << 4 | x & 15]) : Pathfinder.EMPTY;
         }
     }
 
@@ -299,14 +302,6 @@ final class WorldMap {
                 shape = known.get(x, y, z);
             }
 
-            return shape == null ? Pathfinder.EMPTY : shape;
-        };
-    }
-
-    static Pathfinder.Shapes shapesOf(Map<Long, byte[][]> chunks) {
-        WorldMap.Reader reader = new WorldMap.Reader(chunks);
-        return (x, y, z) -> {
-            double[] shape = reader.get(x, y, z);
             return shape == null ? Pathfinder.EMPTY : shape;
         };
     }
@@ -374,20 +369,20 @@ final class WorldMap {
         }
     }
 
-    static void write(Path file, Map<Long, byte[][]> chunks) throws IOException {
+    static synchronized void write(Path file, Map<Long, byte[][]> chunks) throws IOException {
         Files.createDirectories(file.getParent());
         Path temp = file.resolveSibling(file.getFileName() + ".tmp");
 
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(new GZIPOutputStream(Files.newOutputStream(temp), 65536)))) {
-            out.writeInt(1397571920);
-            out.writeInt(1);
+            out.writeInt(MAGIC);
+            out.writeInt(VERSION);
             out.writeInt(chunks.size());
 
             for (Entry<Long, byte[][]> entry : chunks.entrySet()) {
                 byte[][] sections = entry.getValue();
                 int mask = 0;
 
-                for (int i = 0; i < 24; i++) {
+                for (int i = 0; i < SECTIONS; i++) {
                     if (sections[i] != null) {
                         mask |= 1 << i;
                     }
@@ -396,7 +391,7 @@ final class WorldMap {
                 out.writeLong(entry.getKey());
                 out.writeInt(mask);
 
-                for (int ix = 0; ix < 24; ix++) {
+                for (int ix = 0; ix < SECTIONS; ix++) {
                     if (sections[ix] != null) {
                         out.write(sections[ix]);
                     }
@@ -408,9 +403,8 @@ final class WorldMap {
     }
 
     static Map<Long, byte[][]> read(Path file) throws IOException {
-        Object var12;
         try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(file), 65536)))) {
-            if (in.readInt() != 1397571920 || in.readInt() != 1) {
+            if (in.readInt() != MAGIC || in.readInt() != VERSION) {
                 throw new IOException("not a Skyblock Miner map");
             }
 
@@ -420,9 +414,9 @@ final class WorldMap {
             for (int c = 0; c < count; c++) {
                 long key = in.readLong();
                 int mask = in.readInt();
-                byte[][] sections = new byte[24][];
+                byte[][] sections = new byte[SECTIONS][];
 
-                for (int i = 0; i < 24; i++) {
+                for (int i = 0; i < SECTIONS; i++) {
                     if ((mask & 1 << i) != 0) {
                         sections[i] = new byte[4096];
                         in.readFully(sections[i]);
@@ -432,16 +426,13 @@ final class WorldMap {
                 chunks.put(key, sections);
             }
 
-            var12 = chunks;
+            return chunks;
         }
-
-        return (Map<Long, byte[][]>)var12;
     }
 
     static Map<Long, byte[][]> readV5(Path file) throws IOException {
-        Object var23;
         try (DataInputStream in = new DataInputStream(new BufferedInputStream(new GZIPInputStream(Files.newInputStream(file), 65536)))) {
-            if (in.readInt() != 1555033003) {
+            if (in.readInt() != V5_MAGIC) {
                 throw new IOException("not a V5 map");
             }
 
@@ -460,20 +451,20 @@ final class WorldMap {
                 int maxY = in.readInt();
                 long mask = in.readLong();
                 int sectionCount = maxY - minY + 15 >> 4;
-                byte[][] sections = new byte[24][];
+                byte[][] sections = new byte[SECTIONS][];
 
                 for (int i = 0; i < sectionCount && i < 64; i++) {
                     if ((mask & 1L << i) != 0L) {
                         in.readFully(raw);
-                        int index = (minY >> 4) + i - -4;
-                        if (index >= 0 && index < 24) {
+                        int index = (minY >> 4) + i - MIN_SECTION;
+                        if (index >= 0 && index < SECTIONS) {
                             byte[] blocks = new byte[4096];
                             boolean any = false;
 
                             for (int b = 0; b < 4096; b++) {
                                 int flags = (raw[b * 2] & 255) << 8 | raw[b * 2 + 1] & 255;
                                 blocks[b] = fromV5(flags);
-                                any |= blocks[b] != 1;
+                                any |= blocks[b] != EMPTY_CODE;
                             }
 
                             if (any) {
@@ -486,31 +477,29 @@ final class WorldMap {
                 chunks.put(key, sections);
             }
 
-            var23 = chunks;
+            return chunks;
         }
-
-        return (Map<Long, byte[][]>)var23;
     }
 
     static byte fromV5(int flags) {
-        if ((flags & 16) != 0) {
-            return 2;
-        } else if ((flags & 2) == 0) {
-            return 1;
-        } else if ((flags & 32) != 0) {
+        if ((flags & V5_FLUID) != 0) {
+            return HAZARD_CODE;
+        } else if ((flags & V5_SOLID) == 0) {
+            return EMPTY_CODE;
+        } else if ((flags & V5_SLAB_BOTTOM) != 0) {
             return encode(0.0, 0.5);
-        } else if ((flags & 64) != 0) {
+        } else if ((flags & V5_SLAB_TOP) != 0) {
             return encode(0.5, 1.0);
-        } else if ((flags & 128) != 0) {
+        } else if ((flags & V5_FENCE) != 0) {
             return encode(0.0, 1.5);
         } else {
-            return (flags & 1) != 0 ? 1 : encode(0.0, 1.0);
+            return (flags & V5_PASSABLE) != 0 ? EMPTY_CODE : encode(0.0, 1.0);
         }
     }
 
     static {
-        DECODED[1] = Pathfinder.EMPTY;
-        DECODED[2] = Pathfinder.HAZARD;
+        DECODED[EMPTY_CODE] = Pathfinder.EMPTY;
+        DECODED[HAZARD_CODE] = Pathfinder.HAZARD;
         DECODED[3] = Pathfinder.WATER;
         DECODED[4] = Pathfinder.CLIMB;
         DECODED[5] = Pathfinder.SOFT;
@@ -570,8 +559,8 @@ final class WorldMap {
             if (this.last == null) {
                 return null;
             } else {
-                int index = (y >> 4) - -4;
-                return index >= 0 && index < 24 && this.last[index] != null
+                int index = (y >> 4) - MIN_SECTION;
+                return index >= 0 && index < SECTIONS && this.last[index] != null
                     ? WorldMap.decode(this.last[index][(y & 15) << 8 | (z & 15) << 4 | x & 15])
                     : Pathfinder.EMPTY;
             }

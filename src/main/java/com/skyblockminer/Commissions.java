@@ -250,7 +250,7 @@ final class Commissions implements Routine {
                 return this.current;
             }
         } else if (state == PathWalker.State.FAILED) {
-            this.badSpots.put(this.spot, now + 120000L);
+            this.badSpots.put(this.spot, now + SPOT_COOLDOWN);
             macro.message("Couldn't reach the " + this.current + " spot (" + macro.walker.failure() + "), trying another");
             this.phase(Commissions.Phase.CHOOSING);
             return "Path failed";
@@ -292,7 +292,7 @@ final class Commissions implements Routine {
                 }
 
                 if (now - this.crowdedSince > 20000L) {
-                    this.badSpots.put(this.spot, now + 120000L);
+                    this.badSpots.put(this.spot, now + SPOT_COOLDOWN);
                     macro.mining.release(mc);
                     macro.message("Another player is mining here, moving");
                     this.phase(Commissions.Phase.CHOOSING);
@@ -315,7 +315,7 @@ final class Commissions implements Routine {
                     }
 
                     if (now - this.idleSince > 8000L) {
-                        this.badSpots.put(this.spot, now + 120000L);
+                        this.badSpots.put(this.spot, now + SPOT_COOLDOWN);
                         macro.mining.release(mc);
                         macro.message("Spot is mined out, moving");
                         this.phase(Commissions.Phase.CHOOSING);

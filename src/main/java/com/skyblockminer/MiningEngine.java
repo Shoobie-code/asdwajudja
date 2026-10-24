@@ -57,7 +57,7 @@ final class MiningEngine {
 
     boolean recentlyMined(BlockPos pos) {
         Long at = this.recentlyMined.get(pos);
-        return at != null && System.currentTimeMillis() - at < 10000L;
+        return at != null && System.currentTimeMillis() - at < RECENT_MS;
     }
 
     void onAbilityReady() {
@@ -97,7 +97,7 @@ final class MiningEngine {
 
         long now = System.currentTimeMillis();
         this.excluded.values().removeIf(until -> until < now);
-        this.recentlyMined.values().removeIf(at -> now - at > 10000L);
+        this.recentlyMined.values().removeIf(at -> now - at > RECENT_MS);
         if (this.target != null && !costs.containsKey(TargetFinder.blockId(level, this.target.pos()))) {
             this.broken++;
             this.recentlyMined.put(this.target.pos(), now);
@@ -140,14 +140,14 @@ final class MiningEngine {
                     this.driftIn = 15 + this.random.nextInt(30);
                 }
 
-                if (++this.mineTicks > 200) {
+                if (++this.mineTicks > MAX_MINE_TICKS) {
                     this.skip("took too long to break");
                 }
 
                 return "Mining " + pretty(this.target == null ? "" : this.target.block());
             } else {
                 this.stopDestroying(mc);
-                if (++this.aimTicks > 40) {
+                if (++this.aimTicks > MAX_AIM_TICKS) {
                     Vec3 aim = this.finder.aimPoint(player, level, this.target.pos(), reach);
                     if (aim == null || !(aim.distanceToSqr(this.target.aim()) > 0.01)) {
                         this.skip("could not be reached");
@@ -165,7 +165,7 @@ final class MiningEngine {
 
     private void skip(String why) {
         if (this.target != null) {
-            this.excluded.put(this.target.pos(), System.currentTimeMillis() + 20000L);
+            this.excluded.put(this.target.pos(), System.currentTimeMillis() + EXCLUDE_MS);
             MinerMod.LOGGER.info("Skipping {} at {}: {}", new Object[]{this.target.block(), this.target.pos(), why});
             this.target = null;
         }

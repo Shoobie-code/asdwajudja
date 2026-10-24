@@ -46,7 +46,7 @@ final class Failsafes {
         Vec3 position = player.position();
         double moved = this.lastPosition == null ? 0.0 : position.distanceTo(this.lastPosition);
         this.lastPosition = position;
-        if (!teleportOk && moved > 2.0) {
+        if (!teleportOk && moved > TELEPORT_DISTANCE) {
             return String.format("You were teleported %.1f blocks (possible staff check)", moved);
         } else {
             int current = player.getInventory().getSelectedSlot();
@@ -55,7 +55,7 @@ final class Failsafes {
     }
 
     String checkRotation(double externalDegrees) {
-        return externalDegrees > 1.5 ? String.format("Your view was moved %.1f degrees (staff check, or you moved the mouse)", externalDegrees) : null;
+        return externalDegrees > ROTATION_DEGREES ? String.format("Your view was moved %.1f degrees (staff check, or you moved the mouse)", externalDegrees) : null;
     }
 
     String checkCage(ClientLevel level, LocalPlayer player, Predicate<BlockPos> minedByUs) {
@@ -73,13 +73,13 @@ final class Failsafes {
 
         this.cageCenter = center;
         this.openAround = open;
-        return appeared >= 2 ? "Bedrock appeared around you (staff cage check)" : null;
+        return appeared >= CAGE_BLOCKS ? "Bedrock appeared around you (staff cage check)" : null;
     }
 
     static String checkVelocity(Vec3 motion, boolean recentlyHurt, boolean onSlime) {
         if (!recentlyHurt && !onSlime) {
             double horizontal = Math.hypot(motion.x, motion.z);
-            return horizontal < 0.5 && Math.abs(motion.y) < 0.6
+            return horizontal < VELOCITY && Math.abs(motion.y) < 0.6
                 ? null
                 : String.format("You were pushed (velocity %.2f) without taking damage (possible staff check)", Math.max(horizontal, Math.abs(motion.y)));
         } else {

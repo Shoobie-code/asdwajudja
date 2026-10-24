@@ -56,7 +56,7 @@ public final class MinerConfig {
     /** Private-message another account when a failsafe catches a macro check. */
     public boolean altAlert = true;
     public String altName = "";
-    public String altMessage = "yo im getting macro checked";
+    public String altMessage = AltAlert.DEFAULT_MESSAGE;
     public int altCooldown = 5;
     public int breakEvery = 0;
     public int breakLength = 5;
@@ -191,7 +191,7 @@ public final class MinerConfig {
     public int solverClickDelay = 250;
 
     // Interface
-    public String accent = "amber";
+    public String accent = com.skyblockminer.gui.Theme.DEFAULT_ACCENT;
     /** Off = no macro can start (the menu's master switch). */
     public boolean masterSwitch = true;
     public int guiOpacity = 92;
@@ -393,14 +393,8 @@ public final class MinerConfig {
         if (WynnSpells.WynnClass.parse(this.wynnClass) == null) {
             this.wynnClass = defaults.wynnClass;
         }
-        if (this.wynnMobs == null) {
-            this.wynnMobs = new ArrayList<>();
-        }
         if (this.wynnSpot != null && this.wynnSpot.length != 3) {
             this.wynnSpot = null;
-        }
-        if (this.wynnSpells == null) {
-            this.wynnSpells = defaults.wynnSpells;
         }
         this.wynnRadius = clamp(this.wynnRadius, 4, 64);
         this.wynnWeaponSlot = clamp(this.wynnWeaponSlot, 0, 9);

@@ -69,7 +69,7 @@ final class ChestSolver {
 
     String tick(Macro macro, Minecraft mc, LocalPlayer player, ClientLevel level) {
         long now = System.currentTimeMillis();
-        if (now - this.spawnedAt > 30000L) {
+        if (now - this.spawnedAt > GIVE_UP_MS) {
             this.spawnedAt = 0L;
             return null;
         } else if (this.chest != null && !isChest(level.getBlockState(this.chest))) {
@@ -83,7 +83,7 @@ final class ChestSolver {
             if (this.chest == null) {
                 this.chest = find(level, player.blockPosition());
                 if (this.chest == null) {
-                    if (now - this.spawnedAt > 4000L) {
+                    if (now - this.spawnedAt > FIND_MS) {
                         this.spawnedAt = 0L;
                     }
 
@@ -96,7 +96,7 @@ final class ChestSolver {
             macro.mining.release(mc);
             Vec3 center = Vec3.atCenterOf(this.chest);
             Vec3 aim;
-            if (this.lock != null && now - this.lockAt < 1500L) {
+            if (this.lock != null && now - this.lockAt < LOCK_FRESH_MS) {
                 aim = this.lock.add(center.subtract(this.lock).normalize().scale(0.08));
             } else {
                 Vec3 eye = player.getEyePosition();
@@ -120,7 +120,7 @@ final class ChestSolver {
         BlockPos best = null;
         double bestDistance = Double.MAX_VALUE;
 
-        for (BlockPos pos : BlockPos.betweenClosed(from.offset(-4, -4, -4), from.offset(4, 4, 4))) {
+        for (BlockPos pos : BlockPos.betweenClosed(from.offset(-SEARCH, -SEARCH, -SEARCH), from.offset(SEARCH, SEARCH, SEARCH))) {
             if (isChest(level.getBlockState(pos))) {
                 double distance = pos.distSqr(from);
                 if (distance < bestDistance) {
