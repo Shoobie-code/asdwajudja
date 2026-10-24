@@ -6,6 +6,7 @@
     "description": "Hypixel SkyBlock macro: mining, commissions, farming, foraging, fishing and combat, with a ClickGUI, HUD editor, loot tracker and Discord alerts.",
     "environment": "client",
     "entrypoints": {
+        "preLaunch": ["com.skyblockminer.update.SelfUpdate"],
         "client": ["com.skyblockminer.MinerMod"]
     },
     "mixins": ["skyblockminer.mixins.json"],

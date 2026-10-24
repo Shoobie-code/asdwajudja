@@ -69,29 +69,26 @@ guess can be fixed in the GUI. When something isn't found they stop (or skip) an
 
 ## Download
 
-Take the jar from the repo's **Releases** page. Versioned releases (such as **v2.1.0**) are the stable downloads;
-they are published when a `v*` tag is pushed, with notes from `release-notes/<tag>.md`. Every other push is also built:
-**build-preview** for branches, **build-latest** once merged into `main`. Put it in `.minecraft/mods` together with Fabric Loader
-and Fabric API for Minecraft 26.2.
+Take `skyblock-macro-26.2.jar` from the newest release on the repo's **Releases** page and put it in `.minecraft/mods`
+together with Fabric Loader and Fabric API for Minecraft 26.2. You only do this once: the mod updates itself.
 
-### Loader (auto updates)
-Instead of the macro jar you can put **`skymacro-loader-*.jar`** (attached to the same releases) in `.minecraft/mods`.
-At every launch it checks this repo's releases, downloads the newest macro jar into `.minecraft/skymacro/` and loads it,
-so you never have to swap jars by hand. If GitHub can't be reached it runs the copy it already has.
+Releases are made by CI. Every push to `main` publishes a numbered release such as **2.1.0-r7**, every push to a
+`beta` branch publishes a prerelease such as **2.1.0-beta-r3**, and pushing a `v*` tag publishes a versioned release
+with notes from `release-notes/<tag>.md`. Other branches only update the **build-preview** prerelease.
 
-The title screen gets a small **Skymacro** panel in the top-left corner showing what is running, with two buttons:
-- **Stable**: the newest `v*` release (until the first version is tagged, the `main` build).
-- **Beta**: whichever is newest of the `main` build (`build-latest`) and `v*` prereleases such as `v2.2.0-beta.1`.
-  Branch builds (`build-preview`) are never used.
+### Auto updates
+This works like [V5Loader](https://github.com/V5-Client/V5Loader): the jar in `mods` is the whole mod and keeps itself
+current. Each launch it hashes its own jar and compares it with the jar on the newest release for your channel (in the
+background, so startup isn't slower). If they differ it downloads the new jar, checks its size and the SHA-256 GitHub
+reports, and swaps it in when you close Minecraft. The next launch runs the new build. Offline, nothing changes.
 
-Clicking a channel downloads it in the background; click **Quit game to apply** and start the game again to load it.
-Clicking the channel you're on checks for an update. Settings are in `.minecraft/skymacro/loader.properties`
-(`offline=true` stops update checks, `repo=` points at a fork). If the macro jar itself is also in `mods`, the loader
-leaves it alone and does nothing.
+The title screen shows a small **Skymacro** panel in the top-left corner with the running release and two buttons:
+- **Stable**: the newest numbered (or `v*`) release.
+- **Beta**: the newest release including `beta` prereleases.
 
-Fabric only loads mods it finds at startup, so the loader adds the downloaded jar to the game itself (class path,
-mixins and entrypoint) before Minecraft starts. A switch always needs a restart because the running macro's classes
-can't be swapped out.
+Clicking a channel checks it right away; once a jar is downloaded, **Quit game to install** closes the game so the next
+launch picks it up. Clicking the channel you're on checks for an update. The choice is saved in
+`config/skyblockminer-updater.properties` (`offline=true` turns checks off). Updates are off in a dev environment.
 
 ## Usage
 
@@ -159,7 +156,6 @@ included; the features were reimplemented from how the game behaves.
 ```
 
 This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle.properties`.
-The loader is a separate Gradle build: `gradle -p loader build` writes it to `loader/build/libs/`.
 
 ### Offline check
 `devtools/stubcheck/check.sh` compiles the mod and runs the unit tests without the Minecraft jar. It does
@@ -186,8 +182,6 @@ src/main/java/com/skyblockminer/
   Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming
   Helpers, SkyblockTime, ChatFilter   info panel, event timers, Garden alerts, chat filter
   gui/                ClickGuiScreen, Menu, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
-loader/src/main/java/com/skyblockminer/loader/
-  LoaderPreLaunch     update check and download at startup, then Injector puts the jar on the class path
-  Releases, Updater   GitHub release picking (stable / beta) and downloads
-  TitleWidget         title screen channel switcher (drawn by mixin/TitleScreenMixin)
+  update/             SelfUpdate (self-updater, preLaunch), Releases (stable / beta picking), JarSwap (swap on exit),
+                      TitleWidget (title screen panel, drawn by mixin/TitleScreenMixin)
 ```
