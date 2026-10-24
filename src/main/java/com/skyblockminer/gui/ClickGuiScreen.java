@@ -1,7 +1,7 @@
 package com.skyblockminer.gui;
 
-import com.skyblockminer.Macro;
-import com.skyblockminer.MinerConfig;
+import com.skyblockminer.config.MinerConfig;
+import com.skyblockminer.macro.Macro;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
