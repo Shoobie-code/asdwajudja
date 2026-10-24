@@ -1,7 +1,7 @@
 package com.skyblockminer.gui;
 
-import com.skyblockminer.Macro;
-import com.skyblockminer.MinerConfig;
+import com.skyblockminer.config.MinerConfig;
+import com.skyblockminer.macro.Macro;
 import java.util.List;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;

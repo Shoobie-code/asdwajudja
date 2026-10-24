@@ -145,19 +145,22 @@ vanilla names, and the CI Gradle build compiles against the real 26.2 game, whic
 
 ```
 src/main/java/com/skyblockminer/
-  MinerMod            entry point, keybinds, events
-  Macro               runs the active Routine plus failsafes, breaks, rejoin, stats
-  Routine             interface every macro implements
-  BlockMining, RouteMiner, PowderMacro, Commissions      mining
-  FarmingMacro, ForagingMacro, FishingMacro, CombatMacro other skills
-  AutoSell, Schedule  selling on a full inventory, active hours
-  Solvers             experiment and harp menu solvers
-  Recording, Prices   recorded-movement farming, Bazaar profit estimate
-  GlaciteCommissions, ExcavatorMacro, Visitors, SlayerStarter   menu-driven automation (untested in game)
-  MacroSettings       every option (feeds the GUI and /sm set)
-  Rotator, PathWalker, Pathfinder, WarpPlanner, WorldMap, TargetFinder, MiningEngine   movement, teleports and aiming
-  Helpers, SkyblockTime, ChatFilter   info panel, event timers, Garden alerts, chat filter
-  gui/                ClickGuiScreen, Menu, HudEditorScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
+  MinerMod, MinerCommands, MinerHud   entry point (keybinds, events), /sm commands, in-game overlay
+  config/             MinerConfig (every saved setting), MacroSettings (the options behind the GUI and /sm set), MarketSettings
+  macro/              Macro runs the active Routine plus failsafes, breaks, rejoin and stats; MacroType, Keys,
+                      AutoSell, ItemTracker and Prices (loot tracker), Failsafes, AltAlert, Webhook, Schedule
+  macro/mining/       block mining (MiningEngine, TargetFinder, OreIndex), route, powder, commissions,
+                      Glacite commissions, Fossil Excavator, treasure chests
+  macro/farming/      lane farming, recorded movement, Garden visitors, farm builder
+  macro/foraging/, macro/fishing/, macro/combat/   tree farms, fishing, mob grinding and slayer auto-start
+  macro/wynncraft/    Wynncraft combat, spell combos and the action-bar reader
+  pathing/            Pathfinder, PathWalker, WarpPlanner (etherwarp and transmission), WorldMap (saved block map)
+  rotation/           Rotator and MouseModel (mouse-like aiming)
+  game/               reads the game: inventory and menus, tab list, sidebar, server, SkyBlock calendar
+  helpers/            always-on helpers: info panel, chat filter, menu solvers, skill tracker, auction sniper
+  gui/                ClickGuiScreen, Menu, HudEditorScreen, MarketScreen, HudRenderer, Toasts, Setting, Theme, Draw, Input
+  market/             Bazaar and auction data, flip finders, minion crafting costs
+  mixin/              client hooks (block changes, particles, knockback, attack key)
 loader/src/main/java/com/skyblockminer/loader/
   LoaderPreLaunch     update check and download at startup, then Injector puts the jar on the class path
   Releases, Updater   GitHub release picking (stable / beta) and downloads

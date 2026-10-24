@@ -2,13 +2,21 @@ package com.skyblockminer;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.InputConstants.Type;
+import com.skyblockminer.config.MacroSettings;
+import com.skyblockminer.config.MarketSettings;
+import com.skyblockminer.config.MinerConfig;
 import com.skyblockminer.gui.ClickGuiScreen;
 import com.skyblockminer.gui.HudEditorScreen;
 import com.skyblockminer.gui.MarketScreen;
+import com.skyblockminer.gui.Toasts;
+import com.skyblockminer.helpers.AuctionSniper;
+import com.skyblockminer.helpers.ChatFilter;
+import com.skyblockminer.helpers.Helpers;
+import com.skyblockminer.helpers.SkillTracker;
+import com.skyblockminer.helpers.Solvers;
+import com.skyblockminer.macro.Macro;
 import com.skyblockminer.market.Flips;
 import com.skyblockminer.market.Market;
-import net.fabricmc.loader.api.FabricLoader;
-import com.skyblockminer.gui.Toasts;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
@@ -18,10 +26,11 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.message.v1.ClientReceiveMessageEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
@@ -171,7 +180,7 @@ public final class MinerMod implements ClientModInitializer {
         openHud = true;
     }
 
-    static void openMarket() {
+    public static void openMarket() {
         openMarket = true;
     }
 
@@ -215,7 +224,7 @@ public final class MinerMod implements ClientModInitializer {
         return macro != null && macro.breaking();
     }
 
-    static void message(String text, ChatFormatting color) {
+    public static void message(String text, ChatFormatting color) {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.sendSystemMessage(Component.literal("[Macro] ").withStyle(ChatFormatting.DARK_AQUA).append(Component.literal(text).withStyle(color)));
