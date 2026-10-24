@@ -1,4 +1,4 @@
-package com.skyblockminer.loader;
+package com.skyblockminer.update;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -13,15 +13,11 @@ import java.util.Optional;
 /**
  * Picks the macro jar to run from the repo's GitHub releases.
  *
- * <p>Stable is the newest non-prerelease {@code v*} tag, falling back to the rolling {@code build-latest} main build
- * while no version has been tagged. Beta is whichever of the {@code v*} releases (prereleases included) and the
- * {@code build-latest} main build was uploaded most recently. Feature-branch builds ({@code build-preview}) are never
- * picked.
+ * <p>CI publishes a numbered release for every push to {@code main} ({@code 2.1.0-r7}) and a prerelease for every
+ * push to {@code beta} ({@code 2.1.0-beta-r3}). Stable takes the newest full release, Beta the newest of either.
+ * Rolling {@code build-*} releases (branch previews and the old {@code build-latest}) are never picked.
  */
 public final class Releases {
-    public static final String MAIN_BUILD = "build-latest";
-    public static final String BRANCH_BUILD = "build-preview";
-
     public enum Channel {
         STABLE("Stable"), BETA("Beta");
 
@@ -36,24 +32,25 @@ public final class Releases {
         }
     }
 
-    public record Asset(long id, String name, String url, Instant updatedAt, String sha256) {
+    public record Asset(long id, String name, String url, long size, Instant updatedAt, String sha256) {
     }
 
-    public record Release(String tag, boolean prerelease, boolean draft, Instant publishedAt, List<Asset> assets) {
+    public record Release(String tag, boolean prerelease, boolean draft, List<Asset> assets) {
         /**
-         * The macro jar attached to this release, if any (the loader's own jar is skipped). Rolling builds keep
-         * jars from older versions next to the new one, so the most recently uploaded jar wins.
+         * The jar for this Minecraft version ({@code skyblock-macro-26.2.jar}), or for releases made before jars were
+         * named by version, the most recently uploaded macro jar.
          */
-        public Optional<Asset> macroJar() {
+        public Optional<Asset> macroJar(String minecraft) {
+            String exact = "skyblock-macro-" + minecraft + ".jar";
+            Optional<Asset> named = this.assets.stream().filter(a -> a.name().equalsIgnoreCase(exact)).findFirst();
+            if (named.isPresent()) {
+                return named;
+            }
             return this.assets.stream().filter(a -> isMacroJar(a.name())).max(Comparator.comparing(Asset::updatedAt));
         }
     }
 
     public record Pick(Release release, Asset asset) {
-        /** Short text for the title screen, e.g. "v2.1.0" or "main build". */
-        public String label() {
-            return MAIN_BUILD.equals(this.release.tag()) ? "main build" : this.release.tag();
-        }
     }
 
     private Releases() {
@@ -64,28 +61,22 @@ public final class Releases {
         return n.endsWith(".jar") && n.startsWith("skyblock-macro") && !n.contains("loader") && !n.endsWith("-sources.jar");
     }
 
-    public static Optional<Pick> pick(List<Release> releases, Channel channel) {
+    public static Optional<Pick> pick(List<Release> releases, Channel channel, String minecraft) {
         List<Pick> candidates = new ArrayList<>();
         for (Release r : releases) {
-            if (r.draft() || BRANCH_BUILD.equals(r.tag())) {
+            if (r.draft() || r.tag().startsWith("build-") || (r.prerelease() && channel == Channel.STABLE)) {
                 continue;
             }
-            boolean tagged = r.tag().startsWith("v");
-            if (!tagged && !MAIN_BUILD.equals(r.tag())) {
-                continue;
-            }
-            r.macroJar().ifPresent(a -> candidates.add(new Pick(r, a)));
-        }
-        if (channel == Channel.STABLE) {
-            Optional<Pick> tagged = candidates.stream()
-                .filter(p -> p.release().tag().startsWith("v") && !p.release().prerelease())
-                .max(Comparator.comparing(p -> p.release().publishedAt()));
-            if (tagged.isPresent()) {
-                return tagged;
-            }
-            return candidates.stream().filter(p -> MAIN_BUILD.equals(p.release().tag())).findFirst();
+            r.macroJar(minecraft).ifPresent(a -> candidates.add(new Pick(r, a)));
         }
         return candidates.stream().max(Comparator.comparing(p -> p.asset().updatedAt()));
+    }
+
+    /** The release that published the jar with this SHA-256, so the title screen can say what is running. */
+    public static Optional<Release> withHash(List<Release> releases, String sha256) {
+        return releases.stream()
+            .filter(r -> r.assets().stream().anyMatch(a -> sha256.equalsIgnoreCase(a.sha256())))
+            .findFirst();
     }
 
     /** Parses the body of {@code GET /repos/{owner}/{repo}/releases}. */
@@ -99,9 +90,10 @@ public final class Releases {
                 JsonObject a = ae.getAsJsonObject();
                 String digest = string(a, "digest");
                 assets.add(new Asset(a.get("id").getAsLong(), string(a, "name"), string(a, "browser_download_url"),
-                    instant(a, "updated_at"), digest != null && digest.startsWith("sha256:") ? digest.substring(7) : null));
+                    a.has("size") ? a.get("size").getAsLong() : -1L, instant(a, "updated_at"),
+                    digest != null && digest.startsWith("sha256:") ? digest.substring(7) : null));
             }
-            out.add(new Release(string(r, "tag_name"), bool(r, "prerelease"), bool(r, "draft"), instant(r, "published_at"), assets));
+            out.add(new Release(string(r, "tag_name"), bool(r, "prerelease"), bool(r, "draft"), assets));
         }
         return out;
     }

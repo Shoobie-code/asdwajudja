@@ -1,2 +1,2 @@
 package org.spongepowered.asm.mixin.injection;
-public @interface Inject { String[] method() default {}; At[] at(); boolean cancellable() default false; }
+public @interface Inject { String[] method() default {}; At[] at(); boolean cancellable() default false; int require() default -1; }
