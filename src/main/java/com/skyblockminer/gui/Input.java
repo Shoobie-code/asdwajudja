@@ -66,10 +66,6 @@ public final class Input {
         return this.released[button];
     }
 
-    public boolean down(int button) {
-        return this.mouse[button];
-    }
-
     /** Keys pressed (or auto-repeated) this frame, in order. */
     public int typedCount() {
         return this.typedCount;

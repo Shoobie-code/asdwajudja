@@ -1,9 +1,13 @@
 package com.skyblockminer;
 
+import com.skyblockminer.config.MinerConfig;
 import com.skyblockminer.gui.HudEditorScreen;
 import com.skyblockminer.gui.HudRenderer;
 import com.skyblockminer.gui.Theme;
 import com.skyblockminer.gui.Toasts;
+import com.skyblockminer.helpers.Helpers;
+import com.skyblockminer.helpers.SkillTracker;
+import com.skyblockminer.macro.Macro;
 import java.util.List;
 import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElement;
 import net.minecraft.client.DeltaTracker;
