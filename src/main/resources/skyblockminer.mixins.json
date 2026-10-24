@@ -4,7 +4,7 @@
     "package": "com.skyblockminer.mixin",
     "compatibilityLevel": "JAVA_25",
     "client": [
-        "ClientLevelMixin", "ClientPacketListenerMixin", "MinecraftMixin"
+        "ClientLevelMixin", "ClientPacketListenerMixin", "MinecraftMixin", "TitleScreenMixin"
     ],
     "injectors": {
         "defaultRequire": 1
