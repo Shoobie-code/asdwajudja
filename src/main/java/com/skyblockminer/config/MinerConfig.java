@@ -2,6 +2,7 @@ package com.skyblockminer.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.skyblockminer.MinerMod;
 import com.skyblockminer.macro.AltAlert;
 import com.skyblockminer.macro.MacroType;
@@ -21,6 +22,8 @@ import java.util.List;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MinerConfig {
+    /** The Discord webhook URL contains its token, so it is never written to a profile. */
+    static final String WEBHOOK_FIELD = "webhookUrl";
     /** Backups of replaced configs live here, next to the config file. */
     static final String BACKUP_DIR = "skyblockminer-backups";
     static final int KEEP_BACKUPS = 5;
@@ -286,7 +289,14 @@ public final class MinerConfig {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
     }
 
-    /** Writes every setting to profiles/<name>.json. */
+    /** The settings as a profile file stores them: everything except secrets, which a shared profile must not carry. */
+    static JsonObject shareable(MinerConfig config) {
+        JsonObject json = GSON.toJsonTree(config).getAsJsonObject();
+        json.addProperty(WEBHOOK_FIELD, "");
+        return json;
+    }
+
+    /** Writes every setting to profiles/<name>.json, without the webhook URL (it is a secret). */
     public boolean saveProfile(String name) {
         if (!validProfile(name)) {
             return false;
@@ -294,7 +304,7 @@ public final class MinerConfig {
         try {
             Files.createDirectories(profiles());
             this.profile = name;
-            Files.writeString(profiles().resolve(name + ".json"), GSON.toJson(this));
+            Files.writeString(profiles().resolve(name + ".json"), GSON.toJson(shareable(this)));
             this.save();
             return true;
         } catch (IOException e) {
@@ -316,7 +326,9 @@ public final class MinerConfig {
             }
             loaded.sanitize();
             for (Field field : MinerConfig.class.getFields()) {
-                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
+                // Profiles do not carry the webhook, so loading one must keep this install's webhook.
+                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())
+                    && !field.getName().equals(WEBHOOK_FIELD)) {
                     field.set(this, field.get(loaded));
                 }
             }
