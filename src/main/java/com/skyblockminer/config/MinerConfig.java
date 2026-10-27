@@ -345,8 +345,8 @@ public final class MinerConfig {
         return config;
     }
 
-    /** Replaces nulls left by hand edits or older versions with defaults and clamps ranges. */
-    private void sanitize() {
+    /** Replaces nulls left by hand edits or older versions with defaults and clamps ranges. Package-private for tests. */
+    void sanitize() {
         MinerConfig defaults = new MinerConfig();
         try {
             for (Field field : MinerConfig.class.getFields()) {
@@ -408,7 +408,7 @@ public final class MinerConfig {
         this.wynnRadius = clamp(this.wynnRadius, 4, 64);
         this.wynnWeaponSlot = clamp(this.wynnWeaponSlot, 0, 9);
         this.wynnRange = clamp(this.wynnRange, 0, 20);
-        this.wynnSpellSeconds = Math.max(0.5, Math.min(this.wynnSpellSeconds, 30.0));
+        this.wynnSpellSeconds = clamp(this.wynnSpellSeconds, 0.5, 30.0);
         this.wynnMinMana = clamp(this.wynnMinMana, 0, 100);
         this.wynnHealSpell = clamp(this.wynnHealSpell, 0, 4);
         this.wynnHealBelow = clamp(this.wynnHealBelow, 5, 95);
@@ -419,8 +419,8 @@ public final class MinerConfig {
         if (!List.of("walk", "etherwarp", "transmission", "both").contains(this.movement)) {
             this.movement = defaults.movement;
         }
-        this.etherwarpRange = Math.max(10.0, Math.min(this.etherwarpRange, 61.0));
-        this.transmissionRange = Math.max(4.0, Math.min(this.transmissionRange, 12.0));
+        this.etherwarpRange = clamp(this.etherwarpRange, 10.0, 61.0);
+        this.transmissionRange = clamp(this.transmissionRange, 4.0, 12.0);
         this.warpMinGain = clamp(this.warpMinGain, 4, 60);
         this.infoEvents = clamp(this.infoEvents, 0, 6);
         this.guiOpacity = clamp(this.guiOpacity, 40, 100);
@@ -428,12 +428,55 @@ public final class MinerConfig {
             this.accent = defaults.accent;
         }
         this.pestAlertAt = clamp(this.pestAlertAt, 1, 8);
-        this.reach = Math.max(1.0, Math.min(this.reach, 6.0));
+        this.reach = clamp(this.reach, 1.0, 6.0);
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
+
+        // Hotbar slots are 0-8; delays and radii must not go negative, or the macros loop or never fire.
+        this.weaponSlot = clamp(this.weaponSlot, 0, 8);
+        this.farmToolSlot = clamp(this.farmToolSlot, 0, 8);
+        this.combatWeaponSlot = clamp(this.combatWeaponSlot, 0, 8);
+        this.fishWeaponSlot = clamp(this.fishWeaponSlot, 0, 8);
+        this.powderRadius = clamp(this.powderRadius, 1, 64);
+        this.powderWidth = clamp(this.powderWidth, 1, 8);
+        this.avoidRadius = clamp(this.avoidRadius, 0, 64);
+        this.playerRadius = clamp(this.playerRadius, 0, 64);
+        this.altCooldown = clamp(this.altCooldown, 0, 3600);
+        this.breakEvery = clamp(this.breakEvery, 0, 100_000);
+        this.breakLength = clamp(this.breakLength, 1, 3600);
+        this.statusEvery = clamp(this.statusEvery, 0, 100_000);
+        this.oreWalkRange = clamp(this.oreWalkRange, 1, 256);
+        this.buildWaterEvery = clamp(this.buildWaterEvery, 1, 100);
+        this.buildDelay = clamp(this.buildDelay, 0, 10_000);
+        this.forageActionDelay = clamp(this.forageActionDelay, 0, 10_000);
+        this.fishReelDelay = clamp(this.fishReelDelay, 0, 10_000);
+        this.fishRecastDelay = clamp(this.fishRecastDelay, 0, 10_000);
+        this.fishTimeout = clamp(this.fishTimeout, 1, 3600);
+        this.fishCreatureLimit = clamp(this.fishCreatureLimit, 0, 100);
+        this.visitorMin = clamp(this.visitorMin, 0, 100);
+        this.solverClickDelay = clamp(this.solverClickDelay, 0, 10_000);
+        this.bazaarBudget = Math.max(0.0, finite(this.bazaarBudget, defaults.bazaarBudget));
+        this.bazaarMinVolume = Math.max(0, this.bazaarMinVolume);
+        this.bazaarMinMargin = Math.max(0.0, finite(this.bazaarMinMargin, defaults.bazaarMinMargin));
+        this.auctionMinProfit = Math.max(0, this.auctionMinProfit);
+        this.auctionMinMargin = Math.max(0.0, finite(this.auctionMinMargin, defaults.auctionMinMargin));
+        this.auctionMinListings = Math.max(0, this.auctionMinListings);
+        this.auctionMaxPrice = Math.max(0, this.auctionMaxPrice);
+        this.craftMinProfit = Math.max(0, this.craftMinProfit);
+        this.npcBudget = Math.max(0.0, finite(this.npcBudget, defaults.npcBudget));
     }
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(value, max));
+    }
+
+    /** Clamps a decimal setting. NaN (which hand-edited JSON can produce) becomes the minimum, because Math.min/max would keep it. */
+    private static double clamp(double value, double min, double max) {
+        return Double.isNaN(value) ? min : Math.max(min, Math.min(value, max));
+    }
+
+    /** Replaces NaN with a fallback. Infinities are left alone, so callers still apply their own bounds. */
+    private static double finite(double value, double fallback) {
+        return Double.isNaN(value) ? fallback : value;
     }
 
     /** Schedules a save; the GUI changes many values in a row, so writes are batched by {@link #saveIfDirty()}. */
