@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.BooleanSupplier;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -21,6 +22,7 @@ public final class Solvers {
     private static final int INDICATOR = 49;
 
     private final MinerConfig config;
+    private final BooleanSupplier busy;
     private String screen = "";
     private long nextClickAt;
 
@@ -33,11 +35,19 @@ public final class Solvers {
     // Harp: columns whose key was already pressed for the note currently above it.
     private final Set<Integer> pressed = new HashSet<>();
 
-    public Solvers(MinerConfig config) {
+    /**
+     * @param busy true while a macro owns the mouse and menus; the solvers then stay out, so two automations never click the same screen
+     */
+    public Solvers(MinerConfig config, BooleanSupplier busy) {
         this.config = config;
+        this.busy = busy;
     }
 
     public void tick(Minecraft mc) {
+        if (this.busy.getAsBoolean()) {
+            this.screen = "";
+            return;
+        }
         LocalPlayer player = mc.player;
         String title = Inv.screenTitle(mc);
         if (player == null || title == null) {

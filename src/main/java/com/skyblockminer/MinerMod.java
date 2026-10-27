@@ -66,7 +66,7 @@ public final class MinerMod implements ClientModInitializer {
         macro = new Macro(config);
         macro.applyConfig();
         settings = new MacroSettings(macro);
-        solvers = new Solvers(config);
+        solvers = new Solvers(config, macro::running);
         Toasts.setEnabled(config.toasts);
         market = new Market(FabricLoader.getInstance().getConfigDir().resolve(ID));
         flips = new Flips();
