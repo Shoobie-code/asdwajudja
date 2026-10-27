@@ -1,0 +1,15 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minecraft-tooling:
+        patterns:
+          - "net.fabricmc*"
+          - "fabric-loom*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
