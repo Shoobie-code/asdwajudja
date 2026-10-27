@@ -4,6 +4,7 @@ import com.skyblockminer.market.AuctionFlipper;
 import com.skyblockminer.market.BazaarFlipper;
 import com.skyblockminer.market.CraftCalc;
 import com.skyblockminer.market.Flips;
+import com.skyblockminer.market.Freshness;
 import com.skyblockminer.market.Market;
 import com.skyblockminer.market.NpcFlipper;
 import java.util.ArrayList;
@@ -141,12 +142,19 @@ public final class MarketScreen extends Screen {
         if (m.bazaar().isEmpty()) {
             text.append("Loading bazaar...");
         } else {
-            text.append(String.format(Locale.ROOT, "Bazaar %ds ago, %d products", (System.currentTimeMillis() - m.bazaar().updatedAt()) / 1000L,
+            long now = System.currentTimeMillis();
+            text.append(String.format(Locale.ROOT, "Bazaar %ds ago, %d products", (now - m.bazaar().updatedAt()) / 1000L,
                 m.bazaar().products().size()));
+            if (Freshness.stale(m.bazaar().updatedAt(), now, Freshness.BAZAAR_STALE_MS)) {
+                text.append(" (stale)");
+            }
         }
         if (m.auctionsUpdatedAt() > 0L) {
             text.append(String.format(Locale.ROOT, "  |  AH %ds ago, %,d BINs over %d pages", (System.currentTimeMillis() - m.auctionsUpdatedAt()) / 1000L,
                 m.auctions().size(), m.auctionPages()));
+            if (Freshness.stale(m.auctionsUpdatedAt(), System.currentTimeMillis(), Freshness.AUCTION_STALE_MS)) {
+                text.append(" (stale)");
+            }
         } else if (this.tab == 1) {
             text.append("  |  AH scan off or loading (Market page: Scan auctions)");
         }
