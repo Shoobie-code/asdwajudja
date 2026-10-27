@@ -877,7 +877,7 @@ public final class Macro {
         String kind = this.status.replaceAll("[0-9]+", "#");
         if (!kind.equals(this.loggedStatus)) {
             this.loggedStatus = kind;
-            MinerMod.LOGGER.info("Status: {}", this.status);
+            MinerMod.LOGGER.debug("Status: {}", this.status);
         }
     }
 

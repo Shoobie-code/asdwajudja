@@ -1,5 +1,6 @@
 package com.skyblockminer.update;
 
+import com.skyblockminer.MinerMod;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -50,7 +51,7 @@ public final class JarSwap {
                 Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
-            System.err.println("[Skyblock Macro] Could not install the update: " + e);
+            MinerMod.LOGGER.warn("Could not install the update", e);
         }
     }
 

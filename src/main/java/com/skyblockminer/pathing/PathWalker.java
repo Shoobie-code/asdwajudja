@@ -145,7 +145,7 @@ public final class PathWalker {
         this.pendingStart = true;
         this.searchWaitTicks = 0;
         if (!why.equals("start")) {
-            MinerMod.LOGGER.info("Path: planning again ({})", why);
+            MinerMod.LOGGER.debug("Path: planning again ({})", why);
         } else if (this.state == PathWalker.State.WALKING && this.path != null && this.hop == null) {
             // A new goal mid-walk (a mob that moved, the next spot): keep walking the old path while the new one is
             // found, instead of stopping dead every time.
@@ -476,7 +476,7 @@ public final class PathWalker {
             if (player.position().distanceTo(hop.from) > 2.0) {
                 this.hops++;
                 this.hopFails = 0;
-                MinerMod.LOGGER.info("Path: {} hop {} ({} blocks)", hop.kind.label, this.hops, String.format("%.1f", player.position().distanceTo(hop.from)));
+                MinerMod.LOGGER.debug("Path: {} hop {} ({} blocks)", hop.kind.label, this.hops, String.format("%.1f", player.position().distanceTo(hop.from)));
                 this.endHop(mc);
                 this.search(mc, "after a teleport");
             } else if (now - hop.at > HOP_WAIT_MS) {
@@ -512,7 +512,7 @@ public final class PathWalker {
             if (hop.rawIndex >= 0) {
                 this.failedHops.add(hop.rawIndex);
             }
-            MinerMod.LOGGER.info("Path: could not line up the {}, walking on", hop.kind.label);
+            MinerMod.LOGGER.debug("Path: could not line up the {}, walking on", hop.kind.label);
             this.endHop(mc);
         }
     }

@@ -1,5 +1,6 @@
 package com.skyblockminer.update;
 
+import com.skyblockminer.MinerMod;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.skyblockminer.update.Releases.Channel;
@@ -96,7 +97,7 @@ public final class SelfUpdate implements PreLaunchEntrypoint {
             try {
                 run(wanted);
             } catch (Exception e) {
-                System.err.println("[Skyblock Macro] Update check failed: " + e);
+                MinerMod.LOGGER.warn("Update check failed", e);
                 set(State.FAILED, "Update check failed: " + (e.getMessage() == null ? e.toString() : e.getMessage()));
             }
         }, "Skyblock Macro updater");
@@ -251,7 +252,7 @@ public final class SelfUpdate implements PreLaunchEntrypoint {
             try (InputStream in = Files.newInputStream(settingsFile)) {
                 p.load(in);
             } catch (IOException e) {
-                System.err.println("[Skyblock Macro] Could not read " + settingsFile + ": " + e);
+                MinerMod.LOGGER.warn("Could not read {}", settingsFile, e);
             }
         }
         channel = Channel.parse(p.getProperty("channel", "stable"));
@@ -265,7 +266,7 @@ public final class SelfUpdate implements PreLaunchEntrypoint {
         try (OutputStream out = Files.newOutputStream(settingsFile)) {
             p.store(out, "Skyblock Macro updates. channel is stable or beta; offline=true turns update checks off.");
         } catch (IOException e) {
-            System.err.println("[Skyblock Macro] Could not save " + settingsFile + ": " + e);
+            MinerMod.LOGGER.warn("Could not save {}", settingsFile, e);
         }
     }
 }

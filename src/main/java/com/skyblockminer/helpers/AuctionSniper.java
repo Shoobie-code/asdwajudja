@@ -150,7 +150,7 @@ public final class AuctionSniper {
     }
 
     private void giveUp(String why) {
-        MinerMod.LOGGER.info("Auction sniper: skipped {} ({})", this.current == null ? "?" : this.current.listing().uuid(), why);
+        MinerMod.LOGGER.debug("Auction sniper: skipped {} ({})", this.current == null ? "?" : this.current.listing().uuid(), why);
         this.state = State.IDLE;
         this.current = null;
     }

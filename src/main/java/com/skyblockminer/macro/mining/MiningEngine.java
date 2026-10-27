@@ -170,7 +170,7 @@ public final class MiningEngine {
     private void skip(String why) {
         if (this.target != null) {
             this.excluded.put(this.target.pos(), System.currentTimeMillis() + EXCLUDE_MS);
-            MinerMod.LOGGER.info("Skipping {} at {}: {}", new Object[]{this.target.block(), this.target.pos(), why});
+            MinerMod.LOGGER.debug("Skipping {} at {}: {}", new Object[]{this.target.block(), this.target.pos(), why});
             this.target = null;
         }
     }
