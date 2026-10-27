@@ -307,7 +307,7 @@ public final class Macro {
         this.trackerLines = List.of();
         MinerMod.message(reason + " (" + this.summary() + ")", ChatFormatting.YELLOW);
         if (this.mode != MacroType.GOTO) {
-            this.notify("Macro stopped", reason + "\n" + this.summary(), 15844367);
+            this.notify("stop", "Macro stopped", reason + "\n" + this.summary(), 15844367);
             Toasts.push("Macro stopped", reason, reason.startsWith("FAILSAFE") ? Toasts.Kind.ERROR : Toasts.Kind.INFO);
         }
     }
@@ -404,8 +404,11 @@ public final class Macro {
         MinerMod.message(text, ChatFormatting.AQUA);
     }
 
-    public void notify(String title, String text, int color) {
-        this.webhook.send(this.config, title, text, color, false);
+    /** Sends a Discord message for {@code event} (one of {@link Webhook#EVENTS}) when the user has it switched on. */
+    public void notify(String event, String title, String text, int color) {
+        if (Webhook.wants(this.config, event)) {
+            this.webhook.send(this.config, title, text, color, false);
+        }
     }
 
     /** Sends a test embed so the webhook can be checked from the GUI. */
@@ -463,7 +466,7 @@ public final class Macro {
         this.walker.stop(mc);
         this.commissions.restart();
         this.message(why + ": going back to SkyBlock (attempt " + this.rejoins + " of " + MAX_REJOINS + ")");
-        this.notify("Rejoining", why, 15105570);
+        this.notify("rejoin", "Rejoining", why, 15105570);
         Toasts.push("Rejoining", why, Toasts.Kind.WARNING);
     }
 
@@ -708,7 +711,7 @@ public final class Macro {
         this.updatePowder(mc, now);
         if (this.nextStatusAt > 0L && now >= this.nextStatusAt) {
             this.nextStatusAt = now + Math.max(1, this.config.statusEvery) * 60000L;
-            this.notify("Status: " + this.mode.label, this.status + "\n" + this.summary(), 3447003);
+            this.notify("status", "Status: " + this.mode.label, this.status + "\n" + this.summary(), 3447003);
         }
 
         if (this.breakUntil > now) {
@@ -803,7 +806,7 @@ public final class Macro {
         if (!this.outsideHours) {
             this.outsideHours = true;
             this.message("Outside active hours, waiting until " + hours.start() + ".");
-            this.notify("Waiting", "Outside active hours, resuming at " + hours.start(), 3447003);
+            this.notify("waiting", "Waiting", "Outside active hours, resuming at " + hours.start(), 3447003);
             Toasts.push("Active hours", "Waiting until " + hours.start(), Toasts.Kind.INFO);
         }
         this.pause(mc);

@@ -408,7 +408,7 @@ public final class FarmingMacro implements Routine {
                 case "notify" -> {
                     MinerMod.message("A pest spawned in the Garden.", ChatFormatting.YELLOW);
                     Toasts.push("Pest spawned", text, Toasts.Kind.WARNING);
-                    macro.notify("Pest spawned", text, 15105570);
+                    macro.notify("pest", "Pest spawned", text, 15105570);
                 }
                 default -> {
                 }

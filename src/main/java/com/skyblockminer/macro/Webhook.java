@@ -11,11 +11,20 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
+import java.util.List;
 import java.util.regex.Pattern;
 
-final class Webhook {
+public final class Webhook {
     static final Pattern URL = Pattern.compile("^https://(?:ptb\\.|canary\\.)?discord(?:app)?\\.com/api/webhooks/\\d+/[^\\s/]+/?$");
+    /** Events a user can switch off under Alerts → Discord. Failsafes and chat alerts always send. */
+    public static final List<String> EVENTS = List.of("stop", "rejoin", "pest", "commission", "slayer", "status", "waiting");
     private final HttpClient client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10L)).build();
+
+    /** Whether the user has left this event on in {@code discordEvents}. */
+    static boolean wants(MinerConfig config, String event) {
+        return config.discordEvents != null && Arrays.asList(config.discordEvents.split(",")).stream().map(String::strip).anyMatch(event::equals);
+    }
 
     void send(MinerConfig config, String title, String text, int color, boolean ping) {
         if (config.webhookUrl != null && URL.matcher(config.webhookUrl).matches()) {

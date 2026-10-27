@@ -660,6 +660,9 @@ public final class MacroSettings {
             new Section("Discord", List.of(
                 this.text("webhook.url", "Webhook URL", "Discord webhook for alerts and status reports.", "https://discord.com/api/webhooks/...", true,
                     () -> this.c.webhookUrl, v -> this.c.webhookUrl = v.trim()),
+                this.text("webhook.events", "Discord events", "Comma-separated: stop, rejoin, pest, commission, slayer, status, waiting. Failsafes and chat alerts always send.",
+                    "stop,rejoin,pest,commission,slayer,status,waiting", false,
+                    () -> this.c.discordEvents, v -> this.c.discordEvents = v.trim()),
                 this.text("webhook.ping", "Ping user id", "Discord user id to mention on failsafes.", "123456789012345678", false,
                     () -> this.c.pingId, v -> this.c.pingId = v.replaceAll("\\D", "")),
                 this.slider("webhook.status", "Status report every", "Minutes between status messages (0 = off).", 0, 120, 5, " min",

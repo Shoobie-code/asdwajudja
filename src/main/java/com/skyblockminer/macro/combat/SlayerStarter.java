@@ -105,7 +105,7 @@ final class SlayerStarter {
     private String fail(Macro macro, String why) {
         this.active = false;
         macro.message(why + ". Start the next quest yourself.");
-        macro.notify("Slayer auto-start", why, 15105570);
+        macro.notify("slayer", "Slayer auto-start", why, 15105570);
         return why;
     }
 }

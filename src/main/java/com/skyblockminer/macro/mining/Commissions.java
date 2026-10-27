@@ -278,7 +278,7 @@ public final class Commissions implements Routine {
             macro.mining.release(mc);
             macro.combat.reset(mc, macro.walker);
             this.completed++;
-            macro.notify("Commission complete", this.current + " (" + this.completed + " this session)", 3066993);
+            macro.notify("commission", "Commission complete", this.current + " (" + this.completed + " this session)", 3066993);
             this.startClaim();
             return "Claiming " + this.current;
         } else if (value < 0.0 && !this.progress.isEmpty()) {

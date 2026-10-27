@@ -77,6 +77,8 @@ public final class MinerConfig {
     public int breakEvery = 0;
     public int breakLength = 5;
     public String webhookUrl = "";
+    /** Comma-separated Discord events to send (see Webhook.EVENTS). Failsafes and chat alerts are not in this list. */
+    public String discordEvents = String.join(",", com.skyblockminer.macro.Webhook.EVENTS);
     public String pingId = "";
     public int statusEvery = 0;
     public boolean ungrab = true;
@@ -413,6 +415,8 @@ public final class MinerConfig {
         if (!this.combatAttackMode.equals("melee") && !this.combatAttackMode.equals("use")) {
             this.combatAttackMode = defaults.combatAttackMode;
         }
+        this.discordEvents = java.util.Arrays.stream(this.discordEvents.split(",")).map(String::strip)
+            .filter(com.skyblockminer.macro.Webhook.EVENTS::contains).distinct().collect(java.util.stream.Collectors.joining(","));
         if (!Schedule.valid(this.activeHours)) {
             this.activeHours = "";
         }
