@@ -21,6 +21,12 @@ import java.util.List;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MinerConfig {
+    /** Backups of replaced configs live here, next to the config file. */
+    static final String BACKUP_DIR = "skyblockminer-backups";
+    static final int KEEP_BACKUPS = 5;
+    /** A backup is taken at most this often, so frequent saves do not fill the folder. */
+    static final long BACKUP_EVERY_MS = 10L * 60_000L;
+    private long lastBackupAt;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     public String mode = "mithril";
     public List<String> customBlocks = new ArrayList<>();
@@ -500,13 +506,39 @@ public final class MinerConfig {
         return this.revision;
     }
 
+    /** Writes the replaced config into the backups folder, then keeps only the newest {@link #KEEP_BACKUPS} files. */
+    static void backup(String previous, Path dir, long now) throws IOException {
+        Files.createDirectories(dir);
+        Files.writeString(dir.resolve("skyblockminer-" + now + ".json"), previous);
+        try (java.util.stream.Stream<Path> files = Files.list(dir)) {
+            List<Path> backups = files.filter(f -> f.getFileName().toString().matches("skyblockminer-\\d+\\.json")).sorted().toList();
+            for (int i = 0; i < backups.size() - KEEP_BACKUPS; i++) {
+                Files.deleteIfExists(backups.get(i));
+            }
+        }
+    }
+
     public void save() {
         this.revision++;
         this.dirty = false;
         try {
             Path target = path();
             Path temp = target.resolveSibling(target.getFileName() + ".tmp");
-            Files.writeString(temp, GSON.toJson(this));
+            String json = GSON.toJson(this);
+            long now = System.currentTimeMillis();
+            if (Files.exists(target) && now - this.lastBackupAt >= BACKUP_EVERY_MS) {
+                try {
+                    String previous = Files.readString(target);
+                    if (!previous.equals(json)) {
+                        backup(previous, target.resolveSibling(BACKUP_DIR), now);
+                        this.lastBackupAt = now;
+                    }
+                } catch (IOException e) {
+                    // A failed backup must not stop the settings from being saved.
+                    MinerMod.LOGGER.warn("Could not back up skyblockminer.json", e);
+                }
+            }
+            Files.writeString(temp, json);
             try {
                 Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (AtomicMoveNotSupportedException e) {
