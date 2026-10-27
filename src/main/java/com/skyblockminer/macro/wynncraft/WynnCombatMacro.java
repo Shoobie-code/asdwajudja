@@ -47,7 +47,9 @@ public final class WynnCombatMacro implements Routine {
     private String targetName = "";
     private LivingEntity lastTarget;
     private int retargetIn;
-    private int repathIn;
+    /** When the last path was planned, and where it was aimed (null after a new target). See {@link RepathPolicy}. */
+    private long planAt;
+    private Vec3 planGoal;
     private int clickIn;
     private int attackIn;
     private int spellIn;
@@ -132,7 +134,7 @@ public final class WynnCombatMacro implements Routine {
         if (this.target == null || !this.target.isAlive() || this.target.isRemoved() || --this.retargetIn <= 0) {
             LivingEntity next = this.find(player, level, config);
             if (next != this.target) {
-                this.repathIn = 0;
+                this.planGoal = null;
             }
             this.target = next;
             this.retargetIn = RETARGET_TICKS;
@@ -152,9 +154,13 @@ public final class WynnCombatMacro implements Routine {
         double range = config.wynnRange > 0 ? config.wynnRange : type.ranged ? RANGED : MELEE;
         double distance = Math.sqrt(player.distanceToSqr(this.target));
         if (distance > range || type.ranged && !visible(player, level, this.target)) {
-            if (!macro.walker.busy() || --this.repathIn <= 0) {
-                macro.walker.go(mc, List.of(this.target.position()), Math.max(1.5, Math.min(range - 1.0, 6.0)));
-                this.repathIn = 30;
+            Vec3 goal = this.target.position();
+            long planNow = System.currentTimeMillis();
+            double moved = this.planGoal == null ? Double.MAX_VALUE : goal.distanceTo(this.planGoal);
+            if (RepathPolicy.shouldRepath(macro.walker.busy(), planNow - this.planAt, moved)) {
+                macro.walker.go(mc, List.of(goal), Math.max(1.5, Math.min(range - 1.0, 6.0)));
+                this.planAt = planNow;
+                this.planGoal = goal;
             }
             macro.walker.tick(mc, player, macro.rotator, config);
             return String.format("Chasing %s (%.0fm)", this.targetName, distance);
