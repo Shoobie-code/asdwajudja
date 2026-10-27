@@ -1,6 +1,6 @@
 # Feature status
 
-What each feature has been checked against. "Not yet tested in game" comes from the README's `*` marks. Automated coverage lists the unit tests that exercise the feature's logic. Game behaviour is not covered by the offline check, so a feature without an in-game note is unverified in game.
+What each feature has been checked against. "Not yet tested in game" comes from the README's `*` marks. Automated coverage lists the unit tests that exercise the feature's logic. The offline check cannot exercise game behaviour, so "Not yet tested in game" is the only status this page records; anything else is unverified in game.
 
 | Feature | Status | Automated coverage |
 | --- | --- | --- |
@@ -14,9 +14,9 @@ What each feature has been checked against. "Not yet tested in game" comes from 
 | Garden visitors | Not yet tested in game | none |
 | Foraging (plant and chop, tree routes) | Stable | `macro/farming/FarmingTest` (shared helpers) |
 | Fishing | Stable | none |
-| Combat (Hypixel) | Stable | `macro/MobTest`-style helpers only |
+| Combat (Hypixel) | Not yet tested in game | none (mob matching is in `macro/combat/Mob`, untested) |
 | Slayer auto-start | Not yet tested in game | none |
-| Wynncraft combat | Stable | `macro/wynncraft/WynnhcraftTest` |
+| Wynncraft combat | Stable | `macro/wynncraft/WynncraftTest` |
 | Userscripts | Stable | `script/ScriptsTest`, `script/ScriptRunnerTest` |
 | Auto sell | Stable | none |
 | Menu solvers (Ultrasequencer, Chronomatron, Harp) | Stable | none (menu logic runs against live screens) |
@@ -29,4 +29,4 @@ What each feature has been checked against. "Not yet tested in game" comes from 
 | Skill tracker | Stable | `helpers/SkillTrackerTest` |
 | Chat filter | Stable | `helpers/ChatFilterTest` |
 
-"Stable" means the logic is covered by unit tests and the feature is not marked untested in the README. It does not mean every path has been run in game.
+"Stable" means the README does not mark it untested and unit tests cover some of its logic. It does not mean every path has been run in game.

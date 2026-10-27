@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Start with the chat messages and the toast, which name the reason a macro did not start or stopped. The log is in the Minecraft `logs/latest.log` file and uses the prefix `skyblockminer`.
+Start with the chat messages and the toast, which name the reason a macro did not start or stopped. The log is the Minecraft `logs/latest.log` file; mod messages are logged under "Skyblock Macro".
 
 ## A macro does not start
 
@@ -10,7 +10,7 @@ Start with the chat messages and the toast, which name the reason a macro did no
 | "Wrong server" | SkyBlock macros only start on Hypixel, Wynncraft macros only on Wynncraft. | Join the right server. Singleplayer is allowed for both. |
 | Nothing happens and no message | You are not in a world yet, or the player is not loaded. | Wait for the world to load, then try again. |
 | A solver does nothing | Solvers stay idle while a macro is running, so they never click against it. | Stop the macro first, then open the menu. |
-| Macro outside the active window does not run | Active hours (for example `08:00-23:00`) are set. | Check General → Active hours, or clear it. |
+| Macro outside the active window does not run | Active hours (for example `08:00-23:00`) are set. | Clear the Active hours setting, or widen the window. |
 
 ## A macro stops by itself
 
@@ -31,7 +31,7 @@ Start with the chat messages and the toast, which name the reason a macro did no
 
 ## Discord or alt alerts do not arrive
 
-- Test buttons are in the Discord and Alt alert settings. The test shows whether the request was sent.
+- Discord has a test button, and alt alerts have a test command. Use them to check that messages go out.
 - Alt alerts use a cooldown, so a second check within the cooldown sends nothing. Lower the cooldown if that's not wanted.
 
 ## Still stuck
