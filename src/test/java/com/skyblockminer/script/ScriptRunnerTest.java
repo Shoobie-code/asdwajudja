@@ -241,6 +241,19 @@ class ScriptRunnerTest {
     }
 
     @Test
+    void scriptsThatNeverWaitAreStopped() throws InterruptedException {
+        long before = ScriptRunner.maxBusyNanos;
+        ScriptRunner.maxBusyNanos = 200_000_000L;
+        try {
+            ScriptRunner runner = start(new FakeGame(), "while (true) {}");
+            tickUntil(runner, () -> runner.ended() != null);
+            assertTrue(runner.ended().contains("without waiting"), runner.ended());
+        } finally {
+            ScriptRunner.maxBusyNanos = before;
+        }
+    }
+
+    @Test
     void stopWithAReasonEndsTheScript() throws InterruptedException {
         ScriptRunner runner = start(new FakeGame(), "stop('Out of coins'); log('never');");
         tickUntil(runner, () -> runner.ended() != null);

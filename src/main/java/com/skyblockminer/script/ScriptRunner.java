@@ -27,6 +27,8 @@ final class ScriptRunner {
     private static final int MAX_QUEUED = 256;
     private static final int ACTIONS_PER_TICK = 64;
     private static final int MAX_EVENTS = 200;
+    /** How long a script may run without waiting (for a tick, a chat line, a menu...) before it is stopped. */
+    static volatile long maxBusyNanos = 5_000_000_000L;
     private static final ThreadLocal<ScriptRunner> CURRENT = new ThreadLocal<>();
     private static final ContextFactory FACTORY = new ContextFactory() {
         @Override
@@ -61,6 +63,8 @@ final class ScriptRunner {
     private String chatHit;
     private volatile ScriptGame.State state = ScriptGame.State.EMPTY;
     private volatile boolean stopping;
+    /** When the script last waited. Refreshed on every pass of {@link #await}, so only real computation counts as busy. */
+    private volatile long busySince = System.nanoTime();
     private volatile boolean done;
     private volatile String error;
     private volatile String exitReason;
@@ -237,6 +241,9 @@ final class ScriptRunner {
         if (this.stopping) {
             throw new Stopped();
         }
+        if (System.nanoTime() - this.busySince > maxBusyNanos) {
+            this.exit("script ran for more than " + maxBusyNanos / 1_000_000_000L + " s without waiting");
+        }
     }
 
     /** Ends the script from inside, stopping the macro with {@code reason}. */
@@ -338,6 +345,7 @@ final class ScriptRunner {
      */
     private boolean await(BooleanSupplier ready, long deadline, boolean dispatch) {
         while (true) {
+            this.busySince = System.nanoTime();
             this.checkStop();
             if (dispatch && !this.dispatching) {
                 this.dispatchPending();
