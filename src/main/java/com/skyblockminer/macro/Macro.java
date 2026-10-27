@@ -269,6 +269,9 @@ public final class Macro {
             this.walkHome(spot, 0L);
         }
 
+        if (type.untested()) {
+            MinerMod.message(type.label + " has not been tested in game yet. Watch the first few minutes and report what goes wrong.", ChatFormatting.YELLOW);
+        }
         switch (type) {
             case COMMISSIONS -> this.message("Running commissions.");
             case ROUTE -> this.message("Route miner on route \"" + this.routes.name() + "\" (" + this.routes.points().size() + " points, "

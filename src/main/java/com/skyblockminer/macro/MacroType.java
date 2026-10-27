@@ -41,6 +41,13 @@ public enum MacroType {
     }
 
     public static final List<MacroType> SELECTABLE = Arrays.stream(values()).filter(type -> type != GOTO).toList();
+
+    /** Macros that have not been run in game yet; starting one shows a warning in chat (see the README's `*` marks). */
+    public static final List<MacroType> UNTESTED = List.of(GLACITE, EXCAVATOR);
+
+    public boolean untested() {
+        return UNTESTED.contains(this);
+    }
     public final String id;
     public final String label;
     public final Category category;
