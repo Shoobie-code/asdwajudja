@@ -4,7 +4,6 @@ A Fabric client mod for Hypixel SkyBlock (Minecraft 26.2) that automates mining,
 foraging, fishing and mob grinding. It has a ClickGUI, a HUD you can drag around, a loot tracker, notifications and
 Discord alerts.
 
-> Hypixel's rules forbid macros, so accounts that use them can be banned. Use this at your own risk.
 
 ## Features
 
