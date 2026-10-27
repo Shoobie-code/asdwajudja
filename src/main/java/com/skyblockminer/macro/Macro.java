@@ -124,6 +124,8 @@ public final class Macro {
     private boolean savedPauseOnLostFocus;
     private boolean rejoining;
     private long rejoinAt;
+    /** Sends of /skyblock during the current rejoin; see {@link RejoinPolicy}. */
+    private int rejoinTries;
     private int rejoins;
     private Vec3 gotoTarget;
     private Vec3 home;
@@ -458,6 +460,7 @@ public final class Macro {
         Minecraft mc = Minecraft.getInstance();
         this.rejoins++;
         this.rejoining = true;
+        this.rejoinTries = 0;
         this.walkingHome = false;
         this.home = null;
         this.rejoinAt = System.currentTimeMillis() + 5000L;
@@ -690,7 +693,13 @@ public final class Macro {
             if (now >= this.rejoinAt) {
                 if (TabList.area(mc) != null) {
                     this.finishRejoin(now);
+                } else if (RejoinPolicy.giveUp(this.rejoinTries)) {
+                    this.rejoining = false;
+                    this.stop("Could not get back to SkyBlock after " + this.rejoinTries + " tries");
+                    alert();
+                    return;
                 } else {
+                    this.rejoinTries++;
                     this.command("skyblock");
                     this.rejoinAt = now + 15000L;
                     this.expectWorldUntil = now + 30000L;
