@@ -121,11 +121,13 @@ final class MinerCommands {
                 }
                 double buy = bazaar.instaBuy(id);
                 double sell = bazaar.instaSell(id);
-                if (buy <= 0.0 && sell <= 0.0) {
+                if (Double.isNaN(buy) && Double.isNaN(sell)) {
                     MinerMod.message(item + " is not on the Bazaar (looked up " + id + ").", ChatFormatting.RED);
                     return 0;
                 }
-                MinerMod.message(String.format("%s  —  insta-buy %,.1f, insta-sell %,.1f", id, buy, sell), ChatFormatting.AQUA);
+                String buyText = Double.isNaN(buy) ? "-" : String.format("%,.1f", buy);
+                String sellText = Double.isNaN(sell) ? "-" : String.format("%,.1f", sell);
+                MinerMod.message(id + "  —  insta-buy " + buyText + ", insta-sell " + sellText, ChatFormatting.AQUA);
                 return 1;
             })))
             .then(ClientCommands.literal("value").executes(c -> {
