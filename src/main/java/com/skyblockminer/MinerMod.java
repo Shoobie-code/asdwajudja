@@ -225,6 +225,7 @@ public final class MinerMod implements ClientModInitializer {
     }
 
     public static void message(String text, ChatFormatting color) {
+        com.skyblockminer.helpers.MacroLog.SHARED.add(text);
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
             mc.player.sendSystemMessage(Component.literal("[Macro] ").withStyle(ChatFormatting.DARK_AQUA).append(Component.literal(text).withStyle(color)));

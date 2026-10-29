@@ -154,6 +154,7 @@ final class MinerCommands {
                     .executes(c -> importProfile(macro, config, Minecraft.getInstance().keyboardHandler.getClipboard()))
                     .then(ClientCommands.argument("code", StringArgumentType.greedyString())
                         .executes(c -> importProfile(macro, config, StringArgumentType.getString(c, "code"))))))
+            .then(ClientCommands.literal("log").executes(c -> saveLog()))
             .then(ClientCommands.literal("script")
                 .executes(c -> listScripts(macro, config, settings))
                 .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))
@@ -384,6 +385,21 @@ final class MinerCommands {
         return 1;
     }
 
+    private static int saveLog() {
+        com.skyblockminer.helpers.MacroLog log = com.skyblockminer.helpers.MacroLog.SHARED;
+        try {
+            java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("skyblockminer");
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Path file = dir.resolve("macro-log-" + System.currentTimeMillis() + ".txt");
+            java.nio.file.Files.writeString(file, log.dump());
+            MinerMod.message("Saved " + log.size() + " log lines to " + file, ChatFormatting.GREEN);
+            return 1;
+        } catch (java.io.IOException e) {
+            MinerMod.message("Could not save the log: " + e.getMessage(), ChatFormatting.RED);
+            return 0;
+        }
+    }
+
     private static int importProfile(Macro macro, MinerConfig config, String code) {
         boolean ok = config.importCode(code);
         if (ok) {
@@ -527,7 +543,7 @@ final class MinerCommands {
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm route walk <n> <true|false> | wait <n> <ms> - walk to a point instead of etherwarping, or wait there first",
-            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list|export|import|diff <name>"
+            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list|export|import|diff <name> | log"
         };
         for (String line : lines) {
             MinerMod.message(line, ChatFormatting.GRAY);
