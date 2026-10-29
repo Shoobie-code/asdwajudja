@@ -41,6 +41,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.gizmos.GizmoStyle;
 import net.minecraft.gizmos.Gizmos;
@@ -620,6 +621,21 @@ public final class Macro {
     public void render(Minecraft mc) {
         if (mc.player == null) {
             return;
+        }
+        if (this.config.showWaypoints) {
+            for (Map.Entry<String, int[]> entry : this.config.waypoints.entrySet()) {
+                int[] p = entry.getValue();
+                if (p != null && p.length == 3) {
+                    BlockPos pos = new BlockPos(p[0], p[1], p[2]);
+                    Vec3 pp = mc.player.position();
+                    double dx = pp.x - (p[0] + 0.5);
+                    double dy = pp.y - (p[1] + 0.5);
+                    double dz = pp.z - (p[2] + 0.5);
+                    int distance = (int) Math.sqrt(dx * dx + dy * dy + dz * dz);
+                    Gizmos.cuboid(pos, GizmoStyle.strokeAndFill(0xFF55FF55, 2.0F, 0x3055FF55));
+                    Gizmos.billboardTextOverBlock(entry.getKey() + " (" + distance + "m)", pos, 0, 0xFF55FF55, 0.32F);
+                }
+            }
         }
         if (this.config.showRoute && !this.routes.points().isEmpty()) {
             boolean routeOn = this.running ? this.mode == MacroType.ROUTE : this.selected() == MacroType.ROUTE;

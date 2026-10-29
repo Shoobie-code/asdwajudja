@@ -225,6 +225,7 @@ public final class MinerConfig {
     public boolean itemTracker = true;
     public boolean bazaarPrices = true;
     public boolean showTarget = true;
+    public boolean showWaypoints = true;
     public int hudX = 4;
     public int hudY = 4;
     public int trackerX = 4;
@@ -264,6 +265,8 @@ public final class MinerConfig {
     public Map<String, int[]> hudPresets = new LinkedHashMap<>();
     /** User command aliases: short name to the rest of a /sm command, run by {@code /sm alias run <name>}. */
     public Map<String, String> aliases = new LinkedHashMap<>();
+    /** Named world waypoints, each [x, y, z], drawn in the world and listed by {@code /sm waypoint}. */
+    public Map<String, int[]> waypoints = new LinkedHashMap<>();
     public boolean gardenAlerts = true;
     public int pestAlertAt = 4;
     public boolean chatFilter = false;

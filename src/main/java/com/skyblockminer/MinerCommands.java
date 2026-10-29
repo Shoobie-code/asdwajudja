@@ -147,6 +147,52 @@ final class MinerCommands {
                 MinerMod.message(String.format("Inventory worth about %,.0f coins at Bazaar instant-sell.", total), ChatFormatting.GREEN);
                 return 1;
             }))
+            .then(ClientCommands.literal("waypoint")
+                .then(ClientCommands.literal("add").then(ClientCommands.argument("name", StringArgumentType.word()).executes(c -> {
+                    net.minecraft.client.player.LocalPlayer player = Minecraft.getInstance().player;
+                    if (player == null) {
+                        return 0;
+                    }
+                    String wpName = StringArgumentType.getString(c, "name");
+                    if (!MinerConfig.validProfile(wpName)) {
+                        MinerMod.message("Waypoint names may use letters, digits, - and _.", ChatFormatting.RED);
+                        return 0;
+                    }
+                    BlockPos pos = player.blockPosition();
+                    config.waypoints.put(wpName, new int[]{pos.getX(), pos.getY(), pos.getZ()});
+                    config.save();
+                    MinerMod.message("Waypoint " + wpName + " at " + pos.getX() + " " + pos.getY() + " " + pos.getZ(), ChatFormatting.GREEN);
+                    return 1;
+                })))
+                .then(ClientCommands.literal("remove").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .suggests((c, b) -> {
+                        config.waypoints.keySet().forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String wpName = StringArgumentType.getString(c, "name");
+                        boolean ok = config.waypoints.remove(wpName) != null;
+                        if (ok) {
+                            config.save();
+                        }
+                        MinerMod.message(ok ? "Removed waypoint " + wpName : "No waypoint named " + wpName, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    if (config.waypoints.isEmpty()) {
+                        MinerMod.message("No waypoints", ChatFormatting.AQUA);
+                    } else {
+                        MinerMod.message("Waypoints:", ChatFormatting.AQUA);
+                        config.waypoints.forEach((k, v) -> MinerMod.message("  " + k + ": " + v[0] + " " + v[1] + " " + v[2], ChatFormatting.GRAY));
+                    }
+                    return 1;
+                }))
+                .then(ClientCommands.literal("clear").executes(c -> {
+                    config.waypoints.clear();
+                    config.save();
+                    MinerMod.message("Cleared all waypoints", ChatFormatting.GREEN);
+                    return 1;
+                })))
             .then(ClientCommands.literal("accessories").executes(c -> {
                 Minecraft mc = Minecraft.getInstance();
                 String title = com.skyblockminer.game.Inv.screenTitle(mc);
