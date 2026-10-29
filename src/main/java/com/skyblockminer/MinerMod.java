@@ -155,12 +155,26 @@ public final class MinerMod implements ClientModInitializer {
                     }
                 });
             }
+            com.skyblockminer.helpers.ModuleTimings timings = com.skyblockminer.helpers.ModuleTimings.SHARED;
+            long t0 = System.nanoTime();
             tickMarket(mc);
+            long t1 = System.nanoTime();
             macro.onTick(mc);
+            long t2 = System.nanoTime();
             macro.render(mc);
+            long t3 = System.nanoTime();
             solvers.tick(mc);
+            long t4 = System.nanoTime();
             helpers.tick(mc);
+            long t5 = System.nanoTime();
             macro.recording.tick(mc);
+            long t6 = System.nanoTime();
+            timings.record("market", t1 - t0);
+            timings.record("macro", t2 - t1);
+            timings.record("render", t3 - t2);
+            timings.record("solvers", t4 - t3);
+            timings.record("helpers", t5 - t4);
+            timings.record("recording", t6 - t5);
         });
         LevelRenderEvents.END_MAIN.register(context -> macro.onFrame());
         ClientReceiveMessageEvents.GAME.register(MinerMod::onGameMessage);

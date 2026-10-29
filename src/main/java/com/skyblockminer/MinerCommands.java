@@ -209,6 +209,16 @@ final class MinerCommands {
                 }
                 return 1;
             }))
+            .then(ClientCommands.literal("perf").executes(c -> {
+                List<String> lines = com.skyblockminer.helpers.ModuleTimings.SHARED.lines();
+                if (lines.isEmpty()) {
+                    MinerMod.message("No timings yet.", ChatFormatting.YELLOW);
+                } else {
+                    MinerMod.message("Per-tick timings (rolling average):", ChatFormatting.AQUA);
+                    lines.forEach(l -> MinerMod.message("  " + l, ChatFormatting.GRAY));
+                }
+                return 1;
+            }))
             .then(ClientCommands.literal("tps").executes(c -> {
                 if (!macro.tps.ready()) {
                     MinerMod.message("Server TPS not measured yet (join a world and wait a moment).", ChatFormatting.YELLOW);
