@@ -24,6 +24,8 @@ import net.fabricmc.loader.api.FabricLoader;
 public final class MinerConfig {
     /** The Discord webhook URL contains its token, so it is never written to a profile. */
     static final String WEBHOOK_FIELD = "webhookUrl";
+    /** Version tag on a shared profile code, so a future format change can be told apart. */
+    static final String CODE_PREFIX = "SM1-";
     /** Backups of replaced configs live here, next to the config file. */
     static final String BACKUP_DIR = "skyblockminer-backups";
     static final int KEEP_BACKUPS = 5;
@@ -327,18 +329,89 @@ public final class MinerConfig {
                 return false;
             }
             loaded.sanitize();
-            for (Field field : MinerConfig.class.getFields()) {
-                // Profiles do not carry the webhook, so loading one must keep this install's webhook.
-                if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())
-                    && !field.getName().equals(WEBHOOK_FIELD)) {
-                    field.set(this, field.get(loaded));
-                }
-            }
+            this.applyFrom(loaded);
             this.profile = name;
             this.save();
             return true;
         } catch (IOException | RuntimeException | IllegalAccessException e) {
             MinerMod.LOGGER.warn("Could not load profile {}", name, e);
+            return false;
+        }
+    }
+
+    /** Copies every non-secret setting from {@code loaded} into this config in place, so live references stay valid. */
+    private void applyFrom(MinerConfig loaded) throws IllegalAccessException {
+        for (Field field : MinerConfig.class.getFields()) {
+            // Shared configs do not carry the webhook, so applying one must keep this install's webhook.
+            if (!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())
+                && !field.getName().equals(WEBHOOK_FIELD)) {
+                field.set(this, field.get(loaded));
+            }
+        }
+    }
+
+    /**
+     * A portable text code for this config's settings, without the webhook. It is gzipped JSON in URL-safe base64
+     * behind a short version tag, so a profile can be shared in chat or a message. Read back with {@link #decode}.
+     */
+    static String encode(MinerConfig config) {
+        try {
+            byte[] json = GSON.toJson(shareable(config)).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            var bytes = new java.io.ByteArrayOutputStream();
+            try (var gzip = new java.util.zip.GZIPOutputStream(bytes)) {
+                gzip.write(json);
+            }
+            return CODE_PREFIX + java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(bytes.toByteArray());
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /** Parses a code from {@link #encode}, or null if it is not a valid code. The result is not yet sanitized. */
+    static MinerConfig decode(String code) {
+        if (code == null) {
+            return null;
+        }
+        String trimmed = code.strip();
+        if (!trimmed.startsWith(CODE_PREFIX)) {
+            return null;
+        }
+        try {
+            byte[] gz = java.util.Base64.getUrlDecoder().decode(trimmed.substring(CODE_PREFIX.length()));
+            var in = new java.util.zip.GZIPInputStream(new java.io.ByteArrayInputStream(gz));
+            String json = new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            return GSON.fromJson(json, MinerConfig.class);
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
+    /** Returns this config's shareable code (see {@link #encode}). */
+    public String exportCode() {
+        return encode(this);
+    }
+
+    /** Applies a shared code in place, keeping this install's webhook. Returns false when the code is invalid. */
+    public boolean importCode(String code) {
+        if (!this.applyCode(code)) {
+            return false;
+        }
+        this.save();
+        return true;
+    }
+
+    /** The apply half of {@link #importCode}, without the disk save, so it can be tested without a Fabric runtime. */
+    boolean applyCode(String code) {
+        MinerConfig loaded = decode(code);
+        if (loaded == null) {
+            return false;
+        }
+        try {
+            loaded.sanitize();
+            this.applyFrom(loaded);
+            return true;
+        } catch (RuntimeException | IllegalAccessException e) {
+            MinerMod.LOGGER.warn("Could not import a profile code", e);
             return false;
         }
     }

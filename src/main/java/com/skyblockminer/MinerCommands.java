@@ -123,7 +123,16 @@ final class MinerCommands {
                     List<String> saved = MinerConfig.savedProfiles();
                     MinerMod.message(saved.isEmpty() ? "No saved profiles" : "Profiles: " + String.join(", ", saved), ChatFormatting.AQUA);
                     return 1;
-                })))
+                }))
+                .then(ClientCommands.literal("export").executes(c -> {
+                    Minecraft.getInstance().keyboardHandler.setClipboard(config.exportCode());
+                    MinerMod.message("Copied a shareable profile code to your clipboard (the webhook is left out).", ChatFormatting.GREEN);
+                    return 1;
+                }))
+                .then(ClientCommands.literal("import")
+                    .executes(c -> importProfile(macro, config, Minecraft.getInstance().keyboardHandler.getClipboard()))
+                    .then(ClientCommands.argument("code", StringArgumentType.greedyString())
+                        .executes(c -> importProfile(macro, config, StringArgumentType.getString(c, "code"))))))
             .then(ClientCommands.literal("script")
                 .executes(c -> listScripts(macro, config, settings))
                 .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))
@@ -354,6 +363,17 @@ final class MinerCommands {
         return 1;
     }
 
+    private static int importProfile(Macro macro, MinerConfig config, String code) {
+        boolean ok = config.importCode(code);
+        if (ok) {
+            macro.applyConfig();
+            MinerMod.message("Imported a profile code (your webhook was kept).", ChatFormatting.GREEN);
+        } else {
+            MinerMod.message("That is not a valid profile code.", ChatFormatting.RED);
+        }
+        return ok ? 1 : 0;
+    }
+
     private static int set(MacroSettings settings, String id, String value) {
         Setting setting = settings.find(id);
         if (setting == null) {
@@ -486,7 +506,7 @@ final class MinerCommands {
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm route walk <n> <true|false> | wait <n> <ms> - walk to a point instead of etherwarping, or wait there first",
-            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list <name>"
+            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list|export|import <name>"
         };
         for (String line : lines) {
             MinerMod.message(line, ChatFormatting.GRAY);
