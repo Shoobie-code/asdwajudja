@@ -16,6 +16,9 @@ public final class Sidebar {
     private static final Pattern HEAT = Pattern.compile("Heat:\\D*?(\\d+)");
     private static final Pattern COLD = Pattern.compile("Cold:\\s*-?\\s*(\\d+)");
     private static final Pattern PURSE = Pattern.compile("(?:Purse|Piggy):\\s*([\\d,]+)");
+    private static final Pattern CLEARED = Pattern.compile("Cleared:\\s*(\\d+)%");
+    // The SkyBlock location line is marked with the area glyph (⏣); Wynncraft uses its own glyph.
+    private static final Pattern LOCATION = Pattern.compile("[⏣ф]\\s*(.+)");
 
     private Sidebar() {
     }
@@ -49,6 +52,25 @@ public final class Sidebar {
 
     public static int cold(List<String> lines) {
         return find(lines, COLD);
+    }
+
+    /** The area name from the sidebar's location line (the one with the ⏣ glyph), or null when absent. */
+    public static String location(List<String> lines) {
+        for (String line : lines) {
+            Matcher matcher = LOCATION.matcher(line.trim());
+            if (matcher.find()) {
+                String name = matcher.group(1).trim();
+                if (!name.isEmpty()) {
+                    return name;
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Dungeon cleared percentage from the sidebar, or -1 when not in a dungeon. */
+    public static int dungeonCleared(List<String> lines) {
+        return find(lines, CLEARED);
     }
 
     /** The purse (or piggy) coin total from the sidebar, or -1 when no such line is present. */

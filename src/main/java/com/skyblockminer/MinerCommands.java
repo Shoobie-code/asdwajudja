@@ -298,6 +298,22 @@ final class MinerCommands {
                 }
                 return 1;
             }))
+            .then(ClientCommands.literal("where").executes(c -> {
+                List<String> lines = com.skyblockminer.game.Sidebar.lines(Minecraft.getInstance());
+                String where = com.skyblockminer.game.Sidebar.location(lines);
+                int cleared = com.skyblockminer.game.Sidebar.dungeonCleared(lines);
+                if (where == null && cleared < 0) {
+                    MinerMod.message("No SkyBlock location on the sidebar here.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                if (where != null) {
+                    MinerMod.message("Location: " + where, ChatFormatting.AQUA);
+                }
+                if (cleared >= 0) {
+                    MinerMod.message("Dungeon cleared: " + cleared + "%", ChatFormatting.AQUA);
+                }
+                return 1;
+            }))
             .then(ClientCommands.literal("tps").executes(c -> {
                 if (!macro.tps.ready()) {
                     MinerMod.message("Server TPS not measured yet (join a world and wait a moment).", ChatFormatting.YELLOW);
