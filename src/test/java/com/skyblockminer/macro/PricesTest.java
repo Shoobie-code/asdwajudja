@@ -16,6 +16,14 @@ class PricesTest {
     }
 
     @Test
+    void productIdIsCachedButStillCorrect() {
+        // Repeated calls return the same result (served from the memo cache).
+        assertEquals("ENCHANTED_MITHRIL", Prices.productId("Enchanted Mithril"));
+        assertEquals("ENCHANTED_MITHRIL", Prices.productId("Enchanted Mithril"));
+        assertEquals(Prices.productId("Mithril"), Prices.productId("Mithril"));
+    }
+
+    @Test
     void parsesBazaarJson() {
         Prices prices = new Prices();
         assertFalse(prices.ready());

@@ -83,8 +83,15 @@ public final class Prices {
         return this.sell.getOrDefault(productId(displayName), 0.0);
     }
 
+    // productId is a pure function called repeatedly for the same loot names each tick; memoise the results.
+    private static final Map<String, String> ID_CACHE = new ConcurrentHashMap<>();
+
     /** Best-effort Bazaar product id for a display name, e.g. "Enchanted Mithril" -> ENCHANTED_MITHRIL. */
     public static String productId(String displayName) {
+        return ID_CACHE.computeIfAbsent(displayName, Prices::computeProductId);
+    }
+
+    private static String computeProductId(String displayName) {
         String id = displayName.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
         if (id.matches("(ROUGH|FLAWED|FINE|FLAWLESS|PERFECT)_[A-Z]+_GEMSTONE")) {
             return id.substring(0, id.length() - "STONE".length());
