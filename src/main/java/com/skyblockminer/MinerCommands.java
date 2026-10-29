@@ -12,6 +12,8 @@ import com.skyblockminer.config.MinerConfig;
 import com.skyblockminer.gui.Setting;
 import com.skyblockminer.helpers.SkillTracker;
 import com.skyblockminer.macro.Macro;
+import com.skyblockminer.macro.Prices;
+import com.skyblockminer.market.Market;
 import com.skyblockminer.macro.MacroType;
 import com.skyblockminer.macro.mining.Routes;
 import com.skyblockminer.macro.mining.Targets;
@@ -33,13 +35,13 @@ final class MinerCommands {
     private MinerCommands() {
     }
 
-    static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, Macro macro, MinerConfig config, MacroSettings settings) {
+    static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, Macro macro, MinerConfig config, MacroSettings settings, Market market) {
         for (String name : NAMES) {
-            dispatcher.register(root(name, macro, config, settings));
+            dispatcher.register(root(name, macro, config, settings, market));
         }
     }
 
-    private static LiteralArgumentBuilder<FabricClientCommandSource> root(String name, Macro macro, MinerConfig config, MacroSettings settings) {
+    private static LiteralArgumentBuilder<FabricClientCommandSource> root(String name, Macro macro, MinerConfig config, MacroSettings settings, Market market) {
         SuggestionProvider<FabricClientCommandSource> types = (c, b) -> {
             MacroType.SELECTABLE.forEach(type -> b.suggest(type.id));
             return b.buildFuture();
@@ -54,6 +56,23 @@ final class MinerCommands {
             .executes(c -> run(macro::toggle))
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
+            .then(ClientCommands.literal("price").then(ClientCommands.argument("item", StringArgumentType.greedyString()).executes(c -> {
+                String item = StringArgumentType.getString(c, "item");
+                String id = Prices.productId(item);
+                com.skyblockminer.market.Bazaar bazaar = market.bazaar();
+                if (bazaar.isEmpty()) {
+                    MinerMod.message("Bazaar prices are not loaded yet; open the Market screen first.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                double buy = bazaar.instaBuy(id);
+                double sell = bazaar.instaSell(id);
+                if (buy <= 0.0 && sell <= 0.0) {
+                    MinerMod.message(item + " is not on the Bazaar (looked up " + id + ").", ChatFormatting.RED);
+                    return 0;
+                }
+                MinerMod.message(String.format("%s  —  insta-buy %,.1f, insta-sell %,.1f", id, buy, sell), ChatFormatting.AQUA);
+                return 1;
+            })))
             .then(ClientCommands.literal("value").executes(c -> {
                 net.minecraft.client.player.LocalPlayer player = Minecraft.getInstance().player;
                 if (player == null) {

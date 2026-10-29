@@ -167,7 +167,7 @@ public final class MinerMod implements ClientModInitializer {
         // Filtered lines are hidden from the chat but still handled, so alerts and trackers keep working.
         ClientReceiveMessageEvents.GAME_CANCELED.register(MinerMod::onGameMessage);
         ClientReceiveMessageEvents.ALLOW_GAME.register((message, overlay) -> overlay || !ChatFilter.hide(message.getString(), config));
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> MinerCommands.register(dispatcher, macro, config, settings));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, context) -> MinerCommands.register(dispatcher, macro, config, settings, market));
         HudElementRegistry.addLast(Identifier.fromNamespaceAndPath(ID, "status"), new MinerHud(macro, config, skills, helpers));
     }
 

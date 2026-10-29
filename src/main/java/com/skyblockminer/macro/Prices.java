@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Instant-sell prices from Hypixel's public Bazaar endpoint (no API key needed), refreshed every 15 minutes
  * while asked for. Used to turn the loot tracker into a profit estimate.
  */
-final class Prices {
+public final class Prices {
     private static final URI BAZAAR = URI.create("https://api.hypixel.net/v2/skyblock/bazaar");
     private static final long REFRESH_MS = 15 * 60_000L;
     private static final Map<String, String> ALIASES = Map.of(
@@ -84,7 +84,7 @@ final class Prices {
     }
 
     /** Best-effort Bazaar product id for a display name, e.g. "Enchanted Mithril" -> ENCHANTED_MITHRIL. */
-    static String productId(String displayName) {
+    public static String productId(String displayName) {
         String id = displayName.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]+", "_").replaceAll("^_|_$", "");
         if (id.matches("(ROUGH|FLAWED|FINE|FLAWLESS|PERFECT)_[A-Z]+_GEMSTONE")) {
             return id.substring(0, id.length() - "STONE".length());
