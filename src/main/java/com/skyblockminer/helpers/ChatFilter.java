@@ -52,7 +52,7 @@ public final class ChatFilter {
         return matchesCustom(line, config.filterCustom);
     }
 
-    static boolean matchesCustom(String line, List<String> custom) {
+    public static boolean matchesCustom(String line, List<String> custom) {
         if (custom.isEmpty()) {
             return false;
         }

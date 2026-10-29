@@ -279,6 +279,8 @@ public final class MinerConfig {
     public boolean filterAbility = true;
     public boolean filterCombo = true;
     public List<String> filterCustom = new ArrayList<>();
+    /** Phrases that trigger a chat alert (sound + toast) on any matching line. */
+    public List<String> alertWords = new ArrayList<>();
 
     private transient int revision;
     private transient boolean dirty;

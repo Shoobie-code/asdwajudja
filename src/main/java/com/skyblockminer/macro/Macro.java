@@ -121,6 +121,7 @@ public final class Macro {
     private Vec3 pendingPush;
     private int pushTicks;
     private long chatAlertAt;
+    private long customAlertAt;
     private boolean screenWasOpen;
     private String loggedStatus = "";
     private boolean pauseChanged;
@@ -515,6 +516,15 @@ public final class Macro {
         }
         if (this.mode == MacroType.SCRIPT) {
             this.scripts.onAnyChat(text);
+        }
+        if (!this.config.alertWords.isEmpty() && com.skyblockminer.helpers.ChatFilter.matchesCustom(text, this.config.alertWords)) {
+            long now = System.currentTimeMillis();
+            if (now - this.customAlertAt > 5000L) {
+                this.customAlertAt = now;
+                MinerMod.message("Alert: " + text, ChatFormatting.YELLOW);
+                alert();
+                Toasts.push("Chat alert", text, Toasts.Kind.WARNING);
+            }
         }
         if (text.contains(": ")) {
             String mention = this.config.chatAlerts ? Failsafes.chatMention(text, this.myName()) : null;

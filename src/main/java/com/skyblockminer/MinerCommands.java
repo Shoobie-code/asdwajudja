@@ -209,6 +209,36 @@ final class MinerCommands {
                 }
                 return 1;
             }))
+            .then(ClientCommands.literal("alert")
+                .then(ClientCommands.literal("add").then(ClientCommands.argument("phrase", StringArgumentType.greedyString()).executes(c -> {
+                    String phrase = StringArgumentType.getString(c, "phrase").trim();
+                    if (phrase.isEmpty() || config.alertWords.contains(phrase)) {
+                        MinerMod.message("Enter a new phrase to alert on.", ChatFormatting.RED);
+                        return 0;
+                    }
+                    config.alertWords.add(phrase);
+                    config.save();
+                    MinerMod.message("Alerting on chat containing \"" + phrase + "\"", ChatFormatting.GREEN);
+                    return 1;
+                })))
+                .then(ClientCommands.literal("remove").then(ClientCommands.argument("phrase", StringArgumentType.greedyString())
+                    .suggests((c, b) -> {
+                        config.alertWords.forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String phrase = StringArgumentType.getString(c, "phrase").trim();
+                        boolean ok = config.alertWords.remove(phrase);
+                        if (ok) {
+                            config.save();
+                        }
+                        MinerMod.message(ok ? "Removed alert \"" + phrase + "\"" : "No alert phrase \"" + phrase + "\"", ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    MinerMod.message(config.alertWords.isEmpty() ? "No alert phrases" : "Alert phrases: " + String.join(", ", config.alertWords), ChatFormatting.AQUA);
+                    return 1;
+                })))
             .then(ClientCommands.literal("perf").executes(c -> {
                 List<String> lines = com.skyblockminer.helpers.ModuleTimings.SHARED.lines();
                 if (lines.isEmpty()) {
