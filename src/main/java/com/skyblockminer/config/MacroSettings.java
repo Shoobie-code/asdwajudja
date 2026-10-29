@@ -261,6 +261,20 @@ public final class MacroSettings {
         return List.copyOf(this.byId.keySet());
     }
 
+    /** Settings whose id, name or description contain {@code query}, for {@code /sm help <query>}. */
+    public List<Setting> search(String query) {
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        List<Setting> out = new ArrayList<>();
+        for (Setting setting : this.byId.values()) {
+            if (setting.matches(query.trim())) {
+                out.add(setting);
+            }
+        }
+        return out;
+    }
+
     private void changed() {
         this.c.markDirty();
         this.macro.applyConfig();

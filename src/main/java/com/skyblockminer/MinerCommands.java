@@ -445,6 +445,23 @@ final class MinerCommands {
             .then(ClientCommands.literal("log").executes(c -> saveLog()))
             .then(ClientCommands.literal("report").executes(c -> saveReport(macro)))
             .then(ClientCommands.literal("history").executes(c -> showHistory()))
+            .then(ClientCommands.literal("help").then(ClientCommands.argument("query", StringArgumentType.greedyString()).executes(c -> {
+                String query = StringArgumentType.getString(c, "query");
+                List<Setting> found = settings.search(query);
+                if (found.isEmpty()) {
+                    MinerMod.message("No settings match \"" + query + "\".", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                MinerMod.message(found.size() + " setting(s) matching \"" + query + "\":", ChatFormatting.AQUA);
+                found.stream().limit(10).forEach(s -> {
+                    String value = s.hasValue() ? " [" + s.valueText() + "]" : "";
+                    MinerMod.message("  " + s.id + value + " - " + s.description, ChatFormatting.GRAY);
+                });
+                if (found.size() > 10) {
+                    MinerMod.message("  ...and " + (found.size() - 10) + " more.", ChatFormatting.GRAY);
+                }
+                return 1;
+            })))
             .then(ClientCommands.literal("script")
                 .executes(c -> listScripts(macro, config, settings))
                 .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))

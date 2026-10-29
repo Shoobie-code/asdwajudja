@@ -18,6 +18,15 @@ class SettingTest {
     private String text = "";
 
     @Test
+    void matchesSearchesNameIdAndDescription() {
+        Setting.Toggle t = new Setting.Toggle("mining.heat", "Heat limit", "Warps to the Forge at this heat", () -> false, v -> {});
+        assertTrue(t.matches("heat"));        // name
+        assertTrue(t.matches("forge"));       // description
+        assertTrue(t.matches("mining.heat")); // id
+        assertFalse(t.matches("fishing"));
+    }
+
+    @Test
     void toggleParsesWords() {
         Setting.Toggle toggle = new Setting.Toggle("t", "T", "", () -> this.flag, v -> this.flag = v);
         assertNull(toggle.set("on"));
