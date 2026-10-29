@@ -1122,6 +1122,10 @@ public final class Macro {
         if (breakIn != null) {
             lines.add(breakIn);
         }
+        // Surface server lag on the HUD so a stall is visible without opening chat.
+        if (this.tps.ready() && this.tps.tps() < 18.0) {
+            lines.add(String.format("⚠ Server lag: %.0f TPS", this.tps.tps()));
+        }
         return Collections.unmodifiableList(lines);
     }
 
