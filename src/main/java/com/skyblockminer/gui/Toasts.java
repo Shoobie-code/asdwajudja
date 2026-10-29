@@ -9,15 +9,19 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 /** Short notification cards that slide in on the HUD (macro started, failsafes, pests, breaks...). */
 public final class Toasts {
     public enum Kind {
-        INFO(0xFF3B82F6),
-        SUCCESS(Theme.GOOD),
-        WARNING(Theme.WARN),
-        ERROR(Theme.BAD);
+        INFO,
+        SUCCESS,
+        WARNING,
+        ERROR;
 
-        final int color;
-
-        Kind(int color) {
-            this.color = color;
+        /** Resolved each time so a colour-blind palette change takes effect without rebuilding toasts. */
+        int color() {
+            return switch (this) {
+                case INFO -> 0xFF3B82F6;
+                case SUCCESS -> Theme.good();
+                case WARNING -> Theme.warn();
+                case ERROR -> Theme.bad();
+            };
         }
     }
 
@@ -78,11 +82,11 @@ public final class Toasts {
 
     private static void draw(GuiGraphicsExtractor g, Font font, Toast toast, int x, int y, float alpha, long age) {
         Draw.round(g, x, y, x + WIDTH, y + HEIGHT, Draw.fade(0xE60B0D11, alpha));
-        g.fill(x, y + 2, x + 2, y + HEIGHT - 2, Draw.fade(toast.kind.color, alpha));
-        Draw.text(g, font, Draw.fit(font, toast.title, WIDTH - 12), x + 7, y + 4, Draw.fade(toast.kind.color, alpha));
+        g.fill(x, y + 2, x + 2, y + HEIGHT - 2, Draw.fade(toast.kind.color(), alpha));
+        Draw.text(g, font, Draw.fit(font, toast.title, WIDTH - 12), x + 7, y + 4, Draw.fade(toast.kind.color(), alpha));
         Draw.text(g, font, Draw.fit(font, toast.text, WIDTH - 12), x + 7, y + 15, Draw.fade(Theme.TEXT, alpha));
         int bar = (int) ((WIDTH - 4) * (1.0F - age / (float) LIFETIME));
-        g.fill(x + 2, y + HEIGHT - 1, x + 2 + bar, y + HEIGHT, Draw.fade(Draw.withAlpha(toast.kind.color, 0x90), alpha));
+        g.fill(x + 2, y + HEIGHT - 1, x + 2 + bar, y + HEIGHT, Draw.fade(Draw.withAlpha(toast.kind.color(), 0x90), alpha));
     }
 
     private static float easeOut(float t) {

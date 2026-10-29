@@ -695,7 +695,7 @@ public final class ClickGuiScreen extends Screen {
         int color;
         if (!this.config.masterSwitch) {
             status = "Master switch off";
-            color = Theme.BAD;
+            color = Theme.bad();
         } else if (this.macro.running()) {
             status = "● " + this.macro.mode().label + ": " + this.macro.status();
             color = accent;

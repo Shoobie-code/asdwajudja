@@ -688,7 +688,9 @@ public final class MacroSettings {
                     () -> HudEditorScreen.open(this.macro, () -> ClickGuiScreen.open(this.macro, this.layout()))))),
             new Section("Theme", List.of(
                 this.choice("theme.accent", "Accent color", "Highlight color of the menu and HUD.",
-                    () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v)))
+                    () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v),
+                this.toggle("theme.colorblind", "Colour-blind palette", "Use blue/yellow/vermillion for status colours instead of red/green.",
+                    () -> this.c.colorBlind, v -> this.c.colorBlind = v)))
         ));
     }
 

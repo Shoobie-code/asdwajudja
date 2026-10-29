@@ -226,6 +226,7 @@ public final class MinerConfig {
     public boolean bazaarPrices = true;
     public boolean showTarget = true;
     public boolean showWaypoints = true;
+    public boolean colorBlind = false;
     /** Pause macros while the server TPS is below {@link #lagThreshold} (off by default). */
     public boolean pauseOnLag = false;
     public int lagThreshold = 10;

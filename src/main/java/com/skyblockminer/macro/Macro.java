@@ -338,6 +338,7 @@ public final class Macro {
     public void applyConfig() {
         this.rotator.configure(this.config);
         this.mining.configure(this.config);
+        com.skyblockminer.gui.Theme.colorBlind = this.config.colorBlind;
     }
 
     private void releaseAll(Minecraft mc) {

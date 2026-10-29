@@ -32,6 +32,37 @@ public final class Theme {
     public static final int GOOD = 0xFF3DDC84;
     public static final int BAD = 0xFFFF5C5C;
     public static final int WARN = 0xFFFFB13D;
+    // Colour-blind-safe status colours (Okabe-Ito): blue, yellow, vermillion — distinguishable without red/green.
+    public static final int CB_GOOD = 0xFF0072B2;
+    public static final int CB_WARN = 0xFFF0E442;
+    public static final int CB_BAD = 0xFFD55E00;
+
+    /** When true, status colours use the colour-blind-safe palette. Set from the config. */
+    public static boolean colorBlind = false;
+
+    public static int good(boolean cb) {
+        return cb ? CB_GOOD : GOOD;
+    }
+
+    public static int warn(boolean cb) {
+        return cb ? CB_WARN : WARN;
+    }
+
+    public static int bad(boolean cb) {
+        return cb ? CB_BAD : BAD;
+    }
+
+    public static int good() {
+        return good(colorBlind);
+    }
+
+    public static int warn() {
+        return warn(colorBlind);
+    }
+
+    public static int bad() {
+        return bad(colorBlind);
+    }
     public static final int HUD_BACK = 0xB0121317;
     public static final String DEFAULT_ACCENT = "amber";
 
