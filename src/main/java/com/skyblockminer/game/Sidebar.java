@@ -19,6 +19,8 @@ public final class Sidebar {
     private static final Pattern CLEARED = Pattern.compile("Cleared:\\s*(\\d+)%");
     // The SkyBlock location line is marked with the area glyph (⏣); Wynncraft uses its own glyph.
     private static final Pattern LOCATION = Pattern.compile("[⏣ф]\\s*(.+)");
+    private static final Pattern SLAYER = Pattern.compile(
+        "(Revenant Horror|Tarantula Broodfather|Sven Packmaster|Voidgloom Seraph|Inferno Demonlord|Riftstalker Bloodfiend)\\s+([IVX]+)");
 
     private Sidebar() {
     }
@@ -71,6 +73,17 @@ public final class Sidebar {
     /** Dungeon cleared percentage from the sidebar, or -1 when not in a dungeon. */
     public static int dungeonCleared(List<String> lines) {
         return find(lines, CLEARED);
+    }
+
+    /** The active slayer boss and tier (e.g. "Revenant Horror V") from the sidebar, or null when not on a slayer quest. */
+    public static String slayer(List<String> lines) {
+        for (String line : lines) {
+            Matcher matcher = SLAYER.matcher(line);
+            if (matcher.find()) {
+                return matcher.group(1) + " " + matcher.group(2);
+            }
+        }
+        return null;
     }
 
     /** The purse (or piggy) coin total from the sidebar, or -1 when no such line is present. */

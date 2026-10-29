@@ -302,7 +302,8 @@ final class MinerCommands {
                 List<String> lines = com.skyblockminer.game.Sidebar.lines(Minecraft.getInstance());
                 String where = com.skyblockminer.game.Sidebar.location(lines);
                 int cleared = com.skyblockminer.game.Sidebar.dungeonCleared(lines);
-                if (where == null && cleared < 0) {
+                String slayer = com.skyblockminer.game.Sidebar.slayer(lines);
+                if (where == null && cleared < 0 && slayer == null) {
                     MinerMod.message("No SkyBlock location on the sidebar here.", ChatFormatting.YELLOW);
                     return 0;
                 }
@@ -311,6 +312,9 @@ final class MinerCommands {
                 }
                 if (cleared >= 0) {
                     MinerMod.message("Dungeon cleared: " + cleared + "%", ChatFormatting.AQUA);
+                }
+                if (slayer != null) {
+                    MinerMod.message("Slayer: " + slayer, ChatFormatting.AQUA);
                 }
                 return 1;
             }))
