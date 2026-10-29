@@ -66,6 +66,17 @@ public final class AuctionSniper {
         }
     }
 
+    /**
+     * Stops the sniper immediately: drops any queued and in-progress flip and holds off re-opening for 30 s. Called by
+     * the panic key so no automation keeps acting after a stop.
+     */
+    public void halt() {
+        this.queue.clear();
+        this.current = null;
+        this.state = State.IDLE;
+        this.nextOpenAt = System.currentTimeMillis() + 30_000L;
+    }
+
     public void tick(Minecraft mc) {
         long now = System.currentTimeMillis();
         String title = Inv.screenTitle(mc);

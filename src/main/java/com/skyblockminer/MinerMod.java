@@ -128,6 +128,8 @@ public final class MinerMod implements ClientModInitializer {
             // Unlike the toggle key, the panic key only ever stops.
             while (panicKey.consumeClick()) {
                 macro.stop("Panic key");
+                // Panic halts every automation, not just the macro.
+                sniper.halt();
             }
             while (menuKey.consumeClick()) {
                 openMenu = true;
