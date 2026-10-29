@@ -443,6 +443,7 @@ final class MinerCommands {
                     .then(ClientCommands.argument("code", StringArgumentType.greedyString())
                         .executes(c -> importProfile(macro, config, StringArgumentType.getString(c, "code"))))))
             .then(ClientCommands.literal("log").executes(c -> saveLog()))
+            .then(ClientCommands.literal("report").executes(c -> saveReport(macro)))
             .then(ClientCommands.literal("script")
                 .executes(c -> listScripts(macro, config, settings))
                 .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))
@@ -671,6 +672,20 @@ final class MinerCommands {
         MinerMod.message(setting.name + " (" + id + "): " + setting.valueText(), ChatFormatting.AQUA);
         MinerMod.message(setting.description, ChatFormatting.GRAY);
         return 1;
+    }
+
+    private static int saveReport(Macro macro) {
+        try {
+            java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("skyblockminer");
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Path file = dir.resolve("report-" + System.currentTimeMillis() + ".txt");
+            java.nio.file.Files.writeString(file, com.skyblockminer.helpers.Redact.scrub(String.join("\n", macro.report())));
+            MinerMod.message("Saved a session report to " + file, ChatFormatting.GREEN);
+            return 1;
+        } catch (java.io.IOException e) {
+            MinerMod.message("Could not save the report: " + e.getMessage(), ChatFormatting.RED);
+            return 0;
+        }
     }
 
     private static int saveLog() {

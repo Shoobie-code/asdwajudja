@@ -1003,6 +1003,24 @@ public final class Macro {
         return this.running ? System.currentTimeMillis() - this.startedAt : 0L;
     }
 
+    /** A human-readable session report: the macro, how long it has run, its stats, loot rates, TPS and tick timings. */
+    public List<String> report() {
+        List<String> lines = new ArrayList<>();
+        lines.add("Skyblock Macro session report");
+        lines.add("Macro: " + this.mode.label + (this.running ? " (running)" : " (stopped)"));
+        lines.add("Elapsed: " + clock(this.elapsedMs()));
+        String stats = this.stats();
+        if (!stats.isBlank()) {
+            lines.add("Stats: " + stats);
+        }
+        lines.addAll(this.trackerLines());
+        if (this.tps.ready()) {
+            lines.add(String.format("Server TPS: %.1f", this.tps.tps()));
+        }
+        lines.addAll(com.skyblockminer.helpers.ModuleTimings.SHARED.lines());
+        return lines;
+    }
+
     public String stats() {
         double hours = this.hours();
         StringBuilder text = new StringBuilder();
