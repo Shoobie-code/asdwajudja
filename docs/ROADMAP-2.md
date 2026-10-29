@@ -7,10 +7,10 @@ Ideas are taken from how these mods behave. No code is copied: the GPL-licensed 
 ### Progress
 
 - **Done, verified offline:** #6 event countdown list (`/sm events`), #19 reconnect back-off, #34 HUD layout presets, #42 command aliases, #45 config diff, #46 log export, #51 profile sharing codes, #53 one-time update notice, #54 log redaction (the redaction half; sending is still open), #59 stop-recovery hints.
-- **Done, needs in-game testing** (built against the repo's existing 26.2 APIs, compiles, pure cores unit-tested, live behaviour unverified): #1 watched Bazaar price history (`/sm pricelog`), #2 `/sm price` Bazaar lookup, #7 custom chat alerts (`/sm alert`), #8 `/sm value` inventory worth, #9 `/sm accessories` duplicate finder, #11 coins/hour on the HUD (sidebar purse), #20 server lag detection (`/sm tps`, optional `pauseOnLag`), #33 world waypoints (`/sm waypoint`), #49 per-module tick timings (`/sm perf`).
+- **Done, needs in-game testing** (built against the repo's existing 26.2 APIs, compiles, pure cores unit-tested, live behaviour unverified): #1 watched Bazaar price history (`/sm pricelog`), #2 `/sm price` Bazaar lookup, #7 custom chat alerts (`/sm alert`), #8 `/sm value` inventory worth, #9 `/sm accessories` duplicate finder, #11 coins/hour on the HUD (sidebar purse), #20 server lag detection (`/sm tps`, optional `pauseOnLag`), #33 world waypoints (`/sm waypoint`), #36 session history (`/sm history`), #49 per-module tick timings (`/sm perf`), #55 colour-blind status palette.
 - **Already in the code:** #3 craft profit (`CraftCalc`), #16 stuck handling (`PathWalker`), #21 teleport verification (`RouteMiner` arrival check), #24 break length variance (`Macro.vary`), #47 version pin (`fabric.mod.json`).
 - **From the original roadmap, done this pass too:** #20 per-module metrics (`/sm perf`), #28 reference-jar documented, #37 `/sm report`, #40 configurable notifications (`/sm alert`). (Earlier passes did #6, #26, #27, #29, #31, #32, #33, #39, #42, #44–48 of that list.)
-- **Open, and need a client run** (rendering, in-game menus, live scoreboard/API data, or network): #4–5, #10, #12–13, #22, #25, #26–32, #35–41, #43, #48, #50, #52, #55–58.
+- **Open, and need a client run** (rendering, in-game menus, live scoreboard/API data, or network): #4–5, #10, #12–13, #22, #25, #26–32, #35, #37–38, #40–41, #43, #48, #50, #52, #56–58.
 
 ## Phase 1: Information and helpers (SkyBlock)
 
