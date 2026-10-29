@@ -391,7 +391,7 @@ final class MinerCommands {
             java.nio.file.Path dir = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("skyblockminer");
             java.nio.file.Files.createDirectories(dir);
             java.nio.file.Path file = dir.resolve("macro-log-" + System.currentTimeMillis() + ".txt");
-            java.nio.file.Files.writeString(file, log.dump());
+            java.nio.file.Files.writeString(file, com.skyblockminer.helpers.Redact.scrub(log.dump()));
             MinerMod.message("Saved " + log.size() + " log lines to " + file, ChatFormatting.GREEN);
             return 1;
         } catch (java.io.IOException e) {
