@@ -708,7 +708,11 @@ public final class MacroSettings {
                 this.toggle("esp.players", "Highlight players", "Draw a box and name over nearby real players.",
                     () -> this.c.espPlayers, v -> this.c.espPlayers = v),
                 this.slider("esp.range", "Player highlight range", "How far to highlight players.", 4, 128, 1, "m",
-                    () -> this.c.espPlayerRange, v -> this.c.espPlayerRange = (int) v)))
+                    () -> this.c.espPlayerRange, v -> this.c.espPlayerRange = (int) v),
+                this.toggle("esp.ores", "Highlight ores", "Box known mineable blocks from the ore map within range.",
+                    () -> this.c.espOres, v -> this.c.espOres = v),
+                this.slider("esp.orerange", "Ore highlight range", "How far to highlight ores.", 4, 64, 1, "m",
+                    () -> this.c.espOreRange, v -> this.c.espOreRange = (int) v)))
         ));
     }
 

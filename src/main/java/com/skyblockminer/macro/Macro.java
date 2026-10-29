@@ -651,6 +651,14 @@ public final class Macro {
                 }
             }
         }
+        if (this.config.espOres && this.map.ores().size() > 0) {
+            Vec3 pp = mc.player.position();
+            int px = (int) Math.floor(pp.x);
+            int py = (int) Math.floor(pp.y);
+            int pz = (int) Math.floor(pp.z);
+            this.map.ores().forEachNear(px, py, pz, this.config.espOreRange, 200, (x, y, z, type) ->
+                Gizmos.cuboid(new BlockPos(x, y, z), GizmoStyle.strokeAndFill(0xFF55FFFF, 1.5F, 0x2055FFFF)));
+        }
         if (this.config.showWaypoints) {
             for (Map.Entry<String, int[]> entry : this.config.waypoints.entrySet()) {
                 int[] p = entry.getValue();

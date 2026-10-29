@@ -229,6 +229,8 @@ public final class MinerConfig {
     public boolean colorBlind = false;
     public boolean espPlayers = false;
     public int espPlayerRange = 30;
+    public boolean espOres = false;
+    public int espOreRange = 24;
     /** Pause macros while the server TPS is below {@link #lagThreshold} (off by default). */
     public boolean pauseOnLag = false;
     public int lagThreshold = 10;
@@ -650,6 +652,7 @@ public final class MinerConfig {
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
         this.lagThreshold = clamp(this.lagThreshold, 1, 20);
         this.espPlayerRange = clamp(this.espPlayerRange, 4, 128);
+        this.espOreRange = clamp(this.espOreRange, 4, 64);
 
         // Drop entries a hand edit or an older version could leave malformed, so the new features never hit a bad value.
         this.waypoints.values().removeIf(v -> v == null || v.length != 3);

@@ -72,6 +72,66 @@ public final class OreIndex {
         return type << 17 | (y + 64 & 511) << 8 | (z & 15) << 4 | x & 15;
     }
 
+    // Unpack helpers (inverse of pack); x/z are the in-chunk low 4 bits, so add the chunk origin to get world coords.
+    public static int unpackType(int packed) {
+        return packed >>> 17;
+    }
+
+    public static int unpackLocalX(int packed) {
+        return packed & 15;
+    }
+
+    public static int unpackY(int packed) {
+        return ((packed >> 8) & 511) - 64;
+    }
+
+    public static int unpackLocalZ(int packed) {
+        return (packed >> 4) & 15;
+    }
+
+    /** Name of a tracked type id, or null when out of range. */
+    public static String typeName(int type) {
+        return type >= 0 && type < TRACKED.size() ? TRACKED.get(type) : null;
+    }
+
+    public interface OreVisitor {
+        void visit(int x, int y, int z, String type);
+    }
+
+    /** Visits known ore blocks within {@code radius} of (cx,cy,cz), up to {@code limit}, for rendering an ore ESP. */
+    public void forEachNear(int cx, int cy, int cz, int radius, int limit, OreVisitor visitor) {
+        int chunkRadius = (radius >> 4) + 1;
+        int originChunkX = cx >> 4;
+        int originChunkZ = cz >> 4;
+        long radiusSq = (long) radius * radius;
+        int count = 0;
+        for (int dx = -chunkRadius; dx <= chunkRadius; dx++) {
+            for (int dz = -chunkRadius; dz <= chunkRadius; dz++) {
+                int[] list = this.chunks.get(WorldMap.key(originChunkX + dx, originChunkZ + dz));
+                if (list == null) {
+                    continue;
+                }
+                int baseX = (originChunkX + dx) << 4;
+                int baseZ = (originChunkZ + dz) << 4;
+                for (int packed : list) {
+                    int x = baseX + unpackLocalX(packed);
+                    int y = unpackY(packed);
+                    int z = baseZ + unpackLocalZ(packed);
+                    long distSq = (long) (x - cx) * (x - cx) + (long) (y - cy) * (y - cy) + (long) (z - cz) * (z - cz);
+                    if (distSq <= radiusSq) {
+                        String name = typeName(unpackType(packed));
+                        if (name != null) {
+                            visitor.visit(x, y, z, name);
+                            if (++count >= limit) {
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /** Replaces everything known about one chunk. */
     public void putChunk(long key, int[] packed, int count) {
         int[] old = this.chunks.remove(key);
