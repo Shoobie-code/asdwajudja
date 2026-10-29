@@ -293,6 +293,26 @@ public final class MinerConfig {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
     }
 
+    /** Parses a saved profile into a config without applying it (for a diff), or null when it is missing or unreadable. */
+    public static MinerConfig readProfile(String name) {
+        if (!validProfile(name)) {
+            return null;
+        }
+        Path file = profiles().resolve(name + ".json");
+        if (!Files.exists(file)) {
+            return null;
+        }
+        try {
+            MinerConfig loaded = GSON.fromJson(Files.readString(file), MinerConfig.class);
+            if (loaded != null) {
+                loaded.sanitize();
+            }
+            return loaded;
+        } catch (IOException | RuntimeException e) {
+            return null;
+        }
+    }
+
     /** The settings as a profile file stores them: everything except secrets, which a shared profile must not carry. */
     static JsonObject shareable(MinerConfig config) {
         JsonObject json = GSON.toJsonTree(config).getAsJsonObject();
@@ -337,6 +357,27 @@ public final class MinerConfig {
             MinerMod.LOGGER.warn("Could not load profile {}", name, e);
             return false;
         }
+    }
+
+    /**
+     * The settings that differ between {@code a} and {@code b}, as "field: a -> b" lines sorted by field name. The
+     * webhook is left out, since shared configs never carry it. Used to show what a profile would change.
+     */
+    public static List<String> diff(MinerConfig a, MinerConfig b) {
+        JsonObject ja = GSON.toJsonTree(a).getAsJsonObject();
+        JsonObject jb = GSON.toJsonTree(b).getAsJsonObject();
+        List<String> lines = new ArrayList<>();
+        for (String key : new java.util.TreeSet<>(ja.keySet())) {
+            if (key.equals(WEBHOOK_FIELD)) {
+                continue;
+            }
+            String va = String.valueOf(ja.get(key));
+            String vb = String.valueOf(jb.get(key));
+            if (!va.equals(vb)) {
+                lines.add(key + ": " + va + " -> " + vb);
+            }
+        }
+        return lines;
     }
 
     /** Copies every non-secret setting from {@code loaded} into this config in place, so live references stay valid. */
