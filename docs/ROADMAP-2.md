@@ -6,9 +6,9 @@ Ideas are taken from how these mods behave. No code is copied: the GPL-licensed 
 
 ### Progress
 
-- **Done:** #19 reconnect back-off, #45 config diff, #46 log export, #51 profile sharing codes, #54 log redaction (the redaction half; sending is still open).
+- **Done:** #6 event countdown list (`/sm events`), #19 reconnect back-off, #34 HUD layout presets, #45 config diff, #46 log export, #51 profile sharing codes, #53 one-time update notice, #54 log redaction (the redaction half; sending is still open).
 - **Already in the code:** #3 craft profit (`CraftCalc`), #16 stuck handling (`PathWalker`), #21 teleport verification (`RouteMiner` arrival check), #24 break length variance (`Macro.vary`), #47 version pin (`fabric.mod.json`).
-- Everything else below is open; items marked *in game* need a client run before the behaviour can be trusted.
+- **Open, and need a client run** (rendering, in-game menus, API data, or network): #1–5, #7–13, #20, #22, #25, #26–33, #35–40, #41, #42, #43, #48–50, #52, #55–59. Items marked *in game* cannot be trusted without launching the client.
 
 ## Phase 1: Information and helpers (SkyBlock)
 
