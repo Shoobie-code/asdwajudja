@@ -109,6 +109,17 @@ Bind **Start / stop macro** under Controls → Skyblock Macro, or use `/sm`.
 | `/sm route add\|insert\|remove\|clear\|list\|save\|load\|routes\|import\|export\|show` | Edit mining routes |
 | `/sm goto <x> <y> <z>` | Walk somewhere with the pathfinder |
 | `/sm script` · `/sm script run <file>` · `/sm script stop` · `/sm script reload` | List userscripts, run one, stop it, or rescan the folder (a running script restarts with its new code) |
+| `/sm profile save\|load\|list\|export\|import\|diff <name>` | Save, load, compare and share setting profiles (export/import use a clipboard code; the webhook is never shared) |
+| `/sm hud preset save\|load\|list <name>` | Save and switch HUD layouts |
+| `/sm alias add\|remove\|list\|run <name>` | Save a `/sm` command under a short name and run it |
+| `/sm alert add\|remove\|list <phrase>` | Alert (sound + toast) when a chat line contains a phrase |
+| `/sm waypoint add\|remove\|list\|clear <name>` | Mark world points, drawn with a live distance |
+| `/sm pricelog add\|remove\|list\|show <item>` · `/sm price <item>` | Track a Bazaar item's recent low/high, or look up its insta-buy/sell |
+| `/sm value` · `/sm accessories` | Value your inventory at Bazaar prices · list duplicate talismans in the open Accessory Bag |
+| `/sm events` · `/sm where` | Event countdowns · current area, dungeon-cleared % and slayer boss |
+| `/sm tps` · `/sm perf` | Server TPS · per-module tick timings |
+| `/sm log` · `/sm report` · `/sm history` | Save the recent log · a session report · compare past sessions |
+| `/sm help <query>` | Search every setting by name, id or description |
 
 `/miner` and `/macro` work as aliases of `/sm`.
 

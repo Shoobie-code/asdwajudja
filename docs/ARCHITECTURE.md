@@ -31,3 +31,28 @@
 2. Declare its options in `MacroSettings` and clamp numbers in `MinerConfig.sanitize()`.
 3. Add unit tests for pure logic under `src/test/java` in the matching package.
 4. Mark it in [FEATURE_STATUS.md](FEATURE_STATUS.md) until it has been tested in game.
+
+## Pure helper utilities
+
+These classes hold logic with no direct game calls, so they are unit-tested and reused by commands and the HUD.
+Keeping the decision logic here (and the game reads in the caller) is what lets the offline check cover it.
+
+| Class | Responsibility |
+| --- | --- |
+| `helpers/CoinTracker` | Net coins and coins/hour from successive purse readings. |
+| `helpers/PriceHistory` | Rolling per-item Bazaar price window with low/high/latest. |
+| `helpers/SessionHistory` | Format/parse a session log line; pick the best run by coins/hour. |
+| `helpers/TpsEstimator` | Server TPS from game-time vs real-time, with a lag threshold. |
+| `helpers/ModuleTimings` | Rolling per-module tick timings for `/sm perf`. |
+| `helpers/MacroLog` | Ring buffer of recent macro messages for `/sm log`. |
+| `helpers/Redact` | Strips webhook URLs from shared text. |
+| `helpers/Freshness` | Whether market data is stale for its type. |
+| `helpers/InventoryValue` | Totals item counts at a price function. |
+| `helpers/Accessories` | Finds duplicate talismans in a name list. |
+| `macro/StopHints` | Recovery hint for a stop reason. |
+| `macro/RejoinPolicy` | Reconnect give-up and back-off timing. |
+| `macro/RepathPolicy` | When a chase re-plans its path (ported from V5). |
+| `macro/DisconnectReason` | Whether a disconnect message is a ban. |
+| `config/MinerConfig` statics | `encode`/`decode` (profile codes), `diff`, `isNewVersion`, `validAlias`, `sanitize`. |
+| `game/Sidebar` statics | `purse`, `location`, `dungeonCleared`, `slayer`, `heat`, `cold`. |
+| `market/Bazaar`, `CraftCalc`, `Nbt` | Insta prices, craft costs, NBT path lookups. |
