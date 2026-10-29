@@ -209,6 +209,16 @@ final class MinerCommands {
                 }
                 return 1;
             }))
+            .then(ClientCommands.literal("tps").executes(c -> {
+                if (!macro.tps.ready()) {
+                    MinerMod.message("Server TPS not measured yet (join a world and wait a moment).", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                double t = macro.tps.tps();
+                ChatFormatting colour = t >= 19 ? ChatFormatting.GREEN : t >= 14 ? ChatFormatting.YELLOW : ChatFormatting.RED;
+                MinerMod.message(String.format("Server TPS: %.1f", t), colour);
+                return 1;
+            }))
             .then(ClientCommands.literal("events").executes(c -> {
                 long now = System.currentTimeMillis();
                 MinerMod.message("Upcoming events:", ChatFormatting.AQUA);

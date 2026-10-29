@@ -94,6 +94,7 @@ public final class Macro {
     final Failsafes failsafes = new Failsafes();
     final ItemTracker tracker = new ItemTracker();
     final com.skyblockminer.helpers.CoinTracker coins = new com.skyblockminer.helpers.CoinTracker();
+    public final com.skyblockminer.helpers.TpsEstimator tps = new com.skyblockminer.helpers.TpsEstimator();
     public final Random random = new Random();
     private final Map<MacroType, Routine> routines = new EnumMap<>(MacroType.class);
     private final List<Routine> allRoutines;
@@ -661,6 +662,9 @@ public final class Macro {
     public void onTick(Minecraft mc) {
         this.config.saveIfDirty();
         this.logStatus();
+        if (mc.level != null) {
+            this.tps.update(mc.level.getGameTime(), System.currentTimeMillis());
+        }
         boolean screenOpen = mc.gui.screen() != null;
         boolean screenClosed = this.screenWasOpen && !screenOpen;
         this.screenWasOpen = screenOpen;
@@ -751,6 +755,13 @@ public final class Macro {
             this.rotator.stop();
             this.rotator.sync(player);
             this.status = "On a break (" + clock(this.breakUntil - now) + " left)";
+            return;
+        }
+        if (this.config.pauseOnLag && this.tps.laggy(this.config.lagThreshold)) {
+            this.pause(mc);
+            this.rotator.stop();
+            this.rotator.sync(player);
+            this.status = String.format("Paused: server lag (%.0f TPS)", this.tps.tps());
             return;
         }
         if (this.breakUntil != 0L) {

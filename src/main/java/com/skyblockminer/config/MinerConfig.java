@@ -226,6 +226,9 @@ public final class MinerConfig {
     public boolean bazaarPrices = true;
     public boolean showTarget = true;
     public boolean showWaypoints = true;
+    /** Pause macros while the server TPS is below {@link #lagThreshold} (off by default). */
+    public boolean pauseOnLag = false;
+    public int lagThreshold = 10;
     public int hudX = 4;
     public int hudY = 4;
     public int trackerX = 4;
@@ -636,6 +639,7 @@ public final class MinerConfig {
         this.pestAlertAt = clamp(this.pestAlertAt, 1, 8);
         this.reach = clamp(this.reach, 1.0, 6.0);
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
+        this.lagThreshold = clamp(this.lagThreshold, 1, 20);
 
         // Hotbar slots are 0-8; delays and radii must not go negative, or the macros loop or never fire.
         this.weaponSlot = clamp(this.weaponSlot, 0, 8);

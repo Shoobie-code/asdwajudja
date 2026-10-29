@@ -44,3 +44,4 @@ add net/fabricmc/loader/api/entrypoint/PreLaunchEntrypoint void onPreLaunch();
 extends net/minecraft/client/gui/screens/TitleScreen net.minecraft.client.gui.screens.Screen
 add net/minecraft/client/Minecraft public void stop() { }
 add net/minecraft/client/gui/screens/TitleScreen public TitleScreen() { super(null); }
+add net/minecraft/client/multiplayer/ClientLevel public long getGameTime() { return 0; }
