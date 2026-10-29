@@ -286,6 +286,8 @@ public final class MinerConfig {
     public List<String> alertWords = new ArrayList<>();
     /** Bazaar product ids whose price is sampled into a rolling history (see {@code /sm pricelog}). */
     public List<String> watchedPrices = new ArrayList<>();
+    /** Auto-start schedule: each entry is "HH:mm macroId" (empty = off). */
+    public List<String> autoStart = new ArrayList<>();
 
     private transient int revision;
     private transient boolean dirty;
@@ -655,6 +657,7 @@ public final class MinerConfig {
         this.aliases.values().removeIf(v -> v == null);
         this.alertWords.removeIf(w -> w == null || w.isBlank());
         this.watchedPrices.removeIf(w -> w == null || w.isBlank());
+        this.autoStart.removeIf(e -> com.skyblockminer.helpers.TaskSchedule.parse(e) == null);
 
         // Hotbar slots are 0-8; delays and radii must not go negative, or the macros loop or never fire.
         this.weaponSlot = clamp(this.weaponSlot, 0, 8);

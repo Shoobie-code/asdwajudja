@@ -122,6 +122,7 @@ public final class Macro {
     private int pushTicks;
     private long chatAlertAt;
     private long customAlertAt;
+    private int lastScheduleMinute = -1;
     private boolean screenWasOpen;
     private String loggedStatus = "";
     private boolean pauseChanged;
@@ -687,6 +688,17 @@ public final class Macro {
         this.logStatus();
         if (mc.level != null) {
             this.tps.update(mc.level.getGameTime(), System.currentTimeMillis());
+        }
+        if (!this.config.autoStart.isEmpty() && mc.player != null) {
+            java.time.LocalTime t = java.time.LocalTime.now();
+            int nowMinute = t.getHour() * 60 + t.getMinute();
+            String due = com.skyblockminer.helpers.TaskSchedule.due(this.config.autoStart, nowMinute, this.lastScheduleMinute);
+            this.lastScheduleMinute = nowMinute;
+            MacroType scheduled = due == null ? null : MacroType.parse(due);
+            if (scheduled != null && (!this.running || this.mode != scheduled)) {
+                this.message("Scheduled start: " + scheduled.label);
+                this.start(scheduled);
+            }
         }
         boolean screenOpen = mc.gui.screen() != null;
         boolean screenClosed = this.screenWasOpen && !screenOpen;

@@ -298,6 +298,37 @@ final class MinerCommands {
                 }
                 return 1;
             }))
+            .then(ClientCommands.literal("schedule")
+                .then(ClientCommands.literal("add").then(ClientCommands.argument("entry", StringArgumentType.greedyString()).executes(c -> {
+                    String entry = StringArgumentType.getString(c, "entry").trim();
+                    com.skyblockminer.helpers.TaskSchedule.Task task = com.skyblockminer.helpers.TaskSchedule.parse(entry);
+                    if (task == null || MacroType.parse(task.macroId()) == null) {
+                        MinerMod.message("Use: /sm schedule add HH:mm <macro type>, e.g. 08:00 mithril", ChatFormatting.RED);
+                        return 0;
+                    }
+                    config.autoStart.add(entry);
+                    config.save();
+                    MinerMod.message("Scheduled " + task.macroId() + " at " + entry.split("\\s+")[0], ChatFormatting.GREEN);
+                    return 1;
+                })))
+                .then(ClientCommands.literal("remove").then(ClientCommands.argument("entry", StringArgumentType.greedyString())
+                    .suggests((c, b) -> {
+                        config.autoStart.forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String entry = StringArgumentType.getString(c, "entry").trim();
+                        boolean ok = config.autoStart.remove(entry);
+                        if (ok) {
+                            config.save();
+                        }
+                        MinerMod.message(ok ? "Removed " + entry : "No schedule entry " + entry, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    MinerMod.message(config.autoStart.isEmpty() ? "No scheduled macros" : "Schedule: " + String.join(", ", config.autoStart), ChatFormatting.AQUA);
+                    return 1;
+                })))
             .then(ClientCommands.literal("where").executes(c -> {
                 List<String> lines = com.skyblockminer.game.Sidebar.lines(Minecraft.getInstance());
                 String where = com.skyblockminer.game.Sidebar.location(lines);
