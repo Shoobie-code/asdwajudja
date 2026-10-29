@@ -54,7 +54,30 @@ final class MinerCommands {
             .executes(c -> run(macro::toggle))
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
-            .then(ClientCommands.literal("hud").executes(c -> run(MinerMod::openHudEditor)))
+            .then(ClientCommands.literal("hud").executes(c -> run(MinerMod::openHudEditor))
+                .then(ClientCommands.literal("preset")
+                    .then(ClientCommands.literal("save").then(ClientCommands.argument("name", StringArgumentType.word()).executes(c -> {
+                        String presetName = StringArgumentType.getString(c, "name");
+                        boolean ok = config.saveHudPreset(presetName);
+                        MinerMod.message(ok ? "Saved HUD layout " + presetName : "Preset names may use letters, digits, - and _.", ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                    .then(ClientCommands.literal("load").then(ClientCommands.argument("name", StringArgumentType.word())
+                        .suggests((c, b) -> {
+                            config.hudPresetNames().forEach(b::suggest);
+                            return b.buildFuture();
+                        })
+                        .executes(c -> {
+                            String presetName = StringArgumentType.getString(c, "name");
+                            boolean ok = config.loadHudPreset(presetName);
+                            MinerMod.message(ok ? "Loaded HUD layout " + presetName : "No HUD preset named " + presetName, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                            return ok ? 1 : 0;
+                        })))
+                    .then(ClientCommands.literal("list").executes(c -> {
+                        List<String> names = config.hudPresetNames();
+                        MinerMod.message(names.isEmpty() ? "No HUD presets" : "HUD presets: " + String.join(", ", names), ChatFormatting.AQUA);
+                        return 1;
+                    }))))
             .then(ClientCommands.literal("market").executes(c -> run(MinerMod::openMarket)))
             .then(ClientCommands.literal("flips").executes(c -> run(MinerMod::openMarket)))
             .then(ClientCommands.literal("skills").executes(c -> skills()))

@@ -18,7 +18,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MinerConfig {
@@ -256,6 +258,8 @@ public final class MinerConfig {
     public int infoEvents = 4;
     public int infoX = 4;
     public int infoY = 330;
+    /** Named HUD layouts: each is the panel positions captured by {@link #captureHud()}. */
+    public Map<String, int[]> hudPresets = new LinkedHashMap<>();
     public boolean gardenAlerts = true;
     public int pestAlertAt = 4;
     public boolean chatFilter = false;
@@ -291,6 +295,55 @@ public final class MinerConfig {
 
     public static boolean validProfile(String name) {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
+    }
+
+    /** The current positions of every HUD panel, in a fixed order, so a layout can be saved and restored. */
+    int[] captureHud() {
+        return new int[]{this.hudX, this.hudY, this.trackerX, this.trackerY, this.toastX, this.toastY,
+            this.skillsX, this.skillsY, this.infoX, this.infoY};
+    }
+
+    /** Sets the HUD panel positions from an array made by {@link #captureHud()}. Ignores arrays of the wrong size. */
+    void applyHud(int[] v) {
+        if (v == null || v.length != 10) {
+            return;
+        }
+        this.hudX = v[0];
+        this.hudY = v[1];
+        this.trackerX = v[2];
+        this.trackerY = v[3];
+        this.toastX = v[4];
+        this.toastY = v[5];
+        this.skillsX = v[6];
+        this.skillsY = v[7];
+        this.infoX = v[8];
+        this.infoY = v[9];
+    }
+
+    /** Saves the current HUD layout under {@code name}. Returns false for an invalid name. */
+    public boolean saveHudPreset(String name) {
+        if (!validProfile(name)) {
+            return false;
+        }
+        this.hudPresets.put(name, this.captureHud());
+        this.save();
+        return true;
+    }
+
+    /** Applies the saved HUD layout {@code name}. Returns false when there is no such preset. */
+    public boolean loadHudPreset(String name) {
+        int[] v = this.hudPresets.get(name);
+        if (v == null) {
+            return false;
+        }
+        this.applyHud(v);
+        this.save();
+        return true;
+    }
+
+    /** The saved HUD preset names, sorted. */
+    public List<String> hudPresetNames() {
+        return this.hudPresets.keySet().stream().sorted().toList();
     }
 
     /** Parses a saved profile into a config without applying it (for a diff), or null when it is missing or unreadable. */
