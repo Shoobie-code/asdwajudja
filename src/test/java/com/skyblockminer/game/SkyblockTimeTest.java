@@ -52,4 +52,27 @@ class SkyblockTimeTest {
         assertEquals("1h 05m", SkyblockTime.duration(65 * 60_000L));
         assertEquals("4m 09s", SkyblockTime.duration(249_000L));
     }
+
+    @Test
+    void eventsListPutsActiveFirstThenSoonest() {
+        long now = SkyblockTime.EPOCH + 3 * SkyblockTime.DAY + 12 * SkyblockTime.HOUR;
+        java.util.List<SkyblockTime.Event> events = SkyblockTime.events(now);
+        // Active events come first.
+        boolean seenInactive = false;
+        for (SkyblockTime.Event e : events) {
+            if (!e.active(now)) {
+                seenInactive = true;
+            } else {
+                org.junit.jupiter.api.Assertions.assertFalse(seenInactive, "an active event followed an inactive one");
+            }
+        }
+        // Among the inactive ones, start times are non-decreasing.
+        long prev = Long.MIN_VALUE;
+        for (SkyblockTime.Event e : events) {
+            if (!e.active(now)) {
+                org.junit.jupiter.api.Assertions.assertTrue(e.start() >= prev, "upcoming events out of order");
+                prev = e.start();
+            }
+        }
+    }
 }

@@ -54,6 +54,17 @@ final class MinerCommands {
             .executes(c -> run(macro::toggle))
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
+            .then(ClientCommands.literal("events").executes(c -> {
+                long now = System.currentTimeMillis();
+                MinerMod.message("Upcoming events:", ChatFormatting.AQUA);
+                for (com.skyblockminer.game.SkyblockTime.Event e : com.skyblockminer.game.SkyblockTime.events(now)) {
+                    String when = e.active(now)
+                        ? "active, ends in " + com.skyblockminer.game.SkyblockTime.duration(e.end() - now)
+                        : "in " + com.skyblockminer.game.SkyblockTime.duration(e.start() - now);
+                    MinerMod.message("  " + e.name() + ": " + when, e.active(now) ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+                }
+                return 1;
+            }))
             .then(ClientCommands.literal("hud").executes(c -> run(MinerMod::openHudEditor))
                 .then(ClientCommands.literal("preset")
                     .then(ClientCommands.literal("save").then(ClientCommands.argument("name", StringArgumentType.word()).executes(c -> {
