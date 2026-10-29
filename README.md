@@ -158,10 +158,11 @@ This needs JDK 25. The jar is written to `build/libs/`. Versions live in `gradle
 
 ### Offline check
 `devtools/stubcheck/check.sh` compiles the mod and runs the unit tests without the Minecraft jar. It does
-this against stubs generated from the API members the released 1.0.0 jar uses. Members the new code uses
-that were **not** in the 1.0.0 jar are listed in `devtools/stubcheck/extra.txt`:
-`Options.keyLeft/keyRight/keyDown/keyAttack/keyUse`, `ItemStack.getCount/getItem/hasFoil`, `BuiltInRegistries.ITEM` and `KeyMapping.isDown`. These are long-standing
-vanilla names, and the CI Gradle build compiles against the real 26.2 game, which confirms they exist.
+this against stubs generated from the API members the released 1.0.0 jar uses (so `skyblock-miner-1.0.0.jar`
+in the repo root is a deliberate reference, not a stale artifact — do not delete it). Members the new code
+uses that were **not** in the 1.0.0 jar are listed in `devtools/stubcheck/extra.txt`; these are long-standing
+vanilla names, and the CI Gradle build compiles against the real 26.2 game, which confirms they exist. See
+[`devtools/stubcheck/README.md`](devtools/stubcheck/README.md) for details.
 
 ## Project layout
 
