@@ -704,7 +704,11 @@ public final class MacroSettings {
                 this.choice("theme.accent", "Accent color", "Highlight color of the menu and HUD.",
                     () -> Theme.ACCENT_NAMES, MacroSettings::capitalize, () -> this.c.accent, v -> this.c.accent = v),
                 this.toggle("theme.colorblind", "Colour-blind palette", "Use blue/yellow/vermillion for status colours instead of red/green.",
-                    () -> this.c.colorBlind, v -> this.c.colorBlind = v)))
+                    () -> this.c.colorBlind, v -> this.c.colorBlind = v),
+                this.toggle("esp.players", "Highlight players", "Draw a box and name over nearby real players.",
+                    () -> this.c.espPlayers, v -> this.c.espPlayers = v),
+                this.slider("esp.range", "Player highlight range", "How far to highlight players.", 4, 128, 1, "m",
+                    () -> this.c.espPlayerRange, v -> this.c.espPlayerRange = (int) v)))
         ));
     }
 

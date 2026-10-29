@@ -635,6 +635,17 @@ public final class Macro {
         if (mc.player == null) {
             return;
         }
+        if (this.config.espPlayers) {
+            for (AbstractClientPlayer other : Failsafes.realPlayers(mc, mc.player)) {
+                double d = Math.sqrt(other.distanceToSqr(mc.player));
+                if (d <= this.config.espPlayerRange) {
+                    Vec3 op = other.position();
+                    BlockPos pos = new BlockPos((int) Math.floor(op.x), (int) Math.floor(op.y), (int) Math.floor(op.z));
+                    Gizmos.cuboid(pos, GizmoStyle.strokeAndFill(0xFFFF55FF, 2.0F, 0x30FF55FF));
+                    Gizmos.billboardTextOverBlock(other.getName().getString() + " (" + (int) d + "m)", pos, 0, 0xFFFF55FF, 0.32F);
+                }
+            }
+        }
         if (this.config.showWaypoints) {
             for (Map.Entry<String, int[]> entry : this.config.waypoints.entrySet()) {
                 int[] p = entry.getValue();
