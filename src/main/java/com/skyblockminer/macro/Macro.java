@@ -312,6 +312,7 @@ public final class Macro {
         this.status = "Off";
         this.hudLines = List.of();
         this.trackerLines = List.of();
+        this.recordSession();
         MinerMod.message(reason + " (" + this.summary() + ")", ChatFormatting.YELLOW);
         String hint = StopHints.hintFor(reason);
         if (hint != null) {
@@ -1002,6 +1003,24 @@ public final class Macro {
 
     public long elapsedMs() {
         return this.running ? System.currentTimeMillis() - this.startedAt : 0L;
+    }
+
+    /** Appends this session to the history file (see {@code /sm history}), skipping GOTO and runs under a minute. */
+    private void recordSession() {
+        double minutes = (System.currentTimeMillis() - this.startedAt) / 60000.0;
+        if (this.mode == MacroType.GOTO || minutes < 1.0) {
+            return;
+        }
+        var entry = new com.skyblockminer.helpers.SessionHistory.Entry(
+            System.currentTimeMillis(), this.mode.label, minutes, this.coins.ready() ? this.coins.gained() : 0L);
+        try {
+            java.nio.file.Path file = FabricLoader.getInstance().getConfigDir().resolve(MinerMod.ID).resolve("sessions.log");
+            java.nio.file.Files.createDirectories(file.getParent());
+            java.nio.file.Files.writeString(file, com.skyblockminer.helpers.SessionHistory.format(entry) + "\n",
+                java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
+        } catch (java.io.IOException e) {
+            MinerMod.LOGGER.warn("Could not record the session", e);
+        }
     }
 
     /** A human-readable session report: the macro, how long it has run, its stats, loot rates, TPS and tick timings. */

@@ -444,6 +444,7 @@ final class MinerCommands {
                         .executes(c -> importProfile(macro, config, StringArgumentType.getString(c, "code"))))))
             .then(ClientCommands.literal("log").executes(c -> saveLog()))
             .then(ClientCommands.literal("report").executes(c -> saveReport(macro)))
+            .then(ClientCommands.literal("history").executes(c -> showHistory()))
             .then(ClientCommands.literal("script")
                 .executes(c -> listScripts(macro, config, settings))
                 .then(ClientCommands.literal("list").executes(c -> listScripts(macro, config, settings)))
@@ -672,6 +673,40 @@ final class MinerCommands {
         MinerMod.message(setting.name + " (" + id + "): " + setting.valueText(), ChatFormatting.AQUA);
         MinerMod.message(setting.description, ChatFormatting.GRAY);
         return 1;
+    }
+
+    private static int showHistory() {
+        try {
+            java.nio.file.Path file = net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("skyblockminer").resolve("sessions.log");
+            if (!java.nio.file.Files.exists(file)) {
+                MinerMod.message("No sessions recorded yet.", ChatFormatting.YELLOW);
+                return 0;
+            }
+            java.util.List<com.skyblockminer.helpers.SessionHistory.Entry> all = new java.util.ArrayList<>();
+            for (String line : java.nio.file.Files.readAllLines(file)) {
+                com.skyblockminer.helpers.SessionHistory.Entry e = com.skyblockminer.helpers.SessionHistory.parse(line);
+                if (e != null) {
+                    all.add(e);
+                }
+            }
+            if (all.isEmpty()) {
+                MinerMod.message("No sessions recorded yet.", ChatFormatting.YELLOW);
+                return 0;
+            }
+            com.skyblockminer.helpers.SessionHistory.Entry best = com.skyblockminer.helpers.SessionHistory.best(all);
+            MinerMod.message("Recent sessions:", ChatFormatting.AQUA);
+            java.util.List<com.skyblockminer.helpers.SessionHistory.Entry> recent = all.subList(Math.max(0, all.size() - 8), all.size());
+            for (com.skyblockminer.helpers.SessionHistory.Entry e : recent) {
+                boolean isBest = e == best;
+                MinerMod.message(String.format("  %s  %.0f min  %+,d coins (%,.0f/h)%s",
+                    e.macro(), e.minutes(), e.coins(), e.coinsPerHour(), isBest ? "  <- best" : ""),
+                    isBest ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+            }
+            return 1;
+        } catch (java.io.IOException e) {
+            MinerMod.message("Could not read session history: " + e.getMessage(), ChatFormatting.RED);
+            return 0;
+        }
     }
 
     private static int saveReport(Macro macro) {
