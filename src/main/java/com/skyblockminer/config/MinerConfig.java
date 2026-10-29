@@ -24,6 +24,8 @@ import java.util.Map;
 import net.fabricmc.loader.api.FabricLoader;
 
 public final class MinerConfig {
+    /** The last mod version that showed its "what changed" notice, so the notice appears once per update. */
+    public String lastSeenVersion = "";
     /** The Discord webhook URL contains its token, so it is never written to a profile. */
     static final String WEBHOOK_FIELD = "webhookUrl";
     /** Version tag on a shared profile code, so a future format change can be told apart. */
@@ -295,6 +297,11 @@ public final class MinerConfig {
 
     public static boolean validProfile(String name) {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
+    }
+
+    /** Whether {@code current} is a real version that differs from the last one a changelog notice was shown for. */
+    public static boolean isNewVersion(String current, String lastSeen) {
+        return current != null && !current.isBlank() && !current.equals(lastSeen);
     }
 
     /** The current positions of every HUD panel, in a fixed order, so a layout can be saved and restored. */

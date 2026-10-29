@@ -59,10 +59,15 @@ public final class MinerMod implements ClientModInitializer {
     private static SkillTracker skills;
     private static Helpers helpers;
     private static int marketTicks;
+    private static String currentVersion = "";
+    private static boolean changelogPending;
 
     @Override
     public void onInitializeClient() {
         config = MinerConfig.load();
+        currentVersion = FabricLoader.getInstance().getModContainer(ID)
+            .map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("");
+        changelogPending = MinerConfig.isNewVersion(currentVersion, config.lastSeenVersion);
         macro = new Macro(config);
         macro.applyConfig();
         settings = new MacroSettings(macro);
@@ -110,6 +115,12 @@ public final class MinerMod implements ClientModInitializer {
             config.save();
         });
         ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            if (changelogPending && mc.player != null) {
+                changelogPending = false;
+                message("Updated to " + currentVersion + ". See the repo's Releases page for what changed.", ChatFormatting.AQUA);
+                config.lastSeenVersion = currentVersion;
+                config.save();
+            }
             macro.map.tick(mc);
             while (toggleKey.consumeClick()) {
                 macro.toggle();
