@@ -54,6 +54,25 @@ final class MinerCommands {
             .executes(c -> run(macro::toggle))
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
+            .then(ClientCommands.literal("value").executes(c -> {
+                net.minecraft.client.player.LocalPlayer player = Minecraft.getInstance().player;
+                if (player == null) {
+                    MinerMod.message("Join a world first.", ChatFormatting.RED);
+                    return 0;
+                }
+                if (!config.bazaarPrices) {
+                    MinerMod.message("Turn on Bazaar prices (Market page) to value your inventory.", ChatFormatting.RED);
+                    return 0;
+                }
+                if (!macro.pricesReady()) {
+                    MinerMod.message("Bazaar prices are still loading, try again in a moment.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                double total = com.skyblockminer.helpers.InventoryValue.total(
+                    com.skyblockminer.game.Inv.inventoryCounts(player), macro::itemValue);
+                MinerMod.message(String.format("Inventory worth about %,.0f coins at Bazaar instant-sell.", total), ChatFormatting.GREEN);
+                return 1;
+            }))
             .then(ClientCommands.literal("events").executes(c -> {
                 long now = System.currentTimeMillis();
                 MinerMod.message("Upcoming events:", ChatFormatting.AQUA);

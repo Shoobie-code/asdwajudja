@@ -133,6 +133,18 @@ public final class Inv {
         return false;
     }
 
+    /** Display name to total count across the 36 inventory slots, skipping empty slots. */
+    public static java.util.Map<String, Integer> inventoryCounts(LocalPlayer player) {
+        java.util.Map<String, Integer> counts = new java.util.LinkedHashMap<>();
+        for (int slot = 0; slot < 36; slot++) {
+            ItemStack stack = player.getInventory().getItem(slot);
+            if (!stack.isEmpty()) {
+                counts.merge(name(stack), stack.getCount(), Integer::sum);
+            }
+        }
+        return counts;
+    }
+
     public static boolean inventoryFull(LocalPlayer player) {
         for (int slot = 0; slot < 36; slot++) {
             if (player.getInventory().getItem(slot).isEmpty()) {

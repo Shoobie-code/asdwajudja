@@ -1042,6 +1042,23 @@ public final class Macro {
         return Collections.unmodifiableList(lines);
     }
 
+    /** Instant-sell value of a display name from the Bazaar cache, or 0 when prices are off or not loaded yet. */
+    public double itemValue(String displayName) {
+        if (!this.config.bazaarPrices) {
+            return 0.0;
+        }
+        this.prices.refreshIfStale();
+        return this.prices.ready() ? this.prices.price(displayName) : 0.0;
+    }
+
+    /** Whether Bazaar prices are enabled and loaded, so {@link #itemValue} returns real numbers. */
+    public boolean pricesReady() {
+        if (this.config.bazaarPrices) {
+            this.prices.refreshIfStale();
+        }
+        return this.config.bazaarPrices && this.prices.ready();
+    }
+
     public static String clock(long ms) {
         long seconds = Math.max(0L, ms / 1000L);
         return seconds >= 3600L
