@@ -95,6 +95,8 @@ public final class Macro {
     final ItemTracker tracker = new ItemTracker();
     final com.skyblockminer.helpers.CoinTracker coins = new com.skyblockminer.helpers.CoinTracker();
     public final com.skyblockminer.helpers.TpsEstimator tps = new com.skyblockminer.helpers.TpsEstimator();
+    /** Lifecycle events (started/stopped); subscribe to react without the macro knowing about you. */
+    public final com.skyblockminer.helpers.EventBus<MacroEvent> events = new com.skyblockminer.helpers.EventBus<>();
     public final Random random = new Random();
     private final Map<MacroType, Routine> routines = new EnumMap<>(MacroType.class);
     private final List<Routine> allRoutines;
@@ -293,6 +295,7 @@ public final class Macro {
         if (type != MacroType.GOTO) {
             Toasts.push(type.label + " started", "Press your toggle key or /sm to stop", Toasts.Kind.SUCCESS);
         }
+        this.events.post(new MacroEvent(MacroEvent.Kind.STARTED, type));
     }
 
     public void goTo(Vec3 target) {
@@ -323,6 +326,7 @@ public final class Macro {
             this.notify("stop", "Macro stopped", reason + "\n" + this.summary(), 15844367);
             Toasts.push("Macro stopped", reason, reason.startsWith("FAILSAFE") ? Toasts.Kind.ERROR : Toasts.Kind.INFO);
         }
+        this.events.post(new MacroEvent(MacroEvent.Kind.STOPPED, this.mode));
     }
 
     void failsafe(String reason) {
