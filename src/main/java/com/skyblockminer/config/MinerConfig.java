@@ -646,6 +646,13 @@ public final class MinerConfig {
         this.farmSwitchTicks = clamp(this.farmSwitchTicks, 2, 60);
         this.lagThreshold = clamp(this.lagThreshold, 1, 20);
 
+        // Drop entries a hand edit or an older version could leave malformed, so the new features never hit a bad value.
+        this.waypoints.values().removeIf(v -> v == null || v.length != 3);
+        this.hudPresets.values().removeIf(v -> v == null || v.length != 10);
+        this.aliases.values().removeIf(v -> v == null);
+        this.alertWords.removeIf(w -> w == null || w.isBlank());
+        this.watchedPrices.removeIf(w -> w == null || w.isBlank());
+
         // Hotbar slots are 0-8; delays and radii must not go negative, or the macros loop or never fire.
         this.weaponSlot = clamp(this.weaponSlot, 0, 8);
         this.farmToolSlot = clamp(this.farmToolSlot, 0, 8);
