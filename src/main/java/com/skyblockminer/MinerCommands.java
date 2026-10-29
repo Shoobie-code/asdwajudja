@@ -239,6 +239,53 @@ final class MinerCommands {
                     MinerMod.message(config.alertWords.isEmpty() ? "No alert phrases" : "Alert phrases: " + String.join(", ", config.alertWords), ChatFormatting.AQUA);
                     return 1;
                 })))
+            .then(ClientCommands.literal("pricelog")
+                .then(ClientCommands.literal("add").then(ClientCommands.argument("item", StringArgumentType.greedyString()).executes(c -> {
+                    String id = Prices.productId(StringArgumentType.getString(c, "item"));
+                    if (config.watchedPrices.contains(id)) {
+                        MinerMod.message("Already watching " + id, ChatFormatting.YELLOW);
+                        return 0;
+                    }
+                    config.watchedPrices.add(id);
+                    config.save();
+                    MinerMod.message("Watching " + id + " (open the Market so prices refresh).", ChatFormatting.GREEN);
+                    return 1;
+                })))
+                .then(ClientCommands.literal("remove").then(ClientCommands.argument("item", StringArgumentType.greedyString())
+                    .suggests((c, b) -> {
+                        config.watchedPrices.forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String id = Prices.productId(StringArgumentType.getString(c, "item"));
+                        boolean ok = config.watchedPrices.remove(id);
+                        if (ok) {
+                            config.save();
+                            com.skyblockminer.helpers.PriceHistory.SHARED.clear(id);
+                        }
+                        MinerMod.message(ok ? "Stopped watching " + id : "Not watching " + id, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    MinerMod.message(config.watchedPrices.isEmpty() ? "Not watching any prices" : "Watching: " + String.join(", ", config.watchedPrices), ChatFormatting.AQUA);
+                    return 1;
+                }))
+                .then(ClientCommands.literal("show").then(ClientCommands.argument("item", StringArgumentType.greedyString())
+                    .suggests((c, b) -> {
+                        config.watchedPrices.forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String id = Prices.productId(StringArgumentType.getString(c, "item"));
+                        com.skyblockminer.helpers.PriceHistory.Stats s = com.skyblockminer.helpers.PriceHistory.SHARED.stats(id);
+                        if (s == null) {
+                            MinerMod.message("No history yet for " + id + " (watch it and open the Market a while).", ChatFormatting.YELLOW);
+                            return 0;
+                        }
+                        MinerMod.message(String.format("%s sell: now %,.1f, low %,.1f, high %,.1f (%d samples)",
+                            id, s.latestSell(), s.lowSell(), s.highSell(), s.samples()), ChatFormatting.AQUA);
+                        return 1;
+                    }))))
             .then(ClientCommands.literal("perf").executes(c -> {
                 List<String> lines = com.skyblockminer.helpers.ModuleTimings.SHARED.lines();
                 if (lines.isEmpty()) {

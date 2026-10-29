@@ -223,6 +223,12 @@ public final class MinerMod implements ClientModInitializer {
         if (++marketTicks >= 20) {
             marketTicks = 0;
             flips.update(market, MarketSettings.flips(config));
+            if (!config.watchedPrices.isEmpty() && !market.bazaar().isEmpty()) {
+                long now = System.currentTimeMillis();
+                for (String id : config.watchedPrices) {
+                    com.skyblockminer.helpers.PriceHistory.SHARED.add(id, market.bazaar().instaBuy(id), market.bazaar().instaSell(id), now);
+                }
+            }
         }
         sniper.tick(mc);
     }

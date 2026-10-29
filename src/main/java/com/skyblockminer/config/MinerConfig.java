@@ -281,6 +281,8 @@ public final class MinerConfig {
     public List<String> filterCustom = new ArrayList<>();
     /** Phrases that trigger a chat alert (sound + toast) on any matching line. */
     public List<String> alertWords = new ArrayList<>();
+    /** Bazaar product ids whose price is sampled into a rolling history (see {@code /sm pricelog}). */
+    public List<String> watchedPrices = new ArrayList<>();
 
     private transient int revision;
     private transient boolean dirty;
