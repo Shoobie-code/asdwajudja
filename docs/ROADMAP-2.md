@@ -6,10 +6,10 @@ Ideas are taken from how these mods behave. No code is copied: the GPL-licensed 
 
 ### Progress
 
-- **Done, verified offline:** #6 event countdown list (`/sm events`), #19 reconnect back-off, #34 HUD layout presets, #45 config diff, #46 log export, #51 profile sharing codes, #53 one-time update notice, #54 log redaction (the redaction half; sending is still open).
-- **Done, needs in-game testing** (built against the repo's existing 26.2 APIs, compiles, pure cores unit-tested, but the live behaviour is unverified): #2 `/sm price` Bazaar lookup, #8 `/sm value` inventory worth.
+- **Done, verified offline:** #6 event countdown list (`/sm events`), #19 reconnect back-off, #34 HUD layout presets, #42 command aliases, #45 config diff, #46 log export, #51 profile sharing codes, #53 one-time update notice, #54 log redaction (the redaction half; sending is still open), #59 stop-recovery hints.
+- **Done, needs in-game testing** (built against the repo's existing 26.2 APIs, compiles, pure cores unit-tested, but the live behaviour is unverified): #2 `/sm price` Bazaar lookup, #8 `/sm value` inventory worth, #9 `/sm accessories` duplicate finder.
 - **Already in the code:** #3 craft profit (`CraftCalc`), #16 stuck handling (`PathWalker`), #21 teleport verification (`RouteMiner` arrival check), #24 break length variance (`Macro.vary`), #47 version pin (`fabric.mod.json`).
-- **Open, and need a client run** (rendering, in-game menus, live API data beyond the Bazaar cache, or network): #1, #4–5, #7, #9–13, #20, #22, #25, #26–33, #35–43, #48–50, #52, #55–59.
+- **Open, and need a client run** (rendering, in-game menus, live scoreboard/API data, or network): #1, #4–5, #7, #10–13, #20, #22, #25, #26–33, #35–41, #43, #48–50, #52, #55–58.
 
 ## Phase 1: Information and helpers (SkyBlock)
 
