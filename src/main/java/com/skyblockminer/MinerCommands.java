@@ -214,11 +214,10 @@ final class MinerCommands {
             .then(ClientCommands.literal("alert")
                 .then(ClientCommands.literal("add").then(ClientCommands.argument("phrase", StringArgumentType.greedyString()).executes(c -> {
                     String phrase = StringArgumentType.getString(c, "phrase").trim();
-                    if (phrase.isEmpty() || config.alertWords.contains(phrase)) {
+                    if (!com.skyblockminer.helpers.ConfigLists.addUnique(config.alertWords, phrase)) {
                         MinerMod.message("Enter a new phrase to alert on.", ChatFormatting.RED);
                         return 0;
                     }
-                    config.alertWords.add(phrase);
                     config.save();
                     MinerMod.message("Alerting on chat containing \"" + phrase + "\"", ChatFormatting.GREEN);
                     return 1;
