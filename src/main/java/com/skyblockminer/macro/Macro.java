@@ -699,9 +699,9 @@ public final class Macro {
                     alert();
                     return;
                 } else {
-                    this.rejoinTries++;
                     this.command("skyblock");
-                    this.rejoinAt = now + 15000L;
+                    this.rejoinTries++;
+                    this.rejoinAt = now + RejoinPolicy.backoffMs(this.rejoinTries);
                     this.expectWorldUntil = now + 30000L;
                 }
             }
