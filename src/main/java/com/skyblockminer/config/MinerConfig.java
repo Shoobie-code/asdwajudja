@@ -262,6 +262,8 @@ public final class MinerConfig {
     public int infoY = 330;
     /** Named HUD layouts: each is the panel positions captured by {@link #captureHud()}. */
     public Map<String, int[]> hudPresets = new LinkedHashMap<>();
+    /** User command aliases: short name to the rest of a /sm command, run by {@code /sm alias run <name>}. */
+    public Map<String, String> aliases = new LinkedHashMap<>();
     public boolean gardenAlerts = true;
     public int pestAlertAt = 4;
     public boolean chatFilter = false;
@@ -297,6 +299,11 @@ public final class MinerConfig {
 
     public static boolean validProfile(String name) {
         return name != null && name.matches("[A-Za-z0-9_-]{1,32}");
+    }
+
+    /** A valid command-alias name: a short word, so it cannot inject spaces or arguments. */
+    public static boolean validAlias(String name) {
+        return name != null && name.matches("[A-Za-z0-9_-]{1,24}");
     }
 
     /** Whether {@code current} is a real version that differs from the last one a changelog notice was shown for. */

@@ -37,11 +37,11 @@ final class MinerCommands {
 
     static void register(CommandDispatcher<FabricClientCommandSource> dispatcher, Macro macro, MinerConfig config, MacroSettings settings, Market market) {
         for (String name : NAMES) {
-            dispatcher.register(root(name, macro, config, settings, market));
+            dispatcher.register(root(name, macro, config, settings, market, dispatcher));
         }
     }
 
-    private static LiteralArgumentBuilder<FabricClientCommandSource> root(String name, Macro macro, MinerConfig config, MacroSettings settings, Market market) {
+    private static LiteralArgumentBuilder<FabricClientCommandSource> root(String name, Macro macro, MinerConfig config, MacroSettings settings, Market market, CommandDispatcher<FabricClientCommandSource> dispatcher) {
         SuggestionProvider<FabricClientCommandSource> types = (c, b) -> {
             MacroType.SELECTABLE.forEach(type -> b.suggest(type.id));
             return b.buildFuture();
@@ -56,6 +56,61 @@ final class MinerCommands {
             .executes(c -> run(macro::toggle))
             .then(ClientCommands.literal("gui").executes(c -> run(MinerMod::openMenu)))
             .then(ClientCommands.literal("menu").executes(c -> run(MinerMod::openMenu)))
+            .then(ClientCommands.literal("alias")
+                .then(ClientCommands.literal("add").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .then(ClientCommands.argument("command", StringArgumentType.greedyString()).executes(c -> {
+                        String aliasName = StringArgumentType.getString(c, "name");
+                        if (!MinerConfig.validAlias(aliasName)) {
+                            MinerMod.message("Alias names may use letters, digits, - and _ (max 24).", ChatFormatting.RED);
+                            return 0;
+                        }
+                        config.aliases.put(aliasName, StringArgumentType.getString(c, "command"));
+                        config.save();
+                        MinerMod.message("Alias " + aliasName + " -> /" + name + " " + config.aliases.get(aliasName), ChatFormatting.GREEN);
+                        return 1;
+                    }))))
+                .then(ClientCommands.literal("remove").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .suggests((c, b) -> {
+                        config.aliases.keySet().forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String aliasName = StringArgumentType.getString(c, "name");
+                        boolean ok = config.aliases.remove(aliasName) != null;
+                        if (ok) {
+                            config.save();
+                        }
+                        MinerMod.message(ok ? "Removed alias " + aliasName : "No alias named " + aliasName, ok ? ChatFormatting.GREEN : ChatFormatting.RED);
+                        return ok ? 1 : 0;
+                    })))
+                .then(ClientCommands.literal("list").executes(c -> {
+                    if (config.aliases.isEmpty()) {
+                        MinerMod.message("No aliases", ChatFormatting.AQUA);
+                    } else {
+                        MinerMod.message("Aliases:", ChatFormatting.AQUA);
+                        config.aliases.forEach((k, v) -> MinerMod.message("  " + k + " -> " + v, ChatFormatting.GRAY));
+                    }
+                    return 1;
+                }))
+                .then(ClientCommands.literal("run").then(ClientCommands.argument("name", StringArgumentType.word())
+                    .suggests((c, b) -> {
+                        config.aliases.keySet().forEach(b::suggest);
+                        return b.buildFuture();
+                    })
+                    .executes(c -> {
+                        String aliasName = StringArgumentType.getString(c, "name");
+                        String stored = config.aliases.get(aliasName);
+                        if (stored == null) {
+                            MinerMod.message("No alias named " + aliasName, ChatFormatting.RED);
+                            return 0;
+                        }
+                        try {
+                            return dispatcher.execute(name + " " + stored, c.getSource());
+                        } catch (com.mojang.brigadier.exceptions.CommandSyntaxException e) {
+                            MinerMod.message("Alias " + aliasName + " failed: " + e.getMessage(), ChatFormatting.RED);
+                            return 0;
+                        }
+                    }))))
             .then(ClientCommands.literal("price").then(ClientCommands.argument("item", StringArgumentType.greedyString()).executes(c -> {
                 String item = StringArgumentType.getString(c, "item");
                 String id = Prices.productId(item);
@@ -615,7 +670,7 @@ final class MinerCommands {
             "/sm goto <x> <y> <z> - walk somewhere with the pathfinder",
             "/sm route add|insert <n>|remove [n]|clear|list|save <name>|load <name>|routes|import|export|show <true|false>",
             "/sm route walk <n> <true|false> | wait <n> <ms> - walk to a point instead of etherwarping, or wait there first",
-            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list|export|import|diff <name> | log"
+            "/sm custom add|remove|list <block> | map [clear] | profile save|load|list|export|import|diff <name> | log | alias add|remove|list|run"
         };
         for (String line : lines) {
             MinerMod.message(line, ChatFormatting.GRAY);
