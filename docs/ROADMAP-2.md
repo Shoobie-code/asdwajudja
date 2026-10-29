@@ -4,6 +4,12 @@ A second roadmap, built from what popular Minecraft and Hypixel SkyBlock mods (S
 
 Ideas are taken from how these mods behave. No code is copied: the GPL-licensed references (V5, Giovanni) are for ideas only.
 
+### Progress
+
+- **Done:** #19 reconnect back-off, #45 config diff, #46 log export, #51 profile sharing codes, #54 log redaction (the redaction half; sending is still open).
+- **Already in the code:** #3 craft profit (`CraftCalc`), #16 stuck handling (`PathWalker`), #21 teleport verification (`RouteMiner` arrival check), #24 break length variance (`Macro.vary`), #47 version pin (`fabric.mod.json`).
+- Everything else below is open; items marked *in game* need a client run before the behaviour can be trusted.
+
 ## Phase 1: Information and helpers (SkyBlock)
 
 1. **Bazaar price history graph.** Plot a product's buy and sell price over the last day or week in the market screen. *offline (data), in game (fetch)*
