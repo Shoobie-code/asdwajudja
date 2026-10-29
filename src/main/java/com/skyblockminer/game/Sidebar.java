@@ -15,6 +15,7 @@ public final class Sidebar {
     private static final Pattern FORMATTING = Pattern.compile("§.");
     private static final Pattern HEAT = Pattern.compile("Heat:\\D*?(\\d+)");
     private static final Pattern COLD = Pattern.compile("Cold:\\s*-?\\s*(\\d+)");
+    private static final Pattern PURSE = Pattern.compile("(?:Purse|Piggy):\\s*([\\d,]+)");
 
     private Sidebar() {
     }
@@ -48,6 +49,21 @@ public final class Sidebar {
 
     public static int cold(List<String> lines) {
         return find(lines, COLD);
+    }
+
+    /** The purse (or piggy) coin total from the sidebar, or -1 when no such line is present. */
+    public static long purse(List<String> lines) {
+        for (String line : lines) {
+            Matcher matcher = PURSE.matcher(line);
+            if (matcher.find()) {
+                try {
+                    return Long.parseLong(matcher.group(1).replace(",", ""));
+                } catch (NumberFormatException e) {
+                    return -1;
+                }
+            }
+        }
+        return -1;
     }
 
     private static int find(List<String> lines, Pattern pattern) {

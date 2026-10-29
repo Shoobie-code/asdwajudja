@@ -92,6 +92,7 @@ public final class Macro {
     public final Routes routes = new Routes();
     final Failsafes failsafes = new Failsafes();
     final ItemTracker tracker = new ItemTracker();
+    final com.skyblockminer.helpers.CoinTracker coins = new com.skyblockminer.helpers.CoinTracker();
     public final Random random = new Random();
     private final Map<MacroType, Routine> routines = new EnumMap<>(MacroType.class);
     private final List<Routine> allRoutines;
@@ -256,6 +257,7 @@ public final class Macro {
         this.autoSell.reset();
         this.outsideHours = false;
         this.tracker.reset();
+        this.coins.reset();
         this.trackerIn = 0;
         this.failsafes.reset(mc.player);
         this.rotator.stop();
@@ -669,6 +671,7 @@ public final class Macro {
         this.hudLines = this.buildHud();
         if (--this.trackerIn <= 0) {
             this.trackerIn = 20;
+            this.coins.update(Sidebar.purse(Sidebar.lines(mc)), now);
             this.trackerLines = this.buildTracker();
         }
     }
@@ -1033,6 +1036,9 @@ public final class Macro {
         }
         if (this.tracker.sacks() > 0L) {
             lines.add(String.format("Sacks: %,d (%,.0f/h)", this.tracker.sacks(), this.tracker.sacks() / hours));
+        }
+        if (this.coins.ready() && this.coins.gained() != 0L) {
+            lines.add(String.format("Coins: %+,d (%,.0f/h)", this.coins.gained(), this.coins.perHour()));
         }
         if (this.config.bazaarPrices) {
             this.prices.refreshIfStale();
