@@ -308,6 +308,10 @@ public final class Macro {
         this.hudLines = List.of();
         this.trackerLines = List.of();
         MinerMod.message(reason + " (" + this.summary() + ")", ChatFormatting.YELLOW);
+        String hint = StopHints.hintFor(reason);
+        if (hint != null) {
+            MinerMod.message(hint, ChatFormatting.GRAY);
+        }
         if (this.mode != MacroType.GOTO) {
             this.notify("stop", "Macro stopped", reason + "\n" + this.summary(), 15844367);
             Toasts.push("Macro stopped", reason, reason.startsWith("FAILSAFE") ? Toasts.Kind.ERROR : Toasts.Kind.INFO);
