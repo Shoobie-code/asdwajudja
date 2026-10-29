@@ -88,6 +88,19 @@ public final class Inv {
         return player == null ? 0 : Math.max(0, player.containerMenu.slots.size() - 36);
     }
 
+    /** Display names of the non-empty items in the open menu's own area (not the player inventory rows). */
+    public static List<String> menuItemNames(Minecraft mc) {
+        List<String> names = new java.util.ArrayList<>();
+        int size = menuSize(mc);
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = slot(mc, i);
+            if (!stack.isEmpty()) {
+                names.add(name(stack));
+            }
+        }
+        return names;
+    }
+
     /** First menu slot (not the player's inventory) whose item name contains {@code text}, ignoring case; -1 if none. */
     public static int menuSlotNamed(Minecraft mc, String text) {
         return findSlot(mc, 0, menuSize(mc), stack -> contains(name(stack), text));

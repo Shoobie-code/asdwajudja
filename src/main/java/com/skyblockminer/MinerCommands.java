@@ -147,6 +147,22 @@ final class MinerCommands {
                 MinerMod.message(String.format("Inventory worth about %,.0f coins at Bazaar instant-sell.", total), ChatFormatting.GREEN);
                 return 1;
             }))
+            .then(ClientCommands.literal("accessories").executes(c -> {
+                Minecraft mc = Minecraft.getInstance();
+                String title = com.skyblockminer.game.Inv.screenTitle(mc);
+                if (title == null || !com.skyblockminer.game.Inv.contains(title, "Accessory Bag")) {
+                    MinerMod.message("Open your Accessory Bag first, then run this.", ChatFormatting.RED);
+                    return 0;
+                }
+                List<String> dupes = com.skyblockminer.helpers.Accessories.duplicates(com.skyblockminer.game.Inv.menuItemNames(mc));
+                if (dupes.isEmpty()) {
+                    MinerMod.message("No duplicate accessories on this page.", ChatFormatting.GREEN);
+                } else {
+                    MinerMod.message("Duplicate accessories (sellable/combinable):", ChatFormatting.AQUA);
+                    dupes.forEach(d -> MinerMod.message("  " + d, ChatFormatting.GRAY));
+                }
+                return 1;
+            }))
             .then(ClientCommands.literal("events").executes(c -> {
                 long now = System.currentTimeMillis();
                 MinerMod.message("Upcoming events:", ChatFormatting.AQUA);
