@@ -18,6 +18,8 @@
 
 ## Decisions
 
+- **Shared logic lives in `Macro`, macro-specific logic in `Routine`.** `Macro` owns failsafes, breaks, rejoin, stats, notifications, menus and the event bus; each macro is a `Routine` that only decides what to do per tick. This is the "separate shared logic from macro-specific implementations" split.
+- **One standard lifecycle.** Every macro implements the same `Routine` interface — `tick`, `reset`, `stopped`, `releaseKeys`, `breaking`, `ownsMenu`, `resume`, `onChat`, `hudLine`, `rejoinWarp`, `home`, `render` (most with defaults). `Macro` drives all macros through these hooks, so lifecycle management is uniform rather than per-macro.
 - **One running macro.** `Macro` has a single `running` flag and a single current `Routine`. Starting a macro stops the one already running, so two macros never drive the mouse at once.
 - **Side features yield to macros.** The auction sniper and the menu solvers check `Macro.running()` and stay idle while a macro is active. Anything that clicks a screen or sends a command must do the same.
 - **One source for options.** `MacroSettings` declares every option once. The menu and `/sm set <id> <value>` both read that list, and duplicate ids fail at startup.
