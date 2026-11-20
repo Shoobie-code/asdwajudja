@@ -195,6 +195,28 @@ final class MinerCommands {
                     MinerMod.message("Cleared all waypoints", ChatFormatting.GREEN);
                     return 1;
                 })))
+            .then(ClientCommands.literal("mayor").executes(c -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player == null) {
+                    return 0;
+                }
+                String mayor = null;
+                for (com.skyblockminer.game.Inv.MenuItem item : com.skyblockminer.game.Inv.menuItems(mc)) {
+                    mayor = com.skyblockminer.helpers.Mayors.find(java.util.List.of(item.name()));
+                    if (mayor == null) {
+                        mayor = com.skyblockminer.helpers.Mayors.find(item.lore());
+                    }
+                    if (mayor != null) {
+                        break;
+                    }
+                }
+                if (mayor == null) {
+                    MinerMod.message("No mayor found. Open the Calendar/Election menu and try again.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                MinerMod.message("Current mayor looks like: " + mayor, ChatFormatting.AQUA);
+                return 1;
+            }))
             .then(ClientCommands.literal("cookie").executes(c -> {
                 Minecraft mc = Minecraft.getInstance();
                 if (mc.player == null) {
