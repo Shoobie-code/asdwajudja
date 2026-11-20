@@ -195,6 +195,27 @@ final class MinerCommands {
                     MinerMod.message("Cleared all waypoints", ChatFormatting.GREEN);
                     return 1;
                 })))
+            .then(ClientCommands.literal("collection").executes(c -> {
+                Minecraft mc = Minecraft.getInstance();
+                String title = com.skyblockminer.game.Inv.screenTitle(mc);
+                if (title == null || !com.skyblockminer.game.Inv.contains(title, "Collection")) {
+                    MinerMod.message("Open a Collections menu first, then run this.", ChatFormatting.RED);
+                    return 0;
+                }
+                boolean any = false;
+                for (com.skyblockminer.game.Inv.MenuItem item : com.skyblockminer.game.Inv.menuItems(mc)) {
+                    int pct = com.skyblockminer.helpers.CollectionProgress.percent(item.lore());
+                    if (pct >= 0) {
+                        MinerMod.message(String.format("  %s: %d%%", item.name(), pct), pct >= 100 ? ChatFormatting.GREEN : ChatFormatting.GRAY);
+                        any = true;
+                    }
+                }
+                if (!any) {
+                    MinerMod.message("No collection progress found on this page.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                return 1;
+            }))
             .then(ClientCommands.literal("accessories").executes(c -> {
                 Minecraft mc = Minecraft.getInstance();
                 String title = com.skyblockminer.game.Inv.screenTitle(mc);

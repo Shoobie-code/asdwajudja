@@ -88,6 +88,23 @@ public final class Inv {
         return player == null ? 0 : Math.max(0, player.containerMenu.slots.size() - 36);
     }
 
+    /** A menu item's display name and its (formatting-stripped) lore lines. */
+    public record MenuItem(String name, List<String> lore) {
+    }
+
+    /** The non-empty items in the open menu's own area, with name and lore, for reading menu data. */
+    public static List<MenuItem> menuItems(Minecraft mc) {
+        List<MenuItem> items = new java.util.ArrayList<>();
+        int size = menuSize(mc);
+        for (int i = 0; i < size; i++) {
+            ItemStack stack = slot(mc, i);
+            if (!stack.isEmpty()) {
+                items.add(new MenuItem(name(stack), lore(stack)));
+            }
+        }
+        return items;
+    }
+
     /** Display names of the non-empty items in the open menu's own area (not the player inventory rows). */
     public static List<String> menuItemNames(Minecraft mc) {
         List<String> names = new java.util.ArrayList<>();
