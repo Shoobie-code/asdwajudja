@@ -195,6 +195,25 @@ final class MinerCommands {
                     MinerMod.message("Cleared all waypoints", ChatFormatting.GREEN);
                     return 1;
                 })))
+            .then(ClientCommands.literal("cookie").executes(c -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player == null) {
+                    return 0;
+                }
+                String found = null;
+                for (com.skyblockminer.game.Inv.MenuItem item : com.skyblockminer.game.Inv.menuItems(mc)) {
+                    found = com.skyblockminer.helpers.CookieBuff.timeLeft(item.lore());
+                    if (found != null) {
+                        break;
+                    }
+                }
+                if (found == null) {
+                    MinerMod.message("No Booster Cookie time found. Open the SkyBlock menu (the cookie/profile item) and try again.", ChatFormatting.YELLOW);
+                    return 0;
+                }
+                MinerMod.message("Booster Cookie time left: " + found, ChatFormatting.AQUA);
+                return 1;
+            }))
             .then(ClientCommands.literal("collection").executes(c -> {
                 Minecraft mc = Minecraft.getInstance();
                 String title = com.skyblockminer.game.Inv.screenTitle(mc);
